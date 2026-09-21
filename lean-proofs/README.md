@@ -431,3 +431,11 @@ Whether your goal is the Fundamental Theorem of Galois Theory, mastering real an
 - [Lean 4 Documentation](https://lean-lang.org/lean4/doc/)
 - [Mathematics in Lean](https://leanprover-community.github.io/mathematics_in_lean/)
 - [Theorem Proving in Lean 4](https://leanprover.github.io/theorem_proving_in_lean4/)
+
+## Sources
+
+- Avigad, de Moura, Kong & Ullrich, **Theorem Proving in Lean 4** — the manual.
+- **Mathematics in Lean** — the tutorial matching this directory's ladder.
+- Artin, **Algebra**, ch. 14–16 — the mathematics the Galois track is formalising.
+
+Full list: [`../REFERENCES.md`](../REFERENCES.md#)

@@ -69,6 +69,10 @@ The same ladder runs through every directory:
 | `contextcite` | leave-one-out attribution | two sources state the same fact |
 | `deploy-and-debug` | alert on the error rate | a 30-second blip pages you at 3am |
 | `compiler-and-vgpu` | all lanes execute in lockstep | a branch makes them disagree |
+| `aws-from-scratch` | one policy, one bucket, one queue | the failures compose, and then arrive on the bill |
+| `provenance-semirings` | annotate tuples with a set of ids | two derivations of one row — the set cannot say how many, or what it cost |
+| `scasp` | SLD (Prolog) | `p :- q. q :- p.` diverges; an even loop is a *success* |
+| `linc` | a gold FOL parse, then a prover | the parse is wrong, and the label is still right |
 
 ### 3. Verification you can run, that explains itself
 
@@ -140,3 +144,12 @@ have found a gap in your model that passing tests did not reveal.
 
 Use `solutions/` freely when stuck. The goal is understanding, not endurance. But read it
 *after* attempting — a solution read cold is just more prose.
+
+---
+
+## Working through it
+
+[`ROADMAP.md`](ROADMAP.md) turns these principles into a calendar: an 18-week schedule at
+three intensities, a daily structure built around *predict-then-run*, and a weekly
+regression day. `python3 progress.py` scores you against it, and — as everything else
+here does — reports the number rather than an impression of the number.
