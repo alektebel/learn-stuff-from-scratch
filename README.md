@@ -26,6 +26,9 @@ MVP-then-complicate driven by limit cases, and verification you can run.
 - **[haskell-projects/](haskell-projects/)** - Various projects to learn Haskell
 - **[lean-proofs/](lean-proofs/)** - Mathematical proofs in Lean, progressing toward Galois theorem
 
+### Systems & Networked Programming (Go)
+- **[go-projects/](go-projects/)** - Projects to learn Go: calculator, HTTP server, concurrent crawler, key-value store
+
 ### Machine Learning & MLOps
 - **[distributed-training/](distributed-training/)** - Distributed training systems (data parallelism, model parallelism, multi-node training)
 - **[ml-in-production/](ml-in-production/)** - Production ML systems (model serving, monitoring, A/B testing)
