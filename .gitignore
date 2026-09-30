@@ -76,3 +76,6 @@ week-09/database-engine/drill.db
 
 # GitHub CodeQL marker, committed by accident
 _codeql_detected_source_root
+
+# nested checkout of the separate alektebel/llms repo (ml/llms is the live one)
+llm-from-scratch/
