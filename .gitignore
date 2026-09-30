@@ -73,3 +73,6 @@ week-17/ray-tracer/**/*.ppm
 
 # DRILL fixture, regenerated on demand
 week-09/database-engine/drill.db
+
+# GitHub CodeQL marker, committed by accident
+_codeql_detected_source_root

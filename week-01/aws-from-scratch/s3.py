@@ -49,7 +49,10 @@ def compute_etag(body: bytes, parts: Optional[List[bytes]] = None) -> str:
     md5-ing the file you uploaded: the ETag is not the object's MD5, and the
     part size changes the answer.
     """
-    raise NotImplementedError
+    if parts is None:
+        return hashlib.md5(body).hexdigest()
+    digests = b"".join(hashlib.md5(part).digest() for part in parts)
+    return f"{hashlib.md5(digests).hexdigest()}-{len(parts)}"
 
 
 class Bucket:
@@ -74,7 +77,8 @@ class S3:
     # -- buckets ------------------------------------------------------------
 
     def create_bucket(self, name: str, versioning: bool = False) -> Bucket:
-        raise NotImplementedError
+        if name in self.buckets:
+            raise S3Error("Bucket already exists")
 
     def _bucket(self, name: str) -> Bucket:
         raise NotImplementedError
