@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Learning journal</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="mast">
+    <div>
+      <p class="eyebrow">learn-stuff-from-scratch</p>
+      <h1>Learning journal</h1>
+    </div>
+    <div class="mast-meta">
+      <p id="today-label"></p>
+      <p id="week-label"></p>
+    </div>
+  </header>
+
+  <main>
+    <section class="today" id="today-panel">
+      <p class="kicker">Today you implement</p>
+      <h2 id="today-do"></h2>
+      <p class="project" id="today-project"></p>
+      <div class="publish-card">
+        <p class="kicker">Today you publish</p>
+        <p id="today-publish"></p>
+      </div>
+    </section>
+
+    <section class="editor">
+      <div class="editor-head">
+        <h2>The post</h2>
+        <div class="editor-actions">
+          <span id="save-state"></span>
+          <button type="button" id="save">Save</button>
+        </div>
+      </div>
+      <textarea id="body" spellcheck="true" placeholder="Write what you learned. Ten minutes. The title above is the expected publishable — you can keep it or replace it."></textarea>
+    </section>
+
+    <aside>
+      <section>
+        <h2>Calendar</h2>
+        <div id="calendar"></div>
+      </section>
+      <section>
+        <h2>This week</h2>
+        <ol id="week-list"></ol>
+      </section>
+      <section>
+        <h2>Progress</h2>
+        <pre id="progress">loading…</pre>
+      </section>
+    </aside>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
