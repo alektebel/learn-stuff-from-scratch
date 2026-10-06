@@ -6,6 +6,9 @@ A collection of from-scratch implementations of various systems and projects for
 principles every directory follows: design choices named as problem-solving decisions,
 MVP-then-complicate driven by limit cases, and verification you can run.
 
+**Reading list:** [RESOURCES.md](RESOURCES.md) indexes external links; directories with
+relevant reading carry their own `RESOURCES.md`.
+
 ## Directory Structure
 
 ### Low-Level Systems (C/C++)
