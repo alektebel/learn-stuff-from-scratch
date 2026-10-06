@@ -1,0 +1,11 @@
+id = "t17-large-repo"
+title = "Find a bug in a repository far larger than the context window"
+category = "limit"
+targets = ["repo-map", "search", "context-overflow"]
+verify_timeout_s = 180
+statement = """
+`bigapp.api.handle("discount", code="SPRING25", amount_cents=10000)` returns 10000, but
+SPRING25 is a valid 25% promotion and the result should be 7500. Promotion codes are
+case-insensitive for customers (`"spring25"` must work too). Find the cause and fix it.
+The repository is large; reading all of it will not fit in your context.
+"""

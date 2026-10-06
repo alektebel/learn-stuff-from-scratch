@@ -1,0 +1,10 @@
+id = "t03-split-amount"
+title = "Money split loses cents"
+category = "bugfix"
+targets = ["baseline"]
+statement = """
+`split_amount(total_cents, n)` in `money.py` splits a bill among n people. The parts
+must be integers, sum exactly to `total_cents`, differ from each other by at most one
+cent, and the larger parts come first. It currently loses cents. Fix it; n must be >= 1
+and total_cents >= 0, otherwise raise ValueError.
+"""

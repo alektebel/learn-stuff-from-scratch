@@ -1,0 +1,11 @@
+id = "t19-huge-log"
+title = "Diagnose from a log far larger than the context window"
+category = "limit"
+targets = ["tool-output-truncation", "compaction", "context-overflow"]
+statement = """
+`logs/app.log` (large) records calls to upstream services. Exactly one upstream host
+produces TIMEOUT lines because its configured timeout is too low. In
+`config/upstreams.json`, set that host's `timeout_ms` to twice the largest `latency_ms`
+observed for that host on its OK lines, rounded up to the next multiple of 100.
+Change nothing else in the file.
+"""

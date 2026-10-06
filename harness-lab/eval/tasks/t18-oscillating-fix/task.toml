@@ -1,0 +1,9 @@
+id = "t18-oscillating-fix"
+title = "Version ordering where obvious fixes break each other"
+category = "limit"
+targets = ["stuck-detection", "loop-detection", "reflection"]
+statement = """
+`tests/test_versions.py` fails. Make `versions.py` order versions by Semantic Versioning
+2.0.0 precedence (section 11 of the spec, summarised in the module docstring) so that the
+tests pass. Do not edit the tests.
+"""

@@ -1,0 +1,11 @@
+id = "t10-extract-validation"
+title = "Deduplicate email validation"
+category = "refactor"
+targets = ["baseline", "edit-precision"]
+statement = """
+`handlers.py` validates email addresses with the same copy-pasted logic in three functions.
+Move that logic into a single function `validate_email(address: str) -> str` in a new module
+`validators.py` (it returns the normalised address or raises ValueError with the same message
+as today), and make the three handlers use it. Behaviour must not change. After the refactor,
+`handlers.py` must not contain any regular expression.
+"""

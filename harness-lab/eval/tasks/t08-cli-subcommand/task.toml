@@ -1,0 +1,16 @@
+id = "t08-cli-subcommand"
+title = "Add a `stats` subcommand to the todo CLI"
+category = "feature"
+targets = ["baseline"]
+statement = """
+`todo.py` is an argparse CLI over a JSON file. Add a `stats` subcommand:
+`python todo.py --db FILE stats` prints exactly three lines
+
+    total: N
+    done: D
+    open: O
+
+and, if any open task has a due date earlier than `--today YYYY-MM-DD` (option of the
+`stats` subcommand, default: the real current date), a fourth line `overdue: K`.
+Follow the structure of the existing subcommands. Exit code 0.
+"""

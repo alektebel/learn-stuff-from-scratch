@@ -52,6 +52,9 @@ relevant reading carry their own `RESOURCES.md`.
 - **[dynamo-paper/](dynamo-paper/)** - Amazon's Dynamo paper (SOSP 2007) implemented directly: consistent hashing with preference lists, vector clocks, N/R/W quorums, sloppy quorum with hinted handoff, Merkle-tree anti-entropy, and gossip membership (17 graded checks via `python3 check.py`)
 - **[aws-from-scratch/](aws-from-scratch/)** - Learn AWS by implementing toy versions of its core services: IAM policy evaluation, S3 with versioning and delete markers, SQS visibility timeouts, DynamoDB hot partitions, Lambda concurrency and cold starts, SNS filter policies and EventBridge patterns, KMS envelope encryption, VPC stateful-vs-stateless networking, plus a capstone pipeline wiring them together - and a map of which remaining AWS services are variations of which mechanism (18 graded checks via `python3 check.py`)
 
+### AI Agents
+- **[harness-lab/](harness-lab/)** - Coding-agent harness from scratch: seven subsystems, the distinctive mechanism of each major harness (OpenHands, Aider, Codex, opencode, ...) as a swappable variant, and a controlled experiment comparing them. Phase 0: a Docker-sandboxed evaluation bench of 20 tasks with hardened hidden-test verifiers, null/oracle control agents and paired-comparison power analysis
+
 ### Operations & Reliability
 - **[deploy-and-debug/](deploy-and-debug/)** - Running the systems in this repo and debugging them when they break: capacity math (KV cache sizing, N/R/W failure tolerance), percentiles/queueing/error budgets, root-cause diagnosis of 11 injected faults from metrics alone, and safe rollout (liveness vs readiness, canary analysis, budget-based auto-rollback) - plus a runbook of the real vllm/nodetool/nvidia-smi/k8s commands (12 graded checks via `python3 check.py`)
 

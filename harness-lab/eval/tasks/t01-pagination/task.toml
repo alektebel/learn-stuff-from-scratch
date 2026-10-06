@@ -1,0 +1,10 @@
+id = "t01-pagination"
+title = "Off-by-one in pagination"
+category = "bugfix"
+targets = ["baseline"]
+statement = """
+`paginate(items, page, per_page)` in `pager.py` is supposed to return the items for a
+1-indexed page. Users report that page 1 skips the first items and the last page is
+sometimes empty when it should not be. Fix it. `total_pages` must stay consistent with
+`paginate`. Pages outside 1..total_pages raise ValueError; total_pages of an empty list is 0.
+"""
