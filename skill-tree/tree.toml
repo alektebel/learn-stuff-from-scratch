@@ -554,7 +554,7 @@ limit_cases = [
   "least-squares classification ruined by outliers that logistic regression ignores",
 ]
 related = ["ml-systems/framework"]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "prml-05-neural-networks"
