@@ -47,6 +47,10 @@ and **unverified**; check before citing.
 
 - [INT8 sparse QR: Krylov, quantization and preconditioning](https://www.reidatcheson.com/sparse%20linear%20algebra/krylov/quantization/preconditioning/2026/06/30/int8-sparse-qr.html)
 
+## Curated indexes
+
+- [AI Performance Engineering resources](https://github.com/wafer-ai/gpu-perf-engineering-resources) (MIT, curated with a source policy; mapped in [ROADMAP.md](ROADMAP.md))
+
 ## GPU MODE lectures
 
 - [GPU MODE lectures: code, notebooks and slides](https://github.com/gpu-mode/lectures) (Apache-2.0; read at `77a8df4`)

@@ -66,6 +66,23 @@ column read of a 32x32 tile with a 32-way conflict, padding to 33 fixing it).
 Pick one; nothing is built until then. Step B is the recommended start: it runs here, and it
 is the content of lecture 8, the one most others assume.
 
+## Reading for each step: [AI Performance Engineering resources](https://github.com/wafer-ai/gpu-perf-engineering-resources)
+
+A curated list by Wafer (MIT, read at `1c52412`, 2026-09-12), with a strict source policy:
+only originating papers, official documentation, implementations, or implementer reports
+with code and measurements; performance numbers without hardware, workload, precision and
+baseline are left out. That policy is the same discipline these modules ask for. Its 121
+links are not copied here (8 were already in this repo); read the sections instead:
+
+| Before | Read in that list | The sources the step implements |
+|---|---|---|
+| step B | "Start here" (in order), then "1. GPU fundamentals" | the roofline paper (Williams, Waterman, Patterson); NVIDIA's matrix-transpose post (coalescing, tiling, bank conflicts) |
+| step C | "2. Kernel optimization": foundational exercises, matrix multiplication, attention | Harris, *Optimizing Parallel Reduction*; Merrill and Garland, single-pass scan with decoupled look-back; Milakov and Gimelshein, online softmax (arXiv 1805.02867) |
+| step A, Triton | "3. Programming models and profiling" | its profiling/correctness subsection is the checklist for a GPU `check.py` |
+| tensor cores, CuTe | "2. Tensor cores and low precision", "3. CUTLASS, CuTe, and CUDA Tile" | gap in this repo |
+
+Authors above are from memory; verify before citing.
+
 ## Questions to answer before building (no answers here)
 
 1. A warp reads `a[threadIdx.x * 2]` in float32. How many 32-byte sectors, and how many for

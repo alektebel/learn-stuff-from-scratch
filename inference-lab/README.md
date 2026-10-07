@@ -35,6 +35,24 @@ three groups:
 | 14 | Chaos suite for inference | CPU-real + Simulated | fault injection and SLO burn in `deploy-and-debug/` (11 injected faults) | replica kills, throttling, spikes against #13 |
 | 15 | Public benchmark teardown | needs #1, #2 on a GPU | — | writing |
 
+### Reading: [AI Performance Engineering resources](https://github.com/wafer-ai/gpu-perf-engineering-resources)
+
+Its sections 4-6 are the reading list for this plan; read them there rather than copied here.
+
+| That list's section | Projects here |
+|---|---|
+| 4. Scheduling and continuous batching | #1, #2, #8 |
+| 4. KV cache systems | #3, #4, #9 (and `context-caching/`) |
+| 4. Quantization | #5 |
+| 4. Speculative decoding | #6 |
+| 5. Prefill and decode disaggregation | #10 |
+| 5. Parallelism, collectives, and topology | `distributed-training/` |
+| 5. Serving benchmarks | #2, #15 |
+| 6. Current hardware | what the GPU-required projects would run on |
+
+Its rule that a performance number needs hardware, workload, precision, baseline and a
+correctness method is the bar for #15 (public benchmark).
+
 ### Corrections to the briefs
 - **#4 "up to 80% TTFT cuts":** true only when shared prefixes are long relative to the request
   and the replica still holds them. The number depends on the workload's prefix distribution;
