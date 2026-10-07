@@ -45,13 +45,13 @@ _SYMBOL = {"complete": "\u2713", "doing": "\u25cf", "ready": "\u25cb",
 # the state the page renders
 # ---------------------------------------------------------------------------
 
-def _item_view(item, course, checks, repo) -> dict:
+def _item_view(item, course, checks, repo, dir_exists=False) -> dict:
     kind = item["kind"]
     total = (checks or {}).get("total") or (len(course["stages"]) if course else 0)
     passed = (checks or {}).get("passed") or 0
 
     if kind == "ready" and course is None:
-        state = "missing"
+        state = "legacy" if dir_exists else "missing"
     elif kind == "ready" and checks and total and passed == total:
         state = "complete"
     elif kind == "ready" and ((checks and passed) or
@@ -80,7 +80,7 @@ def _item_view(item, course, checks, repo) -> dict:
         "why": item["why"], "prereq": item["prereq"], "state": state,
         "symbol": _SYMBOL.get(state, "\u00b7"),
         "course": item["course"],
-        "command": f"cz run {item['course']}" if item["course"] else None,
+        "command": f"cz run {item['course']}" if (item["course"] and course) else None,
         "checks": checks and {"passed": passed, "total": total,
                               "fraction": round(passed / total, 4) if total else 0.0},
         "repo": repo,
@@ -142,20 +142,22 @@ def build_state(profile=None, courses=None) -> dict:
         for item in items:
             name = item["course"]
             course = by_name.get(name) if name else None
+            dir_exists = bool(name) and os.path.isdir(os.path.join(manifests.REPO_ROOT, name))
             view = _item_view(item, course, checks_by_name.get(name),
-                              repo_by_name.get(name))
+                              repo_by_name.get(name), dir_exists)
             if item["kind"] == "ready":
-                if view["state"] == "missing":
-                    totals["missing"] += 1
-                else:
+                state = view["state"]
+                if state in ("complete", "doing", "ready"):
                     totals["courses"] += 1
-                    totals[view["state"]] = totals.get(view["state"], 0) + 1
+                    totals[state] += 1
                     if view["checks"]:
                         totals["checks_passed"] += view["checks"]["passed"]
                         totals["checks_total"] += view["checks"]["total"]
                     if view["repo"]:
                         totals["repo_remaining"] += view["repo"]["remaining"]
                         totals["repo_baseline"] += view["repo"]["baseline"]
+                else:
+                    totals[state] = totals.get(state, 0) + 1
             view_items.append(view)
         phases.append({"code": code, "title": title, "items": view_items})
 
