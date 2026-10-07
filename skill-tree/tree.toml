@@ -344,7 +344,7 @@ accept = [
   "inverse-CDF samples pass a Kolmogorov-Smirnov test against the target",
 ]
 limit_cases = ["inverse-CDF sampling of a heavy tail where float precision near u = 1 truncates the tail"]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "probability-04-joint"
