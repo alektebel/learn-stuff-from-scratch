@@ -35,6 +35,8 @@ and scripted model.
   adversarial tasks (e.g. a task whose obvious command is destructive), not more bug fixes.
 - **Paper unread:** arXiv is unreachable from this environment and the paper is newer than the
   builder's knowledge. Every variant card will say "not verified" until the PDF is provided.
+  Update: public harness repositories *are* readable through the session's git proxy (anonymous
+  shallow clones), so variant cards can cite code. First pass: `docs/variants/sources-openclaw-hermes.md`.
 - **Recall tasks deliver earlier turns as data**, not as a live conversation. How an agent replies
   to them is the agent's design; phase 1 has to define it.
 - The top-level package is named `eval`, as in the plan; installed outside a venv it would
