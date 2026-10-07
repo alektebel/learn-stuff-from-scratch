@@ -160,6 +160,8 @@ Implemented as a course on branch `claude/rl-posttraining-llm-exercises-wzfe8w`
 
 ## Interviews and career
 
+Practice questions mapped to this repo: [interview-prep/ai-engineering.md](interview-prep/ai-engineering.md)
+
 - [Machine learning interviews](https://github.com/alirezadir/Machine-Learning-Interviews)
 - [Hard AI/ML interview questions, part 3](https://hariprasad20.notion.site/Hard-Level-AI-ML-Interview-Questions-Part-3-367956ba22b5807883f4e310f23a708a)
 - [Exponent: behavioural questions](https://www.tryexponent.com/questions?type=behavioral)
