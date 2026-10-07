@@ -163,7 +163,7 @@ limit_cases = [
   "step size above 2 / L diverges; just below converges (L = largest Hessian eigenvalue)",
   "an ill-conditioned valley where plain GD zig-zags and momentum does not",
 ]
-status = "todo"
+status = "done"
 
 # =====================================================================================
 # Track: linear algebra (Axler; Trefethen & Bau)
