@@ -489,7 +489,7 @@ limit_cases = [
   "degree-9 polynomial on 10 points: zero training error, huge test error; regularisation fixing it",
   "an asymmetric loss matrix that moves the decision boundary away from p = 0.5",
 ]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "prml-02-distributions"
