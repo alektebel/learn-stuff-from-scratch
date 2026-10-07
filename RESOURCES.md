@@ -49,6 +49,22 @@ Reading list filed from a dump of 424 links. Links that belong to a directory li
 - [CleanRL issue #525](https://github.com/vwxyzjn/cleanrl/issues/525)
 - [CleanRL issue #517](https://github.com/vwxyzjn/cleanrl/issues/517)
 
+## RL post-training for text-to-SQL and data agents
+
+Implemented as a course on branch `claude/rl-posttraining-llm-exercises-wzfe8w`
+(`rl-posttraining-llm/`, phases 0-7, one mechanism per phase); not merged into this branch.
+
+- [Reasoning-SQL: SQL-tailored partial rewards on top of execution accuracy](https://arxiv.org/abs/2503.23157)
+- [Progress-SQL: progressive rewards](https://arxiv.org/abs/2606.06825)
+- [TRUST-SQL: tool-integrated multi-turn RL over unknown schemas](https://arxiv.org/pdf/2603.16448)
+- [Graph-Reward-SQL: execution-free RL via graph matching](https://arxiv.org/abs/2505.12380)
+- Reward-SQL: process reward model for step-wise SQL reasoning (no link given)
+- [Scaling Generalist Data-Analytic Agents](https://arxiv.org/pdf/2509.25084)
+- [Rewarding the Scientific Process: process-level reward modeling for agentic data analysis](https://arxiv.org/pdf/2604.24198)
+- [Mixture-of-Minds: multi-agent RL for table understanding](https://arxiv.org/pdf/2510.20176)
+- EvoDS / CurateEvo: self-evolving data-science agents (no links given)
+- [The Landscape of Agentic RL for LLMs: A Survey](https://arxiv.org/abs/2509.02547) (read first)
+
 ## Robotics
 
 - [ETH robot learning course 2026](https://github.com/mees-robot-learning-course/ethz-course-2026)

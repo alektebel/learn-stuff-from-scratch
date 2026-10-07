@@ -29,6 +29,38 @@ implements). The column below is a **proposal to confirm** project by project.
 | 6 | Automated DPO flywheel | not started | llm-from-scratch post-training | simulated feedback, GPU for LoRA | mixed |
 | 15 | Public methodology teardown | — | everything above | results worth publishing | writing, yours |
 
+## Second list (LLM reliability), merged
+
+A second fifteen-project list overlaps the first almost entirely. Mapping, so nothing is built twice:
+
+| Reliability list | Same as | Notes |
+|---|---|---|
+| 1 LLM regression test suite (blocks CI) | #4 CI gate | same caveat: gate on low-variance metrics |
+| 2 Trajectory grading engine | #1 | |
+| 3 RAG retrieval benchmark (hit rate, MRR, NDCG, no-answer queries) | extends #5 | needs a RAG system: see below |
+| 4 Judge calibration | #3 | |
+| 5 Hallucination spike monitor | #9 drift monitor + faithfulness | needs RAG citations to check |
+| 6 Shadow traffic comparator | #2 | |
+| 7 Chaos suite for agents (timeouts, malformed tool outputs, overflow) | #8 v2 | needs harness-lab tool layer |
+| 8 **Cost and latency guardrail middleware** | new | per-request token budgets, kill switch, anomaly alerts; harness-lab already enforces wall/step budgets per run |
+| 9 Golden dataset flywheel | capture half of #6 | without the fine-tune |
+| 10 Fallback chain validator | inference-lab #13 | |
+| 11 Prompt and config regression gate | #4 | prompts versioned as config |
+| 12 **Distributed tracing for LLM hops** | new, base of #1 and #11 | OpenTelemetry-style spans; define it with harness-lab phase 1's trace format, not after |
+| 13 **SLO and error-budget dashboard** | new | error-budget math exists in `deploy-and-debug/` |
+| 14 Injection and jailbreak fuzzer | #8 (v1 done) | |
+| 15 Public reliability report | #15 | |
+
+Net new: three projects (cost guardrail middleware, LLM tracing, SLO dashboard) and one dependency.
+
+## The RAG dependency
+
+Projects #5, reliability #3 and reliability #5 need a RAG system under test, and the repo has
+none. Proposed `rag-from-scratch/`, built before them: chunking; BM25; an **HNSW** vector index
+from scratch (layered small-world graphs, greedy search with `ef`, the recall/latency trade-off
+measured against brute force); hybrid retrieval; citation-bearing answers; abstention. It is a
+target for the evals and a learning project on its own.
+
 ### Corrections to the original briefs
 - **#1:** a coding task has many valid trajectories; a single deterministic DAG penalises correct
   alternatives. A DAG fits constrained API workflows; for coding, grade invariants (schema-valid

@@ -23,3 +23,26 @@ External reading for this directory, filed from a link dump. Notes describe the 
 
 - [MLC: Modern GPU Programming for ML Systems](https://mlc.ai/modern-gpu-programming-for-mlsys/)
 - [NVIDIA DLI course event](https://sp-events.courses.nvidia.com/dli-india25)
+
+## Classic GPU performance papers
+
+The links arrived truncated, so these are filed by title. Authors and venues are from memory
+and **unverified**; check before citing.
+
+- *Better Performance at Lower Occupancy* (Volkov, GTC 2010): ILP instead of occupancy
+- *Benchmarking GPUs to Tune Dense Linear Algebra* (Volkov & Demmel, SC 2008)
+- *Use registers and multiple outputs per thread on GPU* (UPM course material)
+- *Unrolling parallel loops* (Volkov, GTC tutorial)
+- *LU, QR and Cholesky Factorizations using Vector Capabilities of GPUs* (Volkov & Demmel, LAPACK Working Note)
+- *Understanding Latency Hiding on GPUs* (Volkov, UC Berkeley PhD thesis)
+- *A microbenchmark to study GPU performance models* (Volkov, ACM)
+- *Parallel Computing Experiences with CUDA* (Garland et al., IEEE Micro 2008)
+- *Fitting FFT onto the G80 Architecture* (Volkov & Kazian, UC Berkeley course project)
+- *Stencil Computation Optimization and Auto-tuning on State-of-the-Art Multicore Architectures* (Datta et al., SC 2008)
+- *Using GPUs to accelerate the bisection algorithm for finding eigenvalues of symmetric tridiagonal matrices* (Volkov & Demmel, UC Berkeley tech report)
+- *Building an Efficient Hash Table on the GPU* (Alcantara et al., GPU Computing Gems)
+- *Programming inverse memory hierarchy: case of stencils on GPUs* (UPM)
+
+## Numerical linear algebra
+
+- [INT8 sparse QR: Krylov, quantization and preconditioning](https://www.reidatcheson.com/sparse%20linear%20algebra/krylov/quantization/preconditioning/2026/06/30/int8-sparse-qr.html)
