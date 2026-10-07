@@ -266,7 +266,7 @@ limit_cases = [
   "a matrix where LU without pivoting is unstable and with pivoting is fine",
   "the classic matrix with growth factor 2^(n-1) under partial pivoting",
 ]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "linalg-06-eigenvalue-algorithms"
