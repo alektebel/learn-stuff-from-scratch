@@ -73,7 +73,7 @@ graph LR
     foundations-06-optimization["06 Continuous optimisation"]
   end
   subgraph linalg
-    linalg-01-vector-spaces["01 Vector spaces and linear maps"]
+    linalg-01-vector-spaces["01 Vector spaces and linear maps"]:::done
     linalg-02-eigenvalues["02 Eigenvalues, invariant subspaces, diagonalisability"]
     linalg-03-spectral-theorem["03 Inner product spaces and the spectral theorem"]
     linalg-04-qr-least-squares["04 QR factorisation and least squares"]
@@ -180,7 +180,7 @@ graph LR
 | `foundations-05-probability` Probability and distributions for ML | foundations | foundations-04-vector-calculus | todo |
 | `foundations-06-optimization` Continuous optimisation | foundations | foundations-04-vector-calculus, foundations-03-matrix-decompositions | todo |
 | `lean-01-galois-path` Logic to the fundamental theorem of Galois theory (Lean 4) | lean | — | exists |
-| `linalg-01-vector-spaces` Vector spaces and linear maps | linalg | foundations-01-linear-algebra | todo |
+| `linalg-01-vector-spaces` Vector spaces and linear maps | linalg | foundations-01-linear-algebra | done |
 | `linalg-02-eigenvalues` Eigenvalues, invariant subspaces, diagonalisability | linalg | linalg-01-vector-spaces | todo |
 | `linalg-03-spectral-theorem` Inner product spaces and the spectral theorem | linalg | linalg-02-eigenvalues, foundations-02-analytic-geometry | todo |
 | `linalg-04-qr-least-squares` QR factorisation and least squares | linalg | linalg-03-spectral-theorem | todo |

@@ -186,7 +186,7 @@ accept = [
   "rank-nullity holds for 100 random maps between spaces of different dimension",
 ]
 limit_cases = ["the differentiation map on P_n is nilpotent: its matrix to the power n+1 is zero"]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "linalg-02-eigenvalues"
