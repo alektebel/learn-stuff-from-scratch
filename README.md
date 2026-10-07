@@ -33,6 +33,7 @@ relevant reading carry their own `RESOURCES.md`.
 - **[distributed-training/](distributed-training/)** - Distributed training systems (data parallelism, model parallelism, multi-node training)
 - **[ml-in-production/](ml-in-production/)** - Production ML systems (model serving, monitoring, A/B testing)
 - **[mlops/](mlops/)** - MLOps pipelines (experiment tracking, CI/CD, feature stores)
+- **[ml-systems/](ml-systems/)** - Harvard CS249r *Machine Learning Systems* implemented: a chapter-by-chapter map of Vols I-III onto this repo, and a framework track (TinyTorch's arc) - tensors with autograd, layers, stable losses, SGD/Adam, data loading, the 1958/1969/1986 milestones and a cost model checked against real allocations (16 graded checks, mutation-tested)
 - **[ml-inference/](ml-inference/)** - High-performance inference (optimization, quantization, edge deployment)
 
 ### Generative AI & Deep Learning
