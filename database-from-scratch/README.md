@@ -16,6 +16,7 @@ NoSQL side of the comparison; this is the other side.
 | Indexing | B+tree: splits, root growth, range scans over linked leaves | `btree.py` | 3-6 |
 | Atomicity + durability | write-ahead log, CRC framing, redo recovery, checkpoints | `wal.py` | 7-10 |
 | Isolation | MVCC with four isolation levels | `mvcc.py` | 11-13 |
+| Isolation, indexed | the version store itself in the B+tree; point lookups vs indexed range scans | `mvcc.py` | 18 |
 | Isolation, observed | the anomaly × isolation-level matrix, produced by your engine | `anomalies.py` | 14 |
 | SQL vs NoSQL | tables, atomic vs asynchronous secondary indexes | `table.py` | 15-17 |
 
@@ -32,9 +33,9 @@ python3 check.py 9      # one step
 python3 check.py --all  # everything
 ```
 
-`check.py` runs 17 checks against **your** code and never imports `solutions/`.
+`check.py` runs 18 checks against **your** code and never imports `solutions/`.
 
-**The checker was itself tested.** Seven classic bugs were planted in copies of the solutions,
+**The checker was itself tested.** Nine classic bugs were planted in copies of the solutions,
 and each one has to be caught by its check:
 
 | Planted bug | Caught by |
@@ -46,10 +47,14 @@ and each one has to be caught by its check:
 | SNAPSHOT without first-committer-wins | step 12 |
 | SERIALIZABLE without range validation (phantoms) | step 13 |
 | an "async" index updated inside the transaction | step 17 |
+| the B-tree version index dropping tombstoned versions | step 18 |
+| a key encoding that is order-preserving but not prefix-free | step 18 |
 
-Two of them initially slipped through. A randomised B-tree test almost never clusters
+Three of them initially slipped through. A randomised B-tree test almost never clusters
 large entries in one half, and a corrupted byte usually broke the JSON before the missing
-CRC check mattered. Steps 6 and 7 now build those cases deliberately.
+CRC check mattered. Steps 6 and 7 now build those cases deliberately. The third, the
+prefix-free encoding, slipped through because the naive encoding is still
+order-preserving — only a direct assertion on `_enc`/`_dec` catches it.
 
 ## Design decisions, named
 
@@ -64,6 +69,10 @@ Each file opens with its decisions and what they cost. In short:
   O(database size) per checkpoint.
 - **SERIALIZABLE by optimistic read validation** (`mvcc.py`). Simpler than SSI and provably
   serializable, with some false aborts.
+- **Version chains behind the B+tree** (`mvcc.py`). The version store is the same index
+  structure as everything else, keyed by an order-preserving encoding of the user key, so a
+  point read is one descent and a range scan walks the linked leaves. Cost: version chains
+  are read whole, and encoded keys are capped at `btree.MAX_KEY` bytes.
 
 ## Questions to answer before reading the solutions
 
@@ -81,8 +90,8 @@ Each file opens with its decisions and what they cost. In short:
 
 - Concurrency is simulated: one thread interleaves transactions in a chosen order. That
   makes every anomaly reproducible; it says nothing about lock contention or throughput.
-- The MVCC store is an in-memory dict, so a range scan inside it is O(n) internally.
-  `keys_touched` counts the keys a B-tree-backed index would read, not what this toy does.
-  Wiring MVCC onto the B-tree is the natural extension.
+- The MVCC store is B+tree-backed, so its range scan is a descent plus a leaf walk.
+  `keys_touched` now counts the tree entries that walk really reads: a narrow scan reads
+  few.
 - Durability and MVCC are separate layers here. A real engine logs MVCC versions in the WAL.
 - No SQL parser, query planner or joins. Indexes support equality lookups only.

@@ -29,6 +29,7 @@ HINTS = {
   "Txn._visible": "Own writes first. READ_UNCOMMITTED also sees other active transactions' writes. Otherwise return the newest version with commit_ts <= the read timestamp: the current clock for READ_(UN)COMMITTED, start_ts for SNAPSHOT/SERIALIZABLE. No version: TOMBSTONE.",
   "Txn.scan": "Record the range (SERIALIZABLE needs it). Candidate keys: committed keys in range, own writes in range, and for READ_UNCOMMITTED others' uncommitted writes. Keep those whose visible value is not TOMBSTONE.",
   "Txn.commit": "SNAPSHOT/SERIALIZABLE: abort if a key we WRITE was committed after start_ts. SERIALIZABLE also: abort if a key we READ, or any key in a range we SCANNED, was. Then advance the clock and append one Version per write.",
+  "MVCCStore._scan_versions": "Encode lo and hi, descend the tree to the first leaf at lo, then walk entries and the next-leaf pointers until hi. Decode each key and its version chain and return (key, [(commit_ts, value), ...]); tombstones are versions too, so keep them. Count every tree entry read in keys_touched: a narrow range must read few keys, not the whole store.",
  },
  "anomalies.py": {
   "dirty_read": "Return True if T2 can see a value that T1 wrote and then aborted.",

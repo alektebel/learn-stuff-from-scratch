@@ -26,14 +26,28 @@ Chosen: optimistic backward validation of the read set, which is simpler and pro
 serializable, at the price of false aborts (it aborts some schedules SSI would allow).
 Measure the price: count aborts at each level on the same workload.
 
+DESIGN DECISION - where the versions live
+A version store is a key -> version-chain index plus the chains. Chosen: put that index
+in the same B+tree the rest of the engine uses (`btree.py`), keyed by an order-preserving
+encoding of the user key; the tree value is the pickled chain of (commit_ts, value).
+A point read is then one tree descent; a range scan is one descent plus a walk over the
+linked leaves, and `keys_touched` counts exactly the tree entries that walk reads. No
+longer an in-memory dict scanned with `key in d`.
+
 Writes are optimistic at every level: no locks, conflicts are found at commit.
 """
 
 from __future__ import annotations
 
+import os
+import pickle
+import tempfile
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
+
+from btree import BTree
+from pager import Pager
 
 TOMBSTONE = object()  # a committed delete
 
@@ -53,6 +67,57 @@ class SerializationFailure(Exception):
 class Version:
     value: object
     commit_ts: int
+
+
+# ---------------------------------------------------------------------------
+# Key and version encodings
+#
+# Keys are arbitrary str or bytes in the API but the B+tree deals in short byte strings.
+# _enc is order-preserving and prefix-free: a tag byte keeps the two key types apart,
+# 0x00 is escaped as 0x00 0xff, and 0x00 0x00 terminates. Lexicographic order of the
+# encoded keys is therefore the order of the original keys, which is what makes a tree
+# range scan answer a range query.
+# ---------------------------------------------------------------------------
+
+def _enc(key) -> bytes:
+    if isinstance(key, bytes):
+        tag, raw = b"b", key
+    elif isinstance(key, str):
+        tag, raw = b"s", key.encode("utf-8")
+    else:
+        raise TypeError(f"MVCC keys must be str or bytes, got {type(key).__name__}")
+    return tag + raw.replace(b"\x00", b"\x00\xff") + b"\x00\x00"
+
+
+def _dec(enc: bytes):
+    tag, out, i = enc[:1], bytearray(), 1
+    while i < len(enc):
+        if enc[i] == 0:
+            if enc[i + 1] == 0:
+                break
+            out.append(0)
+            i += 2
+        else:
+            out.append(enc[i])
+            i += 1
+    raw = bytes(out)
+    return raw.decode("utf-8") if tag == b"s" else raw
+
+
+def _dump_value(value) -> bytes:
+    return b"\x00" if value is TOMBSTONE else b"\x01" + pickle.dumps(value, protocol=4)
+
+
+def _load_value(blob: bytes):
+    return TOMBSTONE if blob[:1] == b"\x00" else pickle.loads(blob[1:])
+
+
+def _dump_versions(versions) -> bytes:
+    return pickle.dumps([(ts, _dump_value(v)) for ts, v in versions], protocol=4)
+
+
+def _load_versions(blob: bytes):
+    return [(ts, _load_value(v)) for ts, v in pickle.loads(blob)]
 
 
 @dataclass
@@ -76,9 +141,9 @@ class Txn:
             if dirty is not None:
                 return dirty
         as_of = s._clock if self.isolation in (Isolation.READ_UNCOMMITTED, Isolation.READ_COMMITTED) else self.start_ts
-        for v in reversed(s._versions.get(key, [])):
-            if v.commit_ts <= as_of:
-                return v.value
+        for ts, value in reversed(s._versions_of(key)):
+            if ts <= as_of:
+                return value
         return TOMBSTONE
 
     def read(self, key) -> Optional[object]:
@@ -91,10 +156,11 @@ class Txn:
         """All live keys with lo <= key < hi, as this transaction sees them."""
         self._check_active()
         self.ranges.append((lo, hi))
-        keys = {k for k in self.store._versions if lo <= k < hi}
+        keys = {k for k, _ in self.store._scan_versions(lo, hi)}
         keys |= {k for k in self.writes if lo <= k < hi}
         if self.isolation is Isolation.READ_UNCOMMITTED:
-            keys |= {k for t in self.store._active.values() if t is not self for k in t.writes if lo <= k < hi}
+            keys |= {k for t in self.store._active.values() if t is not self
+                     for k in t.writes if lo <= k < hi}
         out = {}
         for k in sorted(keys):
             v = self._visible(k)
@@ -125,13 +191,13 @@ class Txn:
                     self._finish("aborted")
                     raise SerializationFailure(f"{key!r} was read, then changed by a later commit")
             for lo, hi in self.ranges:
-                for key in s._versions:
+                for key, _versions in s._scan_versions(lo, hi):
                     if lo <= key < hi and s._last_commit_ts(key) > self.start_ts:
                         self._finish("aborted")
                         raise SerializationFailure(f"range [{lo!r}, {hi!r}) changed under the scan ({key!r})")
         s._clock += 1
         for key, value in self.writes.items():
-            s._versions.setdefault(key, []).append(Version(value, s._clock))
+            s._put_version(key, s._clock, value)
         self._finish("committed")
         return s._clock
 
@@ -150,12 +216,20 @@ class Txn:
 
 
 class MVCCStore:
-    def __init__(self):
-        self._versions: dict = {}   # key -> [Version], ascending commit_ts
+    def __init__(self, path: Optional[str] = None):
+        if path is None:
+            path = os.path.join(tempfile.mkdtemp(prefix="mvcc-"), "versions.db")
+        self.tree = BTree(Pager(path, cache_pages=256))  # the version index lives in the B+tree
+        self.keys_touched = 0       # tree entries read by the last lookups/scans
         self._clock = 0             # last commit timestamp handed out
         self._next_id = 1
         self._active: dict = {}     # id -> Txn, in begin order
         self.stats = {"committed": 0, "aborted": 0}
+
+    def reset_counters(self) -> None:
+        self.keys_touched = 0
+        p = self.tree.pager
+        p.disk_reads = p.cache_hits = p.disk_writes = 0
 
     def begin(self, isolation: Isolation = Isolation.SNAPSHOT) -> Txn:
         t = Txn(self, isolation, start_ts=self._clock, id=self._next_id)
@@ -163,9 +237,36 @@ class MVCCStore:
         self._active[t.id] = t
         return t
 
+    def _versions_of(self, key) -> list:
+        """The committed version chain for one key, ascending by commit_ts."""
+        blob = self.tree.get(_enc(key))
+        self.keys_touched += 1
+        return _load_versions(blob) if blob is not None else []
+
+    def _put_version(self, key, ts: int, value) -> None:
+        versions = self._versions_of(key)
+        versions.append((ts, value))
+        self.tree.put(_enc(key), _dump_versions(versions))
+
+    def _scan_versions(self, lo, hi) -> list:
+        """Walk the B+tree version index for lo <= key < hi.
+
+        Returns [(key, [(commit_ts, value), ...])] in key order, tombstones included, so
+        callers can pick the version their isolation level makes visible. `keys_touched`
+        counts the tree entries the walk actually reads: a narrow range reads the few
+        keys in it, not the whole store.
+        """
+        lo_b = _enc(lo) if lo is not None else None
+        hi_b = _enc(hi) if hi is not None else None
+        out = []
+        for enc_key, blob in self.tree.scan(lo_b, hi_b):
+            out.append((_dec(enc_key), _load_versions(blob)))
+            self.keys_touched += 1
+        return out
+
     def _last_commit_ts(self, key) -> int:
-        versions = self._versions.get(key)
-        return versions[-1].commit_ts if versions else 0
+        versions = self._versions_of(key)
+        return versions[-1][0] if versions else 0
 
     def _latest_uncommitted(self, key, exclude: int):
         for t in reversed(list(self._active.values())):
@@ -183,9 +284,9 @@ class MVCCStore:
     def snapshot(self) -> dict:
         """Latest committed state (for tests)."""
         out = {}
-        for k, versions in self._versions.items():
-            if versions[-1].value is not TOMBSTONE:
-                out[k] = versions[-1].value
+        for key, versions in self._scan_versions(None, None):
+            if versions and versions[-1][1] is not TOMBSTONE:
+                out[key] = versions[-1][1]
         return out
 
 

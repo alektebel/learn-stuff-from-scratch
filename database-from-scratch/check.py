@@ -468,6 +468,98 @@ def check_async_index() -> None:
     assert all(u["id"] != 1 for u in users.find(r, "city", "Lyon"))
 
 
+# ---------------------------------------------------------------------------
+# Step 18: the MVCC version store on the B+tree
+# ---------------------------------------------------------------------------
+
+def check_mvcc_btree_backed() -> None:
+    from mvcc import MVCCStore, TOMBSTONE, _enc, _dec
+
+    # The version index is keyed by _enc(key), and the B+tree answers a range query by
+    # comparing those encoded bytes. That only works if _enc is order-preserving AND
+    # prefix-free: if two keys' encodings compare "one is a prefix of the other", a scan
+    # splits or bounds them wrongly. A naive `tag + raw` encoding is order-preserving too,
+    # so no assertion through the scan/read API can catch a missing 0x00 escape — assert
+    # the encoding directly instead.
+    tricky_str = ["", "\x00", "a\x00", "a\x00b", "\x00\x00", "\x00\x00\x00",
+                  "a\x00\x00b", "héllo", "日本語", "z"]
+    tricky_bytes = [b"", b"\x00", b"a\x00", b"a\x00b", b"\x00\x00",
+                    b"k\x00", b"\xff\x00\xfe"]
+    for k in tricky_str:
+        enc = _enc(k)
+        assert isinstance(enc, (bytes, bytearray)), f"_enc({k!r}) returned {type(enc).__name__}, not bytes"
+        dec = _dec(enc)
+        assert dec == k and type(dec) is str, f"round-trip broke for str key {k!r}: got {dec!r}"
+    for k in tricky_bytes:
+        enc = _enc(k)
+        assert isinstance(enc, (bytes, bytearray)), f"_enc({k!r}) returned {type(enc).__name__}, not bytes"
+        dec = _dec(enc)
+        assert dec == k and type(dec) is bytes, f"round-trip broke for bytes key {k!r}: got {dec!r}"
+
+    # Order-preserving: sorting the keys must give the same sequence as sorting their
+    # encodings, within each key type (a tag byte keeps str and bytes apart).
+    for keys in (tricky_str, tricky_bytes, [f"row:{i:04d}" for i in range(20)]):
+        by_key = sorted(keys)
+        by_enc = sorted(keys, key=_enc)
+        assert by_key == by_enc, (
+            f"_enc is not order-preserving: sorted(keys)={by_key!r} but sorted by encoding={by_enc!r}")
+
+    # Prefix-free: no encoded key may be a byte-prefix of another (and no two keys may
+    # collide). This is exactly what forces the 0x00 escape and the 0x00 0x00 terminator.
+    prefix_set = ["a", "ab", "a\x00", "a\x00b", b"k\x00"]
+    encs = [_enc(k) for k in prefix_set]
+    assert len(set(encs)) == len(encs), f"_enc is not injective: {encs!r}"
+    for i in range(len(encs)):
+        for j in range(len(encs)):
+            if i != j:
+                assert not encs[j].startswith(encs[i]), (
+                    f"_enc({prefix_set[i]!r})={encs[i]!r} is a prefix of "
+                    f"_enc({prefix_set[j]!r})={encs[j]!r}: the encoding is not prefix-free")
+
+    s = MVCCStore()
+    n = 600
+    t = s.begin()
+    for i in range(n):
+        t.write(f"row:{i:04d}", i)
+    t.commit()
+
+    # The version index is a real multi-level B+tree, not an in-memory dict.
+    assert s.tree.height() >= 2, (
+        f"{n} committed versions fit in one leaf (height {s.tree.height()}): "
+        "the version store is not going through btree.py")
+
+    # A point read is one tree descent: it must not touch every key.
+    s.reset_counters()
+    r = s.begin()
+    assert r.read("row:0000") == 0
+    point = s.keys_touched
+    assert point <= 1, f"a point read touched {point} tree entries; it should be one lookup"
+
+    # A narrow range scan reads only the keys inside it, not the whole store.
+    s.reset_counters()
+    narrow_hits = r.scan("row:0100", "row:0105")
+    narrow = s.keys_touched
+    assert sorted(narrow_hits) == [f"row:{i:04d}" for i in range(100, 105)], f"scan returned {sorted(narrow_hits)}"
+    assert narrow <= 12, f"a 5-key range scan touched {narrow} tree entries: the scan is not using the ordered index"
+
+    # A full scan walks all the linked leaves, so its tree work scales with the data.
+    s.reset_counters()
+    everything = r.scan("row:", "row:~")
+    full = s.keys_touched
+    assert len(everything) == n, f"full scan saw {len(everything)} of {n} keys"
+    assert full >= n, f"full scan touched {full} tree entries; it should read at least one per key"
+
+    # The B+tree holds every version, tombstones included, so a delete is a new version
+    # the range validation can see, not an erase.
+    d = s.begin()
+    d.delete("row:0000")
+    d.commit()
+    versions = dict(s._scan_versions(None, None))["row:0000"]
+    assert len(versions) == 2 and versions[-1][1] is TOMBSTONE, (
+        "the B+tree version index dropped the tombstone: a delete must be a new version")
+    assert s.begin().read("row:0000") is None
+
+
 CHECKS: List[Tuple[str, str, Callable[[], None]]] = [
     ("pager.py", "pages survive close/reopen", check_pager_roundtrip),
     ("pager.py", "LRU buffer pool, dirty write-back", check_pager_cache),
@@ -486,6 +578,7 @@ CHECKS: List[Tuple[str, str, Callable[[], None]]] = [
     ("table.py", "primary key, secondary index vs scan", check_table_index),
     ("table.py", "index changes roll back with the row", check_table_atomic),
     ("table.py", "async index: the stale-read window", check_async_index),
+    ("mvcc.py", "version store on the B+tree: point vs range work", check_mvcc_btree_backed),
 ]
 
 
