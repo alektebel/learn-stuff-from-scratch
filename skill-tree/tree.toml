@@ -246,7 +246,7 @@ accept = [
 limit_cases = [
   "an ill-conditioned problem where the normal equations lose about twice as many digits as QR (measure against a high-precision reference)",
 ]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "linalg-05-conditioning-stability"
