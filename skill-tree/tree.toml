@@ -286,7 +286,7 @@ accept = [
 ]
 limit_cases = ["unshifted QR stalling on eigenvalues of equal magnitude; Wilkinson shift fixing it"]
 related = ["spectral-graphs"]
-status = "todo"
+status = "done"
 
 # =====================================================================================
 # Track: probability (Blitzstein & Hwang)
