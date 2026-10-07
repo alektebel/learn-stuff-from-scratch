@@ -560,6 +560,59 @@ def check_mvcc_btree_backed() -> None:
     assert s.begin().read("row:0000") is None
 
 
+# ---------------------------------------------------------------------------
+# Step 19: durability of the MVCC versions in the WAL
+# ---------------------------------------------------------------------------
+
+def check_mvcc_wal_durability() -> None:
+    from mvcc import MVCCStore, TOMBSTONE
+
+    d = tmpdir()
+    base = os.path.join(d, "v.db")
+
+    s = MVCCStore(base, durable=True)
+    s.load({"a": 1, "b": 2, "c": 3})       # commit ts 1
+    t = s.begin()
+    t.write("a", 10)
+    t.delete("b")                          # a tombstone is a version too
+    t.write("d", 4)
+    t.commit()                             # commit ts 2
+
+    ghost = s.begin()
+    ghost.write("ghost", 99)
+    ghost.abort()                          # wrote, aborted: its record must NOT survive
+
+    pending = s.begin()
+    pending.write("never", 0)              # still active when the process dies
+
+    committed = s.snapshot()
+    clock = s._clock
+    version_chains = dict(s._scan_versions(None, None))
+    s.crash()                              # crash: no checkpoint, drop in-memory state
+
+    r = MVCCStore(base, durable=True)      # recover using the WAL
+    assert r.snapshot() == committed, (
+        "after a crash the recovered MVCC state is not the committed state the WAL records: "
+        f"got {r.snapshot()!r}, expected {committed!r} (are versions of aborted/uncommitted "
+        "transactions being replayed, or are committed ones missing?)")
+    assert r._clock == clock, (
+        f"the commit clock after recovery is {r._clock}, expected {clock}: commit timestamps were not restored")
+
+    after = dict(r._scan_versions(None, None))
+    assert set(after) == set(version_chains), (
+        f"the set of keyed version chains changed across recovery: {set(after)} vs {set(version_chains)}")
+    for key, chain in version_chains.items():
+        assert after[key] == chain, (
+            f"the version chain (including its commit timestamps) for {key!r} did not survive "
+            f"recovery: {after[key]!r} vs {chain!r} (only the latest version must not be enough)")
+    assert any(v is TOMBSTONE and ts == clock for ts, v in after["b"]), (
+        "the tombstone committed for 'b' was not restored as a version with its commit timestamp")
+
+    rv = r.begin()
+    assert rv.read("ghost") is None, "an aborted transaction's version was replayed by recovery"
+    assert rv.read("never") is None, "an uncommitted transaction's version was replayed by recovery"
+
+
 CHECKS: List[Tuple[str, str, Callable[[], None]]] = [
     ("pager.py", "pages survive close/reopen", check_pager_roundtrip),
     ("pager.py", "LRU buffer pool, dirty write-back", check_pager_cache),
@@ -579,6 +632,7 @@ CHECKS: List[Tuple[str, str, Callable[[], None]]] = [
     ("table.py", "index changes roll back with the row", check_table_atomic),
     ("table.py", "async index: the stale-read window", check_async_index),
     ("mvcc.py", "version store on the B+tree: point vs range work", check_mvcc_btree_backed),
+    ("mvcc.py", "versions survive a crash via the WAL", check_mvcc_wal_durability),
 ]
 
 

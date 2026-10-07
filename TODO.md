@@ -54,9 +54,10 @@ Update this file in the same commit that finishes or adds an item.
        fallbacks, #3 KV monitor. → [inference-lab/README.md](inference-lab/README.md)
 8. [ ] **agent-evals next**: red-team v2 (tool layer, loops) and trajectory grading, both
        after harness-lab phase 1. → [agent-evals/README.md](agent-evals/README.md)
-9. [ ] **database-from-scratch extension**: MVCC on top of the B-tree (done: step 18,
-       B+tree-backed version store, audited); durability for MVCC versions in the WAL (part 2).
-       → [database-from-scratch/README.md](database-from-scratch/README.md) §Limits
+9. [x] **database-from-scratch extension**: MVCC on top of the B+tree and durability for
+       MVCC versions in the WAL — both lands (steps 18-19, audited). The engine's remaining
+       limits are in the module README §Limits.
+       → [database-from-scratch/README.md](database-from-scratch/README.md)
 10. [ ] **web-launch-checklist exercises 4-16** and the remaining observers
         (`unfurl.py`, `reader.py`, `mobile.py`, `visit.py`, `impatient.py`).
         → [web-launch-checklist/README.md](web-launch-checklist/README.md)

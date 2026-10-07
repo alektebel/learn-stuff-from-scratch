@@ -35,12 +35,23 @@ linked leaves, and `keys_touched` counts exactly the tree entries that walk read
 longer an in-memory dict scanned with `key in d`.
 
 Writes are optimistic at every level: no locks, conflicts are found at commit.
+
+DESIGN DECISION - durability of the versions
+A version lives in the B+tree, but that tree is a cache of pages, not a log: a crash can
+lose or tear it. Chosen: in durable mode the same WAL as `wal.py` is the truth. Writing a
+key appends a "vput" record (the commit timestamp is not known yet); committing appends a
+"commit" record carrying the new timestamp and syncs the log BEFORE the version is applied
+to the tree. Recovery rebuilds the index by replaying only "vput" records whose transaction
+also has a "commit" record, in commit order. Cost: the log grows until a checkpoint, and a
+replay is idempotent (a version already present at that timestamp is replaced, not
+duplicated) so replaying over a checkpoint is safe.
 """
 
 from __future__ import annotations
 
 import os
 import pickle
+import shutil
 import tempfile
 from dataclasses import dataclass, field
 from enum import Enum
@@ -48,6 +59,7 @@ from typing import Optional
 
 from btree import BTree
 from pager import Pager
+from wal import WAL, read_records
 
 TOMBSTONE = object()  # a committed delete
 
@@ -120,6 +132,18 @@ def _load_versions(blob: bytes):
     return [(ts, _load_value(v)) for ts, v in pickle.loads(blob)]
 
 
+def _committed_versions(wal_path: str):
+    """Committed versions from the WAL, in commit order: (enc_key, commit_ts, value_blob).
+
+    A "vput" record is written when a key is written, before the transaction commits, so
+    the log can hold the versions of a transaction that later aborts or never finishes.
+    Only a surviving "commit" record makes them eligible for redo; a transaction with no
+    commit record is ignored entirely.
+    """
+    # TODO: Read the WAL; buffer each transaction's "vput" records by tx id; when its "commit" record appears, emit (enc_key, commit_ts, value_blob) for that transaction. A transaction with no commit record is ignored.
+    raise NotImplementedError("_committed_versions")
+
+
 @dataclass
 class Txn:
     store: "MVCCStore"
@@ -149,15 +173,15 @@ class Txn:
 
     # -- writes ---------------------------------------------------------------------------
     def write(self, key, value) -> None:
-        self._check_active()
-        self.writes[key] = value
+        # TODO: Store the value in self.writes. In a durable store, also append a write-ahead "vput" record (key and value, no timestamp yet: the commit timestamp is only known at commit) so recovery can rebuild committed versions.
+        raise NotImplementedError("Txn.write")
 
     def delete(self, key) -> None:
         self.write(key, TOMBSTONE)
 
     # -- end ------------------------------------------------------------------------------
     def commit(self) -> int:
-        # TODO: SNAPSHOT/SERIALIZABLE: abort if a key we WRITE was committed after start_ts. SERIALIZABLE also: abort if a key we READ, or any key in a range we SCANNED, was. Then advance the clock and append one Version per write.
+        # TODO: SNAPSHOT/SERIALIZABLE: abort if a key we WRITE was committed after start_ts. SERIALIZABLE also: abort if a key we READ, or any key in a range we SCANNED, was. Durable store: append a "commit" record carrying the new timestamp and sync() the log BEFORE applying the versions. Then advance the clock and append one Version per write.
         raise NotImplementedError("Txn.commit")
 
     def abort(self) -> None:
@@ -175,15 +199,43 @@ class Txn:
 
 
 class MVCCStore:
-    def __init__(self, path: Optional[str] = None):
+    def __init__(self, path: Optional[str] = None, durable: bool = False):
         if path is None:
             path = os.path.join(tempfile.mkdtemp(prefix="mvcc-"), "versions.db")
-        self.tree = BTree(Pager(path, cache_pages=256))  # the version index lives in the B+tree
-        self.keys_touched = 0       # tree entries read by the last lookups/scans
-        self._clock = 0             # last commit timestamp handed out
+        self._durable = durable
+        self._data = path         # last checkpoint (durable mode only)
+        self.keys_touched = 0     # tree entries read by the last lookups/scans
+        self._clock = 0           # last commit timestamp handed out
         self._next_id = 1
-        self._active: dict = {}     # id -> Txn, in begin order
+        self._active: dict = {}   # id -> Txn, in begin order
         self.stats = {"committed": 0, "aborted": 0}
+        if durable:
+            self._work = path + ".work"
+            self._wal_path = path + ".wal"
+            self._recover()
+        else:
+            self.tree = BTree(Pager(path, cache_pages=256))  # version index lives in the B+tree
+        self.keys_touched = 0
+
+    def _recover(self) -> None:
+        """Durable mode: rebuild the committed version index from the checkpoint plus the WAL.
+
+        Sets self.tree, self._clock, self._next_id and self._wal. The work file starts from
+        the last checkpoint (or empty): a crash can leave it torn, so only data.db is trusted.
+        Replaying is idempotent, so a version already checkpointed is replaced, not duplicated.
+        """
+        # TODO: Durable mode: drop a stale .new checkpoint; start the work file from data.db (or empty, so a torn work file is never trusted); open pager + tree on it; replay _committed_versions() into it idempotently; restore _clock and _next_id from the log; then open the WAL for appending.
+        raise NotImplementedError("MVCCStore._recover")
+
+    def _set_version_enc(self, enc_key: bytes, ts: int, value) -> None:
+        """Idempotent redo of one committed version, keeping the chain in commit_ts order."""
+        # TODO: Idempotent redo of one committed version: read the chain for enc_key, replace the version with this commit_ts if it is already there, else insert it in commit_ts order, and write the chain back.
+        raise NotImplementedError("MVCCStore._set_version_enc")
+
+    def crash(self) -> None:
+        """Simulate a process crash: drop in-memory state without checkpointing."""
+        # TODO: Simulate a process crash: close the WAL and the pager WITHOUT checkpointing, leaving data.db as the last checkpoint.
+        raise NotImplementedError("MVCCStore.crash")
 
     def reset_counters(self) -> None:
         self.keys_touched = 0
@@ -208,7 +260,13 @@ class MVCCStore:
         self.tree.put(_enc(key), _dump_versions(versions))
 
     def _scan_versions(self, lo, hi) -> list:
-        """Walk the B+tree version index for lo <= key < hi, in key order."""
+        """Walk the B+tree version index for lo <= key < hi.
+
+        Returns [(key, [(commit_ts, value), ...])] in key order, tombstones included, so
+        callers can pick the version their isolation level makes visible. `keys_touched`
+        counts the tree entries the walk actually reads: a narrow range reads the few
+        keys in it, not the whole store.
+        """
         # TODO: Encode lo and hi, descend the tree to the first leaf at lo, then walk entries and the next-leaf pointers until hi. Decode each key and its version chain and return (key, [(commit_ts, value), ...]); tombstones are versions too, so keep them. Count every tree entry read in keys_touched: a narrow range must read few keys, not the whole store.
         raise NotImplementedError("MVCCStore._scan_versions")
 

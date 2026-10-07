@@ -17,6 +17,7 @@ NoSQL side of the comparison; this is the other side.
 | Atomicity + durability | write-ahead log, CRC framing, redo recovery, checkpoints | `wal.py` | 7-10 |
 | Isolation | MVCC with four isolation levels | `mvcc.py` | 11-13 |
 | Isolation, indexed | the version store itself in the B+tree; point lookups vs indexed range scans | `mvcc.py` | 18 |
+| Isolation, durable | MVCC versions and commit timestamps written to the WAL; recovery rebuilds them | `mvcc.py` | 19 |
 | Isolation, observed | the anomaly × isolation-level matrix, produced by your engine | `anomalies.py` | 14 |
 | SQL vs NoSQL | tables, atomic vs asynchronous secondary indexes | `table.py` | 15-17 |
 
@@ -33,9 +34,9 @@ python3 check.py 9      # one step
 python3 check.py --all  # everything
 ```
 
-`check.py` runs 18 checks against **your** code and never imports `solutions/`.
+`check.py` runs 19 checks against **your** code and never imports `solutions/`.
 
-**The checker was itself tested.** Nine classic bugs were planted in copies of the solutions,
+**The checker was itself tested.** Ten classic bugs were planted in copies of the solutions,
 and each one has to be caught by its check:
 
 | Planted bug | Caught by |
@@ -49,6 +50,7 @@ and each one has to be caught by its check:
 | an "async" index updated inside the transaction | step 17 |
 | the B-tree version index dropping tombstoned versions | step 18 |
 | a key encoding that is order-preserving but not prefix-free | step 18 |
+| recovery replaying MVCC versions of transactions that never committed | step 19 |
 
 Three of them initially slipped through. A randomised B-tree test almost never clusters
 large entries in one half, and a corrupted byte usually broke the JSON before the missing
@@ -73,6 +75,10 @@ Each file opens with its decisions and what they cost. In short:
   structure as everything else, keyed by an order-preserving encoding of the user key, so a
   point read is one descent and a range scan walks the linked leaves. Cost: version chains
   are read whole, and encoded keys are capped at `btree.MAX_KEY` bytes.
+- **MVCC versions logged in the WAL** (`mvcc.py`). A durable store writes a `vput` record
+  per write and a timestamped `commit` record, synced before the version reaches the tree;
+  recovery rebuilds the index from the committed records alone. Cost: the log grows until
+  the version index is checkpointed, and replay must be idempotent.
 
 ## Questions to answer before reading the solutions
 
@@ -93,5 +99,7 @@ Each file opens with its decisions and what they cost. In short:
 - The MVCC store is B+tree-backed, so its range scan is a descent plus a leaf walk.
   `keys_touched` now counts the tree entries that walk really reads: a narrow scan reads
   few.
-- Durability and MVCC are separate layers here. A real engine logs MVCC versions in the WAL.
+- Durable MVCC versions are logged in the WAL, but the version index itself is not
+  checkpointed: recovery replays the whole committed log into a fresh tree, so the log
+  grows and startup is O(log). A checkpoint of the version index would close that.
 - No SQL parser, query planner or joins. Indexes support equality lookups only.

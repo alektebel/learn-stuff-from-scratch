@@ -28,8 +28,13 @@ HINTS = {
  "mvcc.py": {
   "Txn._visible": "Own writes first. READ_UNCOMMITTED also sees other active transactions' writes. Otherwise return the newest version with commit_ts <= the read timestamp: the current clock for READ_(UN)COMMITTED, start_ts for SNAPSHOT/SERIALIZABLE. No version: TOMBSTONE.",
   "Txn.scan": "Record the range (SERIALIZABLE needs it). Candidate keys: committed keys in range, own writes in range, and for READ_UNCOMMITTED others' uncommitted writes. Keep those whose visible value is not TOMBSTONE.",
-  "Txn.commit": "SNAPSHOT/SERIALIZABLE: abort if a key we WRITE was committed after start_ts. SERIALIZABLE also: abort if a key we READ, or any key in a range we SCANNED, was. Then advance the clock and append one Version per write.",
+  "Txn.write": "Store the value in self.writes. In a durable store, also append a write-ahead \"vput\" record (key and value, no timestamp yet: the commit timestamp is only known at commit) so recovery can rebuild committed versions.",
+  "Txn.commit": "SNAPSHOT/SERIALIZABLE: abort if a key we WRITE was committed after start_ts. SERIALIZABLE also: abort if a key we READ, or any key in a range we SCANNED, was. Durable store: append a \"commit\" record carrying the new timestamp and sync() the log BEFORE applying the versions. Then advance the clock and append one Version per write.",
   "MVCCStore._scan_versions": "Encode lo and hi, descend the tree to the first leaf at lo, then walk entries and the next-leaf pointers until hi. Decode each key and its version chain and return (key, [(commit_ts, value), ...]); tombstones are versions too, so keep them. Count every tree entry read in keys_touched: a narrow range must read few keys, not the whole store.",
+  "MVCCStore._recover": "Durable mode: drop a stale .new checkpoint; start the work file from data.db (or empty, so a torn work file is never trusted); open pager + tree on it; replay _committed_versions() into it idempotently; restore _clock and _next_id from the log; then open the WAL for appending.",
+  "MVCCStore._set_version_enc": "Idempotent redo of one committed version: read the chain for enc_key, replace the version with this commit_ts if it is already there, else insert it in commit_ts order, and write the chain back.",
+  "MVCCStore.crash": "Simulate a process crash: close the WAL and the pager WITHOUT checkpointing, leaving data.db as the last checkpoint.",
+  "_committed_versions": "Read the WAL; buffer each transaction's \"vput\" records by tx id; when its \"commit\" record appears, emit (enc_key, commit_ts, value_blob) for that transaction. A transaction with no commit record is ignored.",
  },
  "anomalies.py": {
   "dirty_read": "Return True if T2 can see a value that T1 wrote and then aborted.",

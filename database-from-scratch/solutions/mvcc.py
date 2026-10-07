@@ -35,12 +35,23 @@ linked leaves, and `keys_touched` counts exactly the tree entries that walk read
 longer an in-memory dict scanned with `key in d`.
 
 Writes are optimistic at every level: no locks, conflicts are found at commit.
+
+DESIGN DECISION - durability of the versions
+A version lives in the B+tree, but that tree is a cache of pages, not a log: a crash can
+lose or tear it. Chosen: in durable mode the same WAL as `wal.py` is the truth. Writing a
+key appends a "vput" record (the commit timestamp is not known yet); committing appends a
+"commit" record carrying the new timestamp and syncs the log BEFORE the version is applied
+to the tree. Recovery rebuilds the index by replaying only "vput" records whose transaction
+also has a "commit" record, in commit order. Cost: the log grows until a checkpoint, and a
+replay is idempotent (a version already present at that timestamp is replaced, not
+duplicated) so replaying over a checkpoint is safe.
 """
 
 from __future__ import annotations
 
 import os
 import pickle
+import shutil
 import tempfile
 from dataclasses import dataclass, field
 from enum import Enum
@@ -48,6 +59,7 @@ from typing import Optional
 
 from btree import BTree
 from pager import Pager
+from wal import WAL, read_records
 
 TOMBSTONE = object()  # a committed delete
 
@@ -120,6 +132,26 @@ def _load_versions(blob: bytes):
     return [(ts, _load_value(v)) for ts, v in pickle.loads(blob)]
 
 
+def _committed_versions(wal_path: str):
+    """Committed versions from the WAL, in commit order: (enc_key, commit_ts, value_blob).
+
+    A "vput" record is written when a key is written, before the transaction commits, so
+    the log can hold the versions of a transaction that later aborts or never finishes.
+    Only a surviving "commit" record makes them eligible for redo; a transaction with no
+    commit record is ignored entirely.
+    """
+    pending: dict = {}
+    out = []
+    for rec in read_records(wal_path):
+        kind, tx = rec["t"], rec["tx"]
+        if kind == "vput":
+            pending.setdefault(tx, []).append((bytes.fromhex(rec["k"]), bytes.fromhex(rec["v"])))
+        elif kind == "commit":
+            for enc_key, blob in pending.pop(tx, []):
+                out.append((enc_key, rec["ts"], blob))
+    return out
+
+
 @dataclass
 class Txn:
     store: "MVCCStore"
@@ -172,6 +204,11 @@ class Txn:
     def write(self, key, value) -> None:
         self._check_active()
         self.writes[key] = value
+        if self.store._durable:
+            # Write-ahead the raw value now; its commit timestamp is added by the commit
+            # record, so recovery can ignore this if the transaction never commits.
+            self.store._wal.append({"t": "vput", "tx": self.id,
+                                    "k": _enc(key).hex(), "v": _dump_value(value).hex()})
 
     def delete(self, key) -> None:
         self.write(key, TOMBSTONE)
@@ -195,6 +232,11 @@ class Txn:
                     if lo <= key < hi and s._last_commit_ts(key) > self.start_ts:
                         self._finish("aborted")
                         raise SerializationFailure(f"range [{lo!r}, {hi!r}) changed under the scan ({key!r})")
+        if s._durable:
+            # The commit point: the timestamp record reaches the log before any version
+            # is applied to the tree, so recovery can tell committed versions apart.
+            s._wal.append({"t": "commit", "tx": self.id, "ts": s._clock + 1})
+            s._wal.sync()
         s._clock += 1
         for key, value in self.writes.items():
             s._put_version(key, s._clock, value)
@@ -216,15 +258,69 @@ class Txn:
 
 
 class MVCCStore:
-    def __init__(self, path: Optional[str] = None):
+    def __init__(self, path: Optional[str] = None, durable: bool = False):
         if path is None:
             path = os.path.join(tempfile.mkdtemp(prefix="mvcc-"), "versions.db")
-        self.tree = BTree(Pager(path, cache_pages=256))  # the version index lives in the B+tree
-        self.keys_touched = 0       # tree entries read by the last lookups/scans
-        self._clock = 0             # last commit timestamp handed out
+        self._durable = durable
+        self._data = path         # last checkpoint (durable mode only)
+        self.keys_touched = 0     # tree entries read by the last lookups/scans
+        self._clock = 0           # last commit timestamp handed out
         self._next_id = 1
-        self._active: dict = {}     # id -> Txn, in begin order
+        self._active: dict = {}   # id -> Txn, in begin order
         self.stats = {"committed": 0, "aborted": 0}
+        if durable:
+            self._work = path + ".work"
+            self._wal_path = path + ".wal"
+            self._recover()
+        else:
+            self.tree = BTree(Pager(path, cache_pages=256))  # version index lives in the B+tree
+        self.keys_touched = 0
+
+    def _recover(self) -> None:
+        """Durable mode: rebuild the committed version index from the checkpoint plus the WAL.
+
+        Sets self.tree, self._clock, self._next_id and self._wal. The work file starts from
+        the last checkpoint (or empty): a crash can leave it torn, so only data.db is trusted.
+        Replaying is idempotent, so a version already checkpointed is replaced, not duplicated.
+        """
+        stale = self._data + ".new"
+        if os.path.exists(stale):
+            os.remove(stale)  # a checkpoint that crashed before its rename never happened
+        if os.path.exists(self._data):
+            shutil.copyfile(self._data, self._work)
+        elif os.path.exists(self._work):
+            os.remove(self._work)
+        self.tree = BTree(Pager(self._work, cache_pages=256))
+        self._clock = 0
+        for enc_key, ts, blob in _committed_versions(self._wal_path):
+            self._set_version_enc(enc_key, ts, _load_value(blob))
+            if ts > self._clock:
+                self._clock = ts
+        self._next_id = 1
+        for rec in read_records(self._wal_path):
+            if rec["tx"] >= self._next_id:
+                self._next_id = rec["tx"] + 1
+        self._wal = WAL(self._wal_path)
+        self.keys_touched = 0
+
+    def _set_version_enc(self, enc_key: bytes, ts: int, value) -> None:
+        """Idempotent redo of one committed version, keeping the chain in commit_ts order."""
+        blob = self.tree.get(enc_key)
+        versions = _load_versions(blob) if blob is not None else []
+        for i, (old_ts, _old) in enumerate(versions):
+            if old_ts == ts:
+                versions[i] = (ts, value)
+                break
+        else:
+            versions.append((ts, value))
+        versions.sort(key=lambda item: item[0])
+        self.tree.put(enc_key, _dump_versions(versions))
+
+    def crash(self) -> None:
+        """Simulate a process crash: drop in-memory state without checkpointing."""
+        if self._durable:
+            self._wal.close()
+        self.tree.pager.close()
 
     def reset_counters(self) -> None:
         self.keys_touched = 0
