@@ -226,7 +226,7 @@ accept = [
 ]
 limit_cases = ["a symmetric matrix with a repeated eigenvalue: any basis of the eigenspace is valid; the check must not assume a specific one"]
 related = ["spectral-graphs"]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "linalg-04-qr-least-squares"
