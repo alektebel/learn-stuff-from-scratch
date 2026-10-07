@@ -439,7 +439,7 @@ deliverable = "math/optimization/02-duality"
 build = ["dual of a QP and an LP", "KKT conditions checker", "weak and strong duality, numerically"]
 accept = ["dual value <= primal value always; equal when Slater's condition holds"]
 limit_cases = ["a problem without Slater's condition and a positive duality gap"]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "optimization-03-unconstrained"
