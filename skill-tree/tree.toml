@@ -645,7 +645,7 @@ limit_cases = [
   "a component collapsing onto one point (likelihood to infinity); a covariance floor preventing it",
   "a bad initialisation converging to a poor local optimum; restarts finding a better one",
 ]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "prml-10-variational-inference"
