@@ -679,7 +679,7 @@ accept = [
   "HMC has a higher effective sample size per gradient than random-walk MH on a correlated Gaussian",
 ]
 limit_cases = ["importance sampling with a proposal lighter-tailed than the target: infinite variance"]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "prml-12-latent-continuous"
