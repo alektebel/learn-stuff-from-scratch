@@ -451,7 +451,7 @@ deliverable = "math/optimization/03-unconstrained"
 build = ["gradient descent with backtracking", "Newton's method with the Newton decrement as stopping criterion"]
 accept = ["Newton converges quadratically near the optimum (digits double per iteration)"]
 limit_cases = ["Newton without line search diverging from a far start; damped Newton converging"]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "optimization-04-interior-point"
