@@ -1,0 +1,19 @@
+# The CPU track (common/ + solutions/ phases 0-2) needs NOTHING here — it is
+# pure Python standard library. Install these only for the optional
+# "real-model" track referenced from phase2 onward.
+
+# Core RL post-training on real LLMs
+trl>=0.11            # GRPOTrainer, reward-function interface
+transformers>=4.44
+accelerate>=0.33
+datasets>=2.20
+torch>=2.2
+
+# Text-to-SQL utilities (real-model track)
+sqlparse>=0.5        # SQL AST for schema-linking / graph rewards (phase 4)
+sqlglot>=25.0        # robust SQL parsing + query-plan graphs (phase 4)
+
+# Small, capable base models to post-train (pick one):
+#   Qwen/Qwen2.5-0.5B-Instruct   (fastest, fits on a single small GPU)
+#   Qwen/Qwen2.5-1.5B-Instruct
+#   meta-llama/Llama-3.2-1B-Instruct

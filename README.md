@@ -36,6 +36,9 @@ relevant reading carry their own `RESOURCES.md`.
 - **[ml-systems/](ml-systems/)** - Harvard CS249r *Machine Learning Systems* implemented: a chapter-by-chapter map of Vols I-III onto this repo, and a framework track (TinyTorch's arc) - tensors with autograd, layers, stable losses, SGD/Adam, data loading, the 1958/1969/1986 milestones and a cost model checked against real allocations (16 graded checks, mutation-tested)
 - **[ml-inference/](ml-inference/)** - High-performance inference (optimization, quantization, edge deployment)
 
+### Reinforcement Learning & LLM Post-Training
+- **[rl-posttraining-llm/](rl-posttraining-llm/)** - RL post-training of LLMs for applications (GRPO from scratch, phased/process/execution-free rewards, multi-turn schema-discovery agents) using text-to-SQL & agentic data analysis as the running app. Zero-dependency CPU core + optional TRL real-model track.
+
 ### Generative AI & Deep Learning
 - **[diffusion-models/](diffusion-models/)** - Diffusion models from scratch (DDPM, DDIM, U-Net, image generation like Stable Diffusion)
 - **[deepfake-creation/](deepfake-creation/)** - Deepfake generation techniques (face swapping, reenactment, First Order Motion Model, Wav2Lip)
