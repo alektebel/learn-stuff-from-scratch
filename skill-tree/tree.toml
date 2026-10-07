@@ -118,7 +118,7 @@ limit_cases = [
   "gradient of x^T A x with non-symmetric A is (A + A^T) x, not 2 A x",
 ]
 related = ["ml-systems/framework"]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "foundations-05-probability"
