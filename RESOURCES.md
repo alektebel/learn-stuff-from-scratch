@@ -293,6 +293,7 @@ X posts, a YouTube video and `t.co` / `lnkd.in` short links. The URL says nothin
 - <https://x.com/iamgrigorev/status/1984394295428649136>
 - <https://x.com/KnightNemo_/status/1984436712433426692>
 - <https://x.com/Sumanth_077/status/1984627135152341068>
+- <https://x.com/Sumanth_077/status/2107800513681182737> (suggested as ideas for web-launch-checklist; unread, x.com blocked)
 - <https://x.com/elliotarledge/status/1984504573483274354>
 - <https://x.com/mdancho84/status/1984646940307390574>
 - <https://x.com/TheTuringPost/status/1984686406430871892>
