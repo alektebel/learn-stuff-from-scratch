@@ -1,0 +1,9 @@
+id = "t02-mutable-default"
+title = "State leaking between Order instances"
+category = "bugfix"
+targets = ["baseline"]
+statement = """
+In `orders.py`, creating a second `Order` sometimes shows the lines of a previous order,
+and `Order.merge` changes the order you passed in. Every Order must own its lines, and
+`merge` must return a new Order without modifying either input.
+"""

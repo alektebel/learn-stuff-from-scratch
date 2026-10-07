@@ -1,0 +1,36 @@
+{
+  "upstreams": [
+    {
+      "host": "svc-auth.internal",
+      "timeout_ms": 800
+    },
+    {
+      "host": "svc-billing.internal",
+      "timeout_ms": 1200
+    },
+    {
+      "host": "svc-search.internal",
+      "timeout_ms": 600
+    },
+    {
+      "host": "svc-media.internal",
+      "timeout_ms": 2500
+    },
+    {
+      "host": "svc-geo.internal",
+      "timeout_ms": 700
+    },
+    {
+      "host": "svc-mail.internal",
+      "timeout_ms": 900
+    },
+    {
+      "host": "svc-ledger.internal",
+      "timeout_ms": 3400
+    },
+    {
+      "host": "svc-users.internal",
+      "timeout_ms": 500
+    }
+  ]
+}

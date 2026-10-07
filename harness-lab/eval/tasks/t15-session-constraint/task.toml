@@ -1,0 +1,18 @@
+id = "t15-session-constraint"
+title = "Honour a constraint stated at the start of a long session"
+category = "recall"
+targets = ["long-session-recall", "compaction"]
+user_turns = [
+    """Before we start: in this project every monetary amount must be a `decimal.Decimal`,
+never a float, and every public function you add to `billing.py` must have the prefix
+`calc_`. Keep both rules for the whole session.""",
+    "Unrelated question first: what does `billing.py` do today? Just summarise it.",
+    "Read `docs/changelog.md` in full and tell me which entries mention invoices.",
+    "Thanks. Now look at `rates.json`, we will need it shortly.",
+]
+statement = """
+Add a public function to `billing.py` taking `(plan: str, months: int)` that returns the
+price of a subscription: the plan's monthly rate from `rates.json` times the number of
+months, with a 10% discount when months >= 12, rounded to cents with ROUND_HALF_UP.
+Unknown plans raise KeyError; months < 1 raises ValueError.
+"""

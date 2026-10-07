@@ -16,6 +16,27 @@ Build hands-on intuition for system design by implementing the patterns yourself
 
 ---
 
+## Distributed Systems Design Tracks
+
+**New**: [`distributed-systems/`](distributed-systems/README.md) — in-depth design docs
+for the 28-track distributed-systems curriculum (inspired by
+[builddistributedsystem.com/tracks](https://builddistributedsystem.com/tracks/)), organized
+into 8 categories:
+
+1. [Foundations — Message Passing & Networking](distributed-systems/01-foundations.md) — node protocol/RPC, unique IDs, gossip, TCP/framing/gRPC
+2. [Agreement & State Management](distributed-systems/02-agreement-and-state.md) — CRDTs, leader election, Raft log replication, linearizable KV
+3. [Scaling Building Blocks](distributed-systems/03-scaling-building-blocks.md) — consistent hashing/sharding, caching tiers, load balancers, log-based message queues
+4. [Durable Storage Internals](distributed-systems/04-durable-storage.md) — WAL, LSM trees, B-trees, distributed file system, indexes
+5. [Workflow Coordination](distributed-systems/05-workflow-coordination.md) — 2PC/sagas/outbox, job scheduler, DAG pipelines, online schema migrations
+6. [Production-Grade Data Systems](distributed-systems/06-production-systems.md) — MapReduce, distributed search, stream processing, DHT
+7. [Observability](distributed-systems/07-observability.md) — distributed tracing, metrics, structured logs, SLO alerting
+8. [Security & Byzantine Fault Tolerance](distributed-systems/08-security-and-bft.md) — mTLS, JWT, RBAC, encryption at rest, PBFT
+
+Each doc covers architecture, protocols, trade-offs, failure modes, and
+step-by-step implementation milestones for building the system from scratch.
+
+---
+
 ## Learning Path
 
 ### 1. Foundations — Networking & OS Basics

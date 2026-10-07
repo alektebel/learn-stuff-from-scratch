@@ -1,0 +1,12 @@
+id = "t04-config-merge"
+title = "User config wipes nested defaults"
+category = "bugfix"
+targets = ["baseline"]
+statement = """
+`app.config.load_config(user)` should combine `app.defaults.DEFAULTS` with a user
+override dict. Setting a single nested key (for example `{"db": {"port": 6543}}`) wipes
+the other nested defaults such as `db.host`. Make overrides merge recursively at any
+depth: dicts merge key by key, any other value (including lists) replaces the default.
+`DEFAULTS` must never be modified, and the returned config must not share mutable
+objects with `DEFAULTS` or with the user dict.
+"""

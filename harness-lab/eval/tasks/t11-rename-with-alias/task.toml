@@ -1,0 +1,11 @@
+id = "t11-rename-with-alias"
+title = "Rename a public function, keep a deprecated alias"
+category = "refactor"
+targets = ["baseline", "multi-edit"]
+statement = """
+Rename `geo.distance.calc_dist` to `haversine_km` everywhere in the package. Keep
+`calc_dist` importable from `geo.distance` as a deprecated alias: calling it must emit
+exactly one `DeprecationWarning` per call (message containing "haversine_km") and return
+the same value. No module in the package other than the alias itself may still call
+`calc_dist`.
+"""

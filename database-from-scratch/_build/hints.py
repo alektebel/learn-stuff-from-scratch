@@ -1,0 +1,51 @@
+"""Hints for .claude/skills/graded-module/scripts/make_templates.py."""
+HINTS = {
+ "pager.py": {
+  "Pager.allocate": "Hand out the next page number (page 0 is the header) and make it exist: write a zero page.",
+  "Pager.read": "Cache hit: count it, mark the page most-recently-used, return it. Miss: read from disk, cache it, evict if over capacity.",
+  "Pager.write": "Enforce exactly page_size bytes. Put the page in the cache as most-recently-used and remember it is dirty. Evict if needed.",
+  "Pager._evict_if_needed": "While over capacity, drop the LEAST recently used page. If it is dirty, write it to disk first, or the change is lost.",
+  "Pager.flush": "Write every dirty page, then fsync. Make sure the file is num_pages * page_size long even if some pages were never dirty.",
+ },
+ "btree.py": {
+  "_split_point": "Walk the sizes accumulating bytes; split where the running total first reaches half the total. Both sides must be non-empty.",
+  "BTree._find_leaf": "From the root, follow child i where i is the number of separator keys <= key. Stop at a leaf; return (page, entries, next).",
+  "BTree.get": "Find the leaf, then look for the exact key in its entries.",
+  "BTree.scan": "Find the leaf where lo would live, then walk entries and follow next-leaf pointers until a key >= hi.",
+  "BTree.height": "Count levels by following the first child down to a leaf.",
+  "BTree.put": "Insert recursively from the root. If the ROOT splits, allocate a new internal root with one separator and two children, and store its page in the pager metadata.",
+  "BTree._insert": "Leaf: insert or overwrite in order; if the encoded node does not fit, split by bytes and return (first key of right leaf, right page). Internal: recurse, insert the returned separator and child, split if needed: the middle key moves UP and stays in neither half.",
+  "BTree.delete": "Remove the key from its leaf and rewrite the leaf. No rebalancing (see the design decision above). Return whether the key existed.",
+ },
+ "wal.py": {
+  "WAL.append": "Frame the JSON payload as [length u32][crc32 u32][payload] (HEADER.pack) and write it. Do not fsync here: sync() is the commit point.",
+  "read_records": "Walk the file: read a header, check the whole payload is present, check its CRC, parse it. Stop silently at the first record that fails any of those.",
+  "committed_operations": "Buffer each transaction's ops by tx id; when its commit record appears, append its ops to the output. Transactions without a commit record are ignored.",
+  "Transaction.commit": "Append begin, one record per write (hex-encode bytes), commit; sync() the log; only then apply the writes to the tree.",
+  "DurableKV._recover": "Discard a stale data.db.new; start the work file from data.db (or empty); open pager + tree on it; replay committed_operations; pick _next_tx above every tx id seen (and the one saved at checkpoint); drop any torn tail from the log.",
+  "DurableKV.checkpoint": "Save next_tx in the metadata, flush the work file, copy it to data.db.new, fsync it, os.replace it over data.db, fsync the directory, then truncate the log. Order matters: why?",
+ },
+ "mvcc.py": {
+  "Txn._visible": "Own writes first. READ_UNCOMMITTED also sees other active transactions' writes. Otherwise return the newest version with commit_ts <= the read timestamp: the current clock for READ_(UN)COMMITTED, start_ts for SNAPSHOT/SERIALIZABLE. No version: TOMBSTONE.",
+  "Txn.scan": "Record the range (SERIALIZABLE needs it). Candidate keys: committed keys in range, own writes in range, and for READ_UNCOMMITTED others' uncommitted writes. Keep those whose visible value is not TOMBSTONE.",
+  "Txn.commit": "SNAPSHOT/SERIALIZABLE: abort if a key we WRITE was committed after start_ts. SERIALIZABLE also: abort if a key we READ, or any key in a range we SCANNED, was. Then advance the clock and append one Version per write.",
+ },
+ "anomalies.py": {
+  "dirty_read": "Return True if T2 can see a value that T1 wrote and then aborted.",
+  "non_repeatable_read": "Return True if T1 reads the same key twice and gets two different values because T2 committed in between.",
+  "phantom": "Return True if the same range scan in T1 returns a different number of rows because T2 inserted into the range.",
+  "lost_update": "Return True if both transactions read x, both write x+1, both commit, and x ends up incremented once.",
+  "write_skew": "Two doctors on call; each transaction checks that both are on call and takes a DIFFERENT one off. Return True if both commit and nobody is left on call. Order the operations carefully.",
+ },
+ "table.py": {
+  "Table.insert": "Reject a duplicate primary key (KeyError), write the row, add its index entries: all in the caller's transaction.",
+  "Table.update": "Read the old row, merge the changes (the primary key may not change), write the row, remove the OLD index entries, add the NEW ones.",
+  "Table.delete": "Delete the row and its index entries.",
+  "Table._index_add": "For each indexed column present in the row, write index key -> row JSON.",
+  "Table._index_remove": "For each indexed column present in the row, delete its index key.",
+  "Table.find": "Indexed column: scan the index prefix for that value. Otherwise: scan every row and filter. Add the number of keys read to keys_touched. Sort by primary key.",
+  "AsyncIndexTable._index_add": "Do NOT write in the transaction: append ('put', index key, row JSON) to self.queue.",
+  "AsyncIndexTable._index_remove": "Append ('del', index key, None) to self.queue.",
+  "AsyncIndexTable.propagate": "Pop up to n queued changes (all if None) and apply each in its own READ_COMMITTED transaction. Return how many were applied.",
+ },
+}

@@ -6,6 +6,9 @@ A collection of from-scratch implementations of various systems and projects for
 principles every directory follows: design choices named as problem-solving decisions,
 MVP-then-complicate driven by limit cases, and verification you can run.
 
+**Reading list:** [RESOURCES.md](RESOURCES.md) indexes external links; directories with
+relevant reading carry their own `RESOURCES.md`.
+
 ## codecraft — the adaptive course runner
 
 **[codecraft/](codecraft/)** turns this repo into your own CodeCrafters. It runs any
@@ -47,13 +50,18 @@ serves that same state, read-only, at `http://127.0.0.1:8766`; the CLI stays the
 
 ### Functional Programming & Formal Verification
 - **[haskell-projects/](haskell-projects/)** - Various projects to learn Haskell
+- **[skill-tree/](skill-tree/)** - Dependency graph of 38 math and pattern-recognition skills (Mathematics for ML, Axler, Trefethen & Bau, Blitzstein & Hwang, Boyd, Bishop PRML), each with prerequisites, acceptance criteria and limit cases, validated by `tree.py`; modules are built into [math/](math/) following `.claude/skills/skill-tree-worker`. Structure only so far
 - **[lean-proofs/](lean-proofs/)** - Mathematical proofs in Lean, progressing toward Galois theorem
 
 ### Machine Learning & MLOps
 - **[distributed-training/](distributed-training/)** - Distributed training systems (data parallelism, model parallelism, multi-node training)
 - **[ml-in-production/](ml-in-production/)** - Production ML systems (model serving, monitoring, A/B testing)
 - **[mlops/](mlops/)** - MLOps pipelines (experiment tracking, CI/CD, feature stores)
+- **[ml-systems/](ml-systems/)** - Harvard CS249r *Machine Learning Systems* implemented: a chapter-by-chapter map of Vols I-III onto this repo, and a framework track (TinyTorch's arc) - tensors with autograd, layers, stable losses, SGD/Adam, data loading, the 1958/1969/1986 milestones and a cost model checked against real allocations (16 graded checks, mutation-tested)
 - **[ml-inference/](ml-inference/)** - High-performance inference (optimization, quantization, edge deployment)
+
+### Reinforcement Learning & LLM Post-Training
+- **[rl-posttraining-llm/](rl-posttraining-llm/)** - RL post-training of LLMs for applications (GRPO from scratch, phased/process/execution-free rewards, multi-turn schema-discovery agents) using text-to-SQL & agentic data analysis as the running app. Zero-dependency CPU core + optional TRL real-model track.
 
 ### Generative AI & Deep Learning
 - **[diffusion-models/](diffusion-models/)** - Diffusion models from scratch (DDPM, DDIM, U-Net, image generation like Stable Diffusion)
@@ -71,9 +79,21 @@ serves that same state, read-only, at `http://127.0.0.1:8766`; the CLI stays the
 - **[system-design/](system-design/)** - Core distributed systems patterns: caching (LRU, cache-aside, stampede), async queues (retries, backoff, DLQ, idempotency), reliability (circuit breaker, bulkhead, backpressure), consistent hashing, leaderboards, URL shortener, rate limiter, and capacity math
 - **[dynamo-paper/](dynamo-paper/)** - Amazon's Dynamo paper (SOSP 2007) implemented directly: consistent hashing with preference lists, vector clocks, N/R/W quorums, sloppy quorum with hinted handoff, Merkle-tree anti-entropy, and gossip membership (17 graded checks via `python3 check.py`)
 - **[aws-from-scratch/](aws-from-scratch/)** - Learn AWS by implementing toy versions of its core services: IAM policy evaluation, S3 with versioning and delete markers, SQS visibility timeouts, DynamoDB hot partitions, Lambda concurrency and cold starts, SNS filter policies and EventBridge patterns, KMS envelope encryption, VPC stateful-vs-stateless networking, plus a capstone pipeline wiring them together - and a map of which remaining AWS services are variations of which mechanism (18 graded checks via `python3 check.py`)
+- **[database-from-scratch/](database-from-scratch/)** - A crash-safe transactional database in pure Python: pager with LRU buffer pool, B+tree (byte-based splits), write-ahead log with CRC framing and redo recovery tested by truncating the log at every byte, MVCC with four isolation levels, the anomaly x isolation-level matrix produced by your own engine, and atomic vs async secondary indexes (SQL vs NoSQL, measured). 17 graded checks, themselves mutation-tested
+
+### AI Agents
+- **[harness-lab/](harness-lab/)** - Coding-agent harness from scratch: seven subsystems, the distinctive mechanism of each major harness (OpenHands, Aider, Codex, opencode, ...) as a swappable variant, and a controlled experiment comparing them. Phase 0: a Docker-sandboxed evaluation bench of 20 tasks with hardened hidden-test verifiers, null/oracle control agents and paired-comparison power analysis
+- **[agent-evals/](agent-evals/)** - Evaluation, safety and operations tooling layered on harness-lab: 15 projects mapped (trajectory grading, judge calibration, CI gates, red-teaming, drift, contamination...). Done: red-team fuzzer v1 - six adversarial scenarios (file, tool-output and statement injection, scope overreach) with state-based detectors proved by null/oracle/complicit controls
+- **[inference-lab/](inference-lab/)** - Plan for 15 inference-infrastructure projects (serving, TTFT/ITL load curves, KV cache, prefix-cache routing, quantization, speculative decoding, Triton, chunked prefill, PagedAttention, disaggregation, autoscaling, gateways, chaos), mapped onto existing directories and split by whether they need a GPU
+- **[enterprise-ai-projects/](enterprise-ai-projects/)** - Implementation guides (not solutions, no code) for twelve enterprise AI projects: bi-directional legacy sync with conflict resolution, zero-trust multi-tenant RAG, PII redaction proxy, air-gapped deployment, ROI telemetry, idempotent webhook reconciliation, SSO/SCIM bridge, model fallback gateway, compliance-as-code auditing, an MCP server for legacy ERPs, shadow traffic evaluation, and a tested incident runbook. Each guide names a real system to build against (Oracle Free, Keycloak, Presidio, Zarf, the SAP ABAP trial image, Envoy), the design decisions with their costs, the limit case that breaks it, and verified references - plus where three of the twelve are already built elsewhere in this repo
+- **[rag-from-scratch/](rag-from-scratch/)** - Plan for ten RAG projects (hybrid search, metadata filtering, reranking, contextual chunking, SQL+vector, graph+vector, corrective, Self-RAG, multimodal, agentic) as one pipeline on a shared evaluation set with no-answer queries; frameworks replaced by BM25, HNSW, SQLite and a triple store built here; corrections to the claims of the source list
+- **[interview-prep/](interview-prep/)** - 20 AI-engineering interview questions (RAG, hallucinations, evals, cost, multi-agent loops, prompt injection, memory, tool-call grading...), each mapped to what this repo builds, with the follow-up an interviewer uses to tell recitation from experience. No answers by design
 
 ### Operations & Reliability
 - **[deploy-and-debug/](deploy-and-debug/)** - Running the systems in this repo and debugging them when they break: capacity math (KV cache sizing, N/R/W failure tolerance), percentiles/queueing/error budgets, root-cause diagnosis of 11 injected faults from metrics alone, and safe rollout (liveness vs readiness, canary analysis, budget-based auto-rollback) - plus a runbook of the real vllm/nodetool/nvidia-smi/k8s commands (12 graded checks via `python3 check.py`)
+
+### Web
+- **[web-launch-checklist/](web-launch-checklist/)** - Sixteen pre-launch items (404, titles, descriptions, favicon, robots.txt, sitemap, Open Graph, alt text, mobile, loading and error states, legal pages, cookies, analytics, contact, WebP) learned from the failure side: an observer (crawler, link unfurler, screen reader, phone, impatient user) measures the damage before and after each fix. Planned; no answers by design
 
 ### Data Engineering & Analytics
 - **[sas-lineage-tool/](sas-lineage-tool/)** - SAS field lineage parser for tracking data transformations and dependencies

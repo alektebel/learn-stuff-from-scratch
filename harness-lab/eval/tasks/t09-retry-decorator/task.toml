@@ -1,0 +1,16 @@
+id = "t09-retry-decorator"
+title = "Retry decorator with exponential backoff"
+category = "feature"
+targets = ["baseline"]
+statement = """
+Implement `retry` in `retrying.py` (currently a stub):
+
+    @retry(attempts=3, base_delay=0.5, factor=2.0, retry_on=(ConnectionError,), sleep=time.sleep)
+
+- calls the function up to `attempts` times in total;
+- after the k-th failed attempt (k = 1, 2, ...) it sleeps `base_delay * factor**(k-1)`,
+  except after the last attempt, when it re-raises the last exception unchanged;
+- only exceptions that are instances of `retry_on` are retried; others propagate at once;
+- `sleep` is injectable for tests; the wrapped function keeps its `__name__` and `__doc__`;
+- `attempts < 1` raises ValueError when the decorator is created.
+"""

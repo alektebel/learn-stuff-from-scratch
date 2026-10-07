@@ -1,0 +1,11 @@
+id = "t07-lru-cache"
+title = "Add LRU eviction to the cache"
+category = "feature"
+targets = ["baseline"]
+statement = """
+`cache.Cache` in `cache.py` grows without bound. Add a `capacity` constructor argument
+(positive int, default 128; anything else raises ValueError). When a `set` of a new key
+would exceed capacity, evict the least recently used key. Both `get` (on a hit) and `set`
+count as a use. Keep the existing `hits`/`misses` counters working, and add an `evictions`
+counter. `len(cache)` returns the number of stored keys.
+"""

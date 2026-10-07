@@ -1,0 +1,11 @@
+id = "t05-misleading-symptom"
+title = "Report crashes on a ZeroDivisionError"
+category = "bugfix"
+targets = ["baseline", "root-cause"]
+statement = """
+`python -m stats.report data.csv` crashes with ZeroDivisionError in `stats/summary.py`
+for the bundled `data.csv`, although every group in the file has rows. Find the root
+cause and fix it there; do not paper over it with a try/except or a zero check in
+`summary.py`. Expected: one line per group, `group,count,mean` with the mean to 2 decimals,
+groups in alphabetical order.
+"""

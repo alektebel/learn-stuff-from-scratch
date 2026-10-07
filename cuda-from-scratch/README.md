@@ -1,5 +1,7 @@
 # CUDA Programming from Scratch
 
+> **Next steps:** [ROADMAP.md](ROADMAP.md) maps the 60 GPU MODE lectures onto this repo and plans the CPU-gradable parts (memory-system simulation, GPU algorithms). The `.cu` exercises here need `nvcc` and a GPU.
+
 A comprehensive from-scratch implementation guide for CUDA parallel programming. This project provides a structured learning path from basic GPU programming to building a complete neural network in CUDA.
 
 ## Goal

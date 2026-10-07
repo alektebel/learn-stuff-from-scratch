@@ -1,0 +1,16 @@
+id = "t20-hidden-edge-cases"
+title = "Visible tests pass long before the spec is met"
+category = "limit"
+targets = ["verify-on-stop", "reflection", "self-testing"]
+statement = """
+Implement `parse_duration(text: str) -> timedelta` in `durations.py`. Grammar:
+
+- one or more components `<digits><unit>`, no separators and no whitespace anywhere;
+- units: `d`, `h`, `m`, `s`, `ms` (milliseconds);
+- components must appear in strictly decreasing unit order (d > h > m > s > ms), so each
+  unit appears at most once; values are not range-limited (`90m` is valid);
+- anything else (empty string, signs, decimals, unknown or repeated units, wrong order,
+  leading/trailing whitespace) raises ValueError.
+
+`tests/test_durations.py` has a few starter tests. They are not complete.
+"""

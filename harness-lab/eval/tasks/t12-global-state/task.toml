@@ -1,0 +1,12 @@
+id = "t12-global-state"
+title = "Replace module-level state with a class"
+category = "refactor"
+targets = ["baseline"]
+statement = """
+`inventory.py` keeps stock in a module-level dict, so two warehouses cannot coexist and
+tests leak state into each other. Replace it with a class `Inventory` whose methods are
+`add(sku, qty)`, `remove(sku, qty)`, `quantity(sku)` and `skus()` (sorted list of SKUs with
+quantity > 0), with the same validation and errors as the current functions. Remove the
+module-level functions and the global dict. Update `report.py`, whose `low_stock` must now
+take the inventory as its first argument: `low_stock(inv, threshold)`.
+"""

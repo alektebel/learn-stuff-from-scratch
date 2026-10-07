@@ -1,0 +1,743 @@
+# The math / pattern-recognition skill tree.
+#
+# One [[node]] per skill. A node is READY when every node in `requires` is "done".
+# `python3 tree.py next` lists ready nodes; `python3 tree.py check` validates this file.
+#
+# Fields
+#   id           unique, "<track>-<nn>-<slug>"
+#   title        short name
+#   track        foundations | linalg | probability | optimization | prml | lean
+#   requires     ids that must be done first (the edges of the tree)
+#   sources      "book:chapter" or "book:chapter.section", books defined in books.toml
+#   deliverable  directory the module is built in (graded-module format)
+#   build        what the learner implements, one item per function group
+#   accept       checks check.py must contain: concrete, numerically verifiable
+#   limit_cases  the cases that break a naive version; each needs its own check
+#   related      existing repo directories that touch the same idea
+#   status       todo | in-progress | done | exists
+#                (exists = material already in the repo without graded checks)
+#
+# Every derivation is verified numerically (finite differences, Monte Carlo, or a
+# closed form checked against simulation). A derivation that is only written down is
+# not done.
+
+# =====================================================================================
+# Track: foundations (Mathematics for Machine Learning)
+# =====================================================================================
+
+[[node]]
+id = "foundations-01-linear-algebra"
+title = "Vectors, matrices, linear systems"
+track = "foundations"
+requires = []
+sources = ["mml:2"]
+deliverable = "math/foundations/01-linear-algebra"
+build = [
+  "Gaussian elimination with partial pivoting to row echelon form",
+  "solve Ax = b, rank, null space basis, particular + homogeneous solution",
+  "matrix inverse via Gauss-Jordan; determinant from the elimination",
+]
+accept = [
+  "solutions match numpy.linalg.solve on 200 random well-conditioned systems",
+  "null space vectors satisfy A n = 0 and the basis size equals n - rank",
+  "an inconsistent system is reported as inconsistent, not solved",
+]
+limit_cases = [
+  "a zero pivot that partial pivoting must swap around",
+  "singular matrix: rank-deficient, inverse must raise",
+  "a matrix where no pivoting gives catastrophic error (small pivot) and pivoting does not",
+]
+status = "todo"
+
+[[node]]
+id = "foundations-02-analytic-geometry"
+title = "Norms, inner products, projections, rotations"
+track = "foundations"
+requires = ["foundations-01-linear-algebra"]
+sources = ["mml:3"]
+deliverable = "math/foundations/02-analytic-geometry"
+build = [
+  "inner product from a symmetric positive definite matrix; induced norm and angle",
+  "orthogonal projection onto a subspace (projection matrix) and onto an affine subspace",
+  "Gram-Schmidt orthonormalisation",
+  "2-D and 3-D rotation matrices",
+]
+accept = [
+  "projection P is idempotent (P^2 = P) and symmetric, and the residual is orthogonal to the subspace",
+  "Gram-Schmidt output Q satisfies Q^T Q = I to 1e-10",
+  "rotations preserve norms and have determinant +1",
+]
+limit_cases = [
+  "classical Gram-Schmidt losing orthogonality on nearly dependent vectors; modified Gram-Schmidt keeping it (measure ||Q^T Q - I||)",
+  "a non-SPD matrix rejected as an inner product",
+]
+status = "todo"
+
+[[node]]
+id = "foundations-03-matrix-decompositions"
+title = "Eigendecomposition, Cholesky, SVD"
+track = "foundations"
+requires = ["foundations-02-analytic-geometry"]
+sources = ["mml:4"]
+deliverable = "math/foundations/03-matrix-decompositions"
+build = [
+  "power iteration and deflation for the dominant eigenpairs",
+  "Cholesky decomposition",
+  "SVD from the eigendecomposition of A^T A, and low-rank approximation",
+]
+accept = [
+  "Cholesky L L^T reconstructs A to 1e-10 for random SPD matrices",
+  "rank-k approximation error equals the (k+1)-th singular value in spectral norm (Eckart-Young)",
+  "eigenpairs satisfy A v = lambda v",
+]
+limit_cases = [
+  "Cholesky on a non-SPD matrix must raise, not return NaN",
+  "power iteration with two eigenvalues of equal magnitude (no convergence): detect it",
+  "SVD via A^T A squaring the condition number: show the precision loss against numpy.linalg.svd",
+]
+status = "todo"
+
+[[node]]
+id = "foundations-04-vector-calculus"
+title = "Gradients, Jacobians, chain rule, backpropagation"
+track = "foundations"
+requires = ["foundations-01-linear-algebra"]
+sources = ["mml:5"]
+deliverable = "math/foundations/04-vector-calculus"
+build = [
+  "analytic gradients of standard matrix expressions (x^T A x, ||Ax - b||^2, log det, trace forms)",
+  "a finite-difference checker (central differences) used by every later node",
+  "Taylor expansion to second order with the Hessian",
+]
+accept = [
+  "every analytic gradient matches central differences to relative error 1e-6",
+  "second-order Taylor error shrinks as h^3",
+]
+limit_cases = [
+  "finite differences with h too small (round-off dominates): show the U-shaped error curve over h",
+  "gradient of x^T A x with non-symmetric A is (A + A^T) x, not 2 A x",
+]
+related = ["ml-systems/framework"]
+status = "todo"
+
+[[node]]
+id = "foundations-05-probability"
+title = "Probability and distributions for ML"
+track = "foundations"
+requires = ["foundations-04-vector-calculus"]
+sources = ["mml:6"]
+deliverable = "math/foundations/05-probability"
+build = [
+  "multivariate Gaussian: density, sampling via Cholesky, marginals and conditionals",
+  "product of Gaussians, linear transformation of a Gaussian",
+  "change of variables for densities",
+]
+accept = [
+  "sampled mean and covariance match the parameters (Monte Carlo, tolerance from the CLT)",
+  "conditional mean and covariance of a 2-block Gaussian match regression on samples",
+  "a transformed density integrates to 1 numerically",
+]
+limit_cases = [
+  "a nearly singular covariance: log density computed via Cholesky, not via inverse and det",
+  "change of variables forgetting the Jacobian term: the density no longer integrates to 1",
+]
+status = "todo"
+
+[[node]]
+id = "foundations-06-optimization"
+title = "Continuous optimisation"
+track = "foundations"
+requires = ["foundations-04-vector-calculus", "foundations-03-matrix-decompositions"]
+sources = ["mml:7"]
+deliverable = "math/foundations/06-optimization"
+build = [
+  "gradient descent with fixed step and with backtracking line search",
+  "momentum",
+  "Lagrange multipliers for an equality-constrained quadratic",
+]
+accept = [
+  "on a quadratic, the number of iterations grows with the condition number as predicted",
+  "the constrained optimum satisfies the KKT conditions to 1e-8",
+]
+limit_cases = [
+  "step size above 2 / L diverges; just below converges (L = largest Hessian eigenvalue)",
+  "an ill-conditioned valley where plain GD zig-zags and momentum does not",
+]
+status = "todo"
+
+# =====================================================================================
+# Track: linear algebra (Axler; Trefethen & Bau)
+# =====================================================================================
+
+[[node]]
+id = "linalg-01-vector-spaces"
+title = "Vector spaces and linear maps"
+track = "linalg"
+requires = ["foundations-01-linear-algebra"]
+sources = ["axler:1", "axler:2", "axler:3"]
+deliverable = "math/linalg/01-vector-spaces"
+build = [
+  "polynomial spaces P_n as coordinate vectors; the differentiation map as a matrix",
+  "change of basis; matrix of a linear map in two bases",
+  "fundamental theorem of linear maps: dim V = dim null T + dim range T, checked on random maps",
+]
+accept = [
+  "the matrix of a map changes by S^-1 A S under a change of basis, verified on random bases",
+  "rank-nullity holds for 100 random maps between spaces of different dimension",
+]
+limit_cases = ["the differentiation map on P_n is nilpotent: its matrix to the power n+1 is zero"]
+status = "todo"
+
+[[node]]
+id = "linalg-02-eigenvalues"
+title = "Eigenvalues, invariant subspaces, diagonalisability"
+track = "linalg"
+requires = ["linalg-01-vector-spaces"]
+sources = ["axler:5"]
+deliverable = "math/linalg/02-eigenvalues"
+build = [
+  "characteristic polynomial and its roots (small n) versus numerical eigenvalues",
+  "test for diagonalisability; Jordan-block example",
+]
+accept = [
+  "a matrix is diagonalisable iff it has n independent eigenvectors, checked on constructed examples",
+]
+limit_cases = [
+  "a defective matrix (Jordan block) where numerical eigenvectors are nearly parallel",
+  "root-finding of the characteristic polynomial losing accuracy (Wilkinson's polynomial) versus a QR-based eigensolver",
+]
+status = "todo"
+
+[[node]]
+id = "linalg-03-spectral-theorem"
+title = "Inner product spaces and the spectral theorem"
+track = "linalg"
+requires = ["linalg-02-eigenvalues", "foundations-02-analytic-geometry"]
+sources = ["axler:6", "axler:7"]
+deliverable = "math/linalg/03-spectral-theorem"
+build = [
+  "orthonormal eigenbasis of a symmetric matrix",
+  "positive operators and square roots; polar decomposition",
+  "singular value decomposition from the spectral theorem",
+]
+accept = [
+  "eigenvectors of a symmetric matrix are orthonormal to 1e-10",
+  "polar decomposition A = Q P with Q orthogonal and P positive semidefinite",
+]
+limit_cases = ["a symmetric matrix with a repeated eigenvalue: any basis of the eigenspace is valid; the check must not assume a specific one"]
+related = ["spectral-graphs"]
+status = "todo"
+
+[[node]]
+id = "linalg-04-qr-least-squares"
+title = "QR factorisation and least squares"
+track = "linalg"
+requires = ["linalg-03-spectral-theorem"]
+sources = ["trefethen:lecture6", "trefethen:lecture7", "trefethen:lecture8", "trefethen:lecture10", "trefethen:lecture11"]
+deliverable = "math/linalg/04-qr-least-squares"
+build = [
+  "Householder QR",
+  "least squares three ways: normal equations, QR, SVD",
+]
+accept = [
+  "Householder Q is orthogonal to machine precision even for ill-conditioned A",
+  "the three least-squares methods agree on well-conditioned problems",
+]
+limit_cases = [
+  "an ill-conditioned problem where the normal equations lose about twice as many digits as QR (measure against a high-precision reference)",
+]
+status = "todo"
+
+[[node]]
+id = "linalg-05-conditioning-stability"
+title = "Conditioning and numerical stability"
+track = "linalg"
+requires = ["linalg-04-qr-least-squares"]
+sources = ["trefethen:lecture12", "trefethen:lecture13", "trefethen:lecture14", "trefethen:lecture15", "trefethen:lecture20", "trefethen:lecture21"]
+deliverable = "math/linalg/05-conditioning-stability"
+build = [
+  "condition numbers of problems versus stability of algorithms",
+  "LU without pivoting versus with partial pivoting; growth factor",
+]
+accept = [
+  "forward error is bounded by condition number times backward error on 100 random problems",
+]
+limit_cases = [
+  "a matrix where LU without pivoting is unstable and with pivoting is fine",
+  "the classic matrix with growth factor 2^(n-1) under partial pivoting",
+]
+status = "todo"
+
+[[node]]
+id = "linalg-06-eigenvalue-algorithms"
+title = "Eigenvalue algorithms"
+track = "linalg"
+requires = ["linalg-05-conditioning-stability", "linalg-02-eigenvalues"]
+sources = ["trefethen:lecture25", "trefethen:lecture26", "trefethen:lecture27", "trefethen:lecture28", "trefethen:lecture29"]
+deliverable = "math/linalg/06-eigenvalue-algorithms"
+build = [
+  "reduction to Hessenberg / tridiagonal form",
+  "Rayleigh quotient iteration",
+  "unshifted and shifted QR algorithm",
+]
+accept = [
+  "eigenvalues match numpy.linalg.eigvalsh on random symmetric matrices to 1e-10",
+  "Rayleigh quotient iteration converges cubically (measure the error sequence)",
+]
+limit_cases = ["unshifted QR stalling on eigenvalues of equal magnitude; Wilkinson shift fixing it"]
+related = ["spectral-graphs"]
+status = "todo"
+
+# =====================================================================================
+# Track: probability (Blitzstein & Hwang)
+# =====================================================================================
+
+[[node]]
+id = "probability-01-counting-conditioning"
+title = "Counting, conditional probability, Bayes"
+track = "probability"
+requires = []
+sources = ["blitzstein:1", "blitzstein:2"]
+deliverable = "math/probability/01-counting-conditioning"
+build = [
+  "exact probabilities by counting, checked by simulation",
+  "Bayes' rule on diagnostic-test problems; law of total probability",
+]
+accept = [
+  "every exact answer agrees with a 10^5-trial simulation within 4 standard errors",
+]
+limit_cases = [
+  "the Monty Hall problem, simulated, including the variant where the host does not know",
+  "a base-rate problem where the intuitive answer is off by an order of magnitude",
+]
+status = "todo"
+
+[[node]]
+id = "probability-02-random-variables"
+title = "Discrete random variables and expectation"
+track = "probability"
+requires = ["probability-01-counting-conditioning"]
+sources = ["blitzstein:3", "blitzstein:4"]
+deliverable = "math/probability/02-random-variables"
+build = [
+  "PMFs and CDFs of Bernoulli, Binomial, Geometric, Negative Binomial, Poisson",
+  "linearity of expectation and indicator random variables",
+]
+accept = [
+  "means and variances match simulation; Poisson approximation error to the Binomial shrinks as predicted",
+]
+limit_cases = ["an expectation computed with indicators where the variables are dependent (linearity still holds)"]
+status = "todo"
+
+[[node]]
+id = "probability-03-continuous"
+title = "Continuous random variables"
+track = "probability"
+requires = ["probability-02-random-variables", "foundations-04-vector-calculus"]
+sources = ["blitzstein:5"]
+deliverable = "math/probability/03-continuous"
+build = [
+  "Uniform, Normal, Exponential; universality of the uniform (inverse-CDF sampling)",
+  "memorylessness of the Exponential",
+]
+accept = [
+  "inverse-CDF samples pass a Kolmogorov-Smirnov test against the target",
+]
+limit_cases = ["inverse-CDF sampling of a heavy tail where float precision near u = 1 truncates the tail"]
+status = "todo"
+
+[[node]]
+id = "probability-04-joint"
+title = "Joint distributions and covariance"
+track = "probability"
+requires = ["probability-03-continuous"]
+sources = ["blitzstein:7"]
+deliverable = "math/probability/04-joint"
+build = [
+  "joint, marginal and conditional distributions; covariance and correlation",
+  "multinomial and bivariate normal",
+]
+accept = ["sample covariance matrices converge to the analytic ones"]
+limit_cases = ["uncorrelated but dependent variables (X and X^2 with X symmetric)"]
+status = "todo"
+
+[[node]]
+id = "probability-05-limits-inequalities"
+title = "Transformations, inequalities, limit theorems"
+track = "probability"
+requires = ["probability-04-joint"]
+sources = ["blitzstein:8", "blitzstein:10"]
+deliverable = "math/probability/05-limits-inequalities"
+build = [
+  "change of variables and convolutions",
+  "Markov, Chebyshev, Chernoff bounds compared with exact tails",
+  "law of large numbers and CLT by simulation",
+]
+accept = [
+  "every bound is above the exact tail probability on all tested points",
+  "the CLT approximation error shrinks as 1/sqrt(n) (Berry-Esseen order)",
+]
+limit_cases = ["the Cauchy distribution: the sample mean does not converge"]
+status = "todo"
+
+[[node]]
+id = "probability-06-conditional-expectation"
+title = "Conditional expectation"
+track = "probability"
+requires = ["probability-04-joint"]
+sources = ["blitzstein:9"]
+deliverable = "math/probability/06-conditional-expectation"
+build = ["Adam's law and Eve's law, verified by simulation", "E[Y|X] as the best predictor in squared error"]
+accept = ["E[Y|X] beats every other tested function of X in mean squared error"]
+limit_cases = ["a hierarchical model where the naive variance ignores Var(E[Y|X])"]
+status = "todo"
+
+[[node]]
+id = "probability-07-markov-chains-mcmc"
+title = "Markov chains and MCMC"
+track = "probability"
+requires = ["probability-06-conditional-expectation"]
+sources = ["blitzstein:11", "blitzstein:12"]
+deliverable = "math/probability/07-markov-chains-mcmc"
+build = [
+  "stationary distribution by eigenvector and by simulation",
+  "Metropolis-Hastings and Gibbs sampling",
+]
+accept = [
+  "the empirical distribution of a long chain matches the stationary distribution",
+  "Metropolis-Hastings recovers a known target's mean and variance",
+]
+limit_cases = [
+  "a periodic chain that has a stationary distribution but does not converge to it",
+  "a bimodal target where a small-step sampler never crosses between modes",
+]
+status = "todo"
+
+# =====================================================================================
+# Track: optimisation (Boyd & Vandenberghe)
+# =====================================================================================
+
+[[node]]
+id = "optimization-01-convexity"
+title = "Convex sets and convex functions"
+track = "optimization"
+requires = ["foundations-06-optimization"]
+sources = ["boyd:2", "boyd:3"]
+deliverable = "math/optimization/01-convexity"
+build = ["numerical convexity tests (Jensen on random points, PSD Hessian)", "operations that preserve convexity"]
+accept = ["the tests classify a catalogue of functions correctly, including log-sum-exp and the geometric mean"]
+limit_cases = ["a quasiconvex but non-convex function that passes a naive sublevel-set test"]
+status = "todo"
+
+[[node]]
+id = "optimization-02-duality"
+title = "Lagrangian duality and KKT"
+track = "optimization"
+requires = ["optimization-01-convexity"]
+sources = ["boyd:5"]
+deliverable = "math/optimization/02-duality"
+build = ["dual of a QP and an LP", "KKT conditions checker", "weak and strong duality, numerically"]
+accept = ["dual value <= primal value always; equal when Slater's condition holds"]
+limit_cases = ["a problem without Slater's condition and a positive duality gap"]
+status = "todo"
+
+[[node]]
+id = "optimization-03-unconstrained"
+title = "Unconstrained minimisation: gradient and Newton"
+track = "optimization"
+requires = ["optimization-01-convexity", "linalg-05-conditioning-stability"]
+sources = ["boyd:9"]
+deliverable = "math/optimization/03-unconstrained"
+build = ["gradient descent with backtracking", "Newton's method with the Newton decrement as stopping criterion"]
+accept = ["Newton converges quadratically near the optimum (digits double per iteration)"]
+limit_cases = ["Newton without line search diverging from a far start; damped Newton converging"]
+status = "todo"
+
+[[node]]
+id = "optimization-04-interior-point"
+title = "Equality constraints and interior-point methods"
+track = "optimization"
+requires = ["optimization-02-duality", "optimization-03-unconstrained"]
+sources = ["boyd:10", "boyd:11"]
+deliverable = "math/optimization/04-interior-point"
+build = ["equality-constrained Newton", "log-barrier method for an inequality-constrained LP"]
+accept = ["the barrier method's duality gap follows m / t", "solutions match a simplex reference on random LPs"]
+limit_cases = ["an infeasible LP detected by a phase-I method"]
+status = "todo"
+
+# =====================================================================================
+# Track: pattern recognition (Bishop, PRML)
+# =====================================================================================
+
+[[node]]
+id = "prml-01-introduction"
+title = "Curve fitting, bias-variance, decision and information theory"
+track = "prml"
+requires = ["foundations-05-probability", "probability-03-continuous"]
+sources = ["bishop:1", "murphy1:4"]
+deliverable = "math/prml/01-introduction"
+build = [
+  "polynomial curve fitting by least squares and with an L2 penalty",
+  "bias-variance decomposition by simulation over many training sets",
+  "decision theory: minimum-risk decisions with a loss matrix; entropy, KL divergence, mutual information",
+]
+accept = [
+  "the simulated bias^2 + variance + noise equals the expected test error",
+  "KL divergence is non-negative and zero only for equal distributions",
+]
+limit_cases = [
+  "degree-9 polynomial on 10 points: zero training error, huge test error; regularisation fixing it",
+  "an asymmetric loss matrix that moves the decision boundary away from p = 0.5",
+]
+status = "todo"
+
+[[node]]
+id = "prml-02-distributions"
+title = "Probability distributions and conjugacy"
+track = "prml"
+requires = ["prml-01-introduction", "probability-04-joint"]
+sources = ["bishop:2", "murphy1:3"]
+deliverable = "math/prml/02-distributions"
+build = [
+  "Beta-Bernoulli and Dirichlet-multinomial posterior updates",
+  "Gaussian: MLE, sequential estimation, conjugate prior for the mean",
+  "exponential family form and sufficient statistics",
+  "nonparametric density estimation: histogram, kernel density, k-nearest neighbours",
+]
+accept = [
+  "sequential and batch posterior updates give identical posteriors",
+  "the MLE of the variance is biased by (N-1)/N, shown by simulation",
+]
+limit_cases = [
+  "MLE of a Bernoulli after 3 heads in 3 tosses (p = 1) versus the Beta posterior mean",
+  "KDE bandwidth too small and too large: the two failure modes",
+]
+status = "todo"
+
+[[node]]
+id = "prml-03-linear-regression"
+title = "Linear models for regression"
+track = "prml"
+requires = ["prml-02-distributions", "foundations-03-matrix-decompositions"]
+sources = ["bishop:3", "mml:9"]
+deliverable = "math/prml/03-linear-regression"
+build = [
+  "basis-function regression; MLE and regularised least squares",
+  "Bayesian linear regression: posterior over weights, predictive distribution",
+  "evidence approximation to choose alpha and beta",
+]
+accept = [
+  "the predictive variance grows away from the training data",
+  "evidence maximisation picks a model complexity close to the true one on synthetic data",
+]
+limit_cases = ["more basis functions than data points: MLE ill-posed, Bayesian posterior well defined"]
+status = "todo"
+
+[[node]]
+id = "prml-04-linear-classification"
+title = "Linear models for classification"
+track = "prml"
+requires = ["prml-03-linear-regression", "foundations-06-optimization"]
+sources = ["bishop:4"]
+deliverable = "math/prml/04-linear-classification"
+build = [
+  "least-squares classification, Fisher's linear discriminant, the perceptron",
+  "logistic regression trained by IRLS (Newton)",
+  "Laplace approximation for Bayesian logistic regression",
+]
+accept = [
+  "IRLS converges in far fewer iterations than gradient descent on the same problem",
+  "the Laplace approximation's mean equals the MAP estimate",
+]
+limit_cases = [
+  "linearly separable data: the logistic MLE diverges (weights grow without bound); a prior keeps it finite",
+  "least-squares classification ruined by outliers that logistic regression ignores",
+]
+related = ["ml-systems/framework"]
+status = "todo"
+
+[[node]]
+id = "prml-05-neural-networks"
+title = "Neural networks: backprop, Hessian, regularisation"
+track = "prml"
+requires = ["prml-04-linear-classification", "foundations-04-vector-calculus"]
+sources = ["bishop:5"]
+deliverable = "math/prml/05-neural-networks"
+build = [
+  "backpropagation derived by hand for a 2-layer network, checked by finite differences",
+  "exact Hessian by finite differences of gradients; outer-product approximation",
+  "weight decay and early stopping",
+]
+accept = [
+  "the outer-product Hessian approximation matches the exact one near a minimum with small residuals",
+]
+limit_cases = ["the outer-product approximation failing far from the minimum (large residuals)"]
+related = ["ml-systems/framework"]
+status = "todo"
+
+[[node]]
+id = "prml-06-kernels-gps"
+title = "Kernel methods and Gaussian processes"
+track = "prml"
+requires = ["prml-03-linear-regression"]
+sources = ["bishop:6", "murphy1:17"]
+deliverable = "math/prml/06-kernels-gps"
+build = [
+  "kernel construction rules; checking validity by Gram-matrix PSD-ness",
+  "Gaussian process regression with Cholesky; marginal likelihood for hyperparameters",
+]
+accept = [
+  "GP posterior mean interpolates noise-free training data exactly",
+  "marginal-likelihood gradient matches finite differences",
+]
+limit_cases = [
+  "an invalid kernel whose Gram matrix has a negative eigenvalue",
+  "a Gram matrix that is PSD in theory but not numerically: jitter on the diagonal",
+]
+status = "todo"
+
+[[node]]
+id = "prml-07-svm"
+title = "Sparse kernel machines: SVM"
+track = "prml"
+requires = ["prml-06-kernels-gps", "optimization-02-duality"]
+sources = ["bishop:7"]
+deliverable = "math/prml/07-svm"
+build = ["SVM dual solved by SMO", "soft margin; support vectors from the KKT conditions"]
+accept = [
+  "only support vectors have non-zero alpha; the margin computed from them matches the primal",
+  "results match a reference QP solver on small problems",
+]
+limit_cases = ["non-separable data with a hard margin (infeasible) versus a soft margin"]
+status = "todo"
+
+[[node]]
+id = "prml-08-graphical-models"
+title = "Graphical models and message passing"
+track = "prml"
+requires = ["prml-02-distributions"]
+sources = ["bishop:8"]
+deliverable = "math/prml/08-graphical-models"
+build = [
+  "Bayesian networks: d-separation checker",
+  "sum-product on a factor graph tree; max-sum (Viterbi-style) decoding",
+]
+accept = [
+  "sum-product marginals equal brute-force marginals on random tree-structured models",
+  "the d-separation checker agrees with conditional independence measured on samples",
+]
+limit_cases = ["loopy belief propagation on a graph with a cycle: not exact, and sometimes not convergent"]
+status = "todo"
+
+[[node]]
+id = "prml-09-mixtures-em"
+title = "Mixture models and EM"
+track = "prml"
+requires = ["prml-02-distributions"]
+sources = ["bishop:9", "mml:11"]
+deliverable = "math/prml/09-mixtures-em"
+build = ["K-means", "EM for Gaussian mixtures", "EM for a mixture of Bernoullis"]
+accept = [
+  "the log-likelihood never decreases between EM iterations",
+  "EM recovers synthetic mixture parameters within tolerance (up to label permutation)",
+]
+limit_cases = [
+  "a component collapsing onto one point (likelihood to infinity); a covariance floor preventing it",
+  "a bad initialisation converging to a poor local optimum; restarts finding a better one",
+]
+status = "todo"
+
+[[node]]
+id = "prml-10-variational-inference"
+title = "Approximate inference: variational methods"
+track = "prml"
+requires = ["prml-09-mixtures-em", "prml-08-graphical-models"]
+sources = ["bishop:10", "murphy2:10"]
+deliverable = "math/prml/10-variational-inference"
+build = [
+  "mean-field VI for a univariate Gaussian with unknown mean and precision",
+  "variational Gaussian mixture",
+  "the ELBO computed and monitored",
+]
+accept = [
+  "the ELBO never decreases under coordinate ascent",
+  "the ELBO is below the log evidence where the evidence is computable",
+]
+limit_cases = ["mean-field underestimating posterior variance on a correlated Gaussian (reverse-KL mode seeking)"]
+status = "todo"
+
+[[node]]
+id = "prml-11-sampling"
+title = "Sampling methods"
+track = "prml"
+requires = ["prml-02-distributions", "probability-07-markov-chains-mcmc"]
+sources = ["bishop:11"]
+deliverable = "math/prml/11-sampling"
+build = ["rejection and importance sampling", "Metropolis-Hastings and Gibbs for a Bayesian model", "Hamiltonian Monte Carlo"]
+accept = [
+  "importance-sampling estimates are unbiased across repeated runs",
+  "HMC has a higher effective sample size per gradient than random-walk MH on a correlated Gaussian",
+]
+limit_cases = ["importance sampling with a proposal lighter-tailed than the target: infinite variance"]
+status = "todo"
+
+[[node]]
+id = "prml-12-latent-continuous"
+title = "Continuous latent variables: PCA, probabilistic PCA"
+track = "prml"
+requires = ["prml-09-mixtures-em", "foundations-03-matrix-decompositions"]
+sources = ["bishop:12", "mml:10"]
+deliverable = "math/prml/12-latent-continuous"
+build = ["PCA by eigendecomposition and by SVD", "probabilistic PCA closed form and by EM", "kernel PCA"]
+accept = [
+  "PCA reconstruction error equals the sum of the discarded eigenvalues",
+  "PPCA by EM converges to the closed-form solution (up to rotation)",
+]
+limit_cases = ["more dimensions than samples (D > N): PCA via the N x N Gram matrix"]
+status = "todo"
+
+[[node]]
+id = "prml-13-sequential"
+title = "Sequential data: HMMs and linear dynamical systems"
+track = "prml"
+requires = ["prml-08-graphical-models", "prml-09-mixtures-em", "prml-12-latent-continuous"]
+sources = ["bishop:13"]
+deliverable = "math/prml/13-sequential"
+build = ["forward-backward and Viterbi for HMMs", "Baum-Welch", "Kalman filter and RTS smoother"]
+accept = [
+  "forward-backward marginals equal brute-force enumeration on short sequences",
+  "the Kalman filter equals the exact Gaussian posterior computed in batch",
+]
+limit_cases = ["a long sequence where unscaled forward probabilities underflow to zero; scaling or log-space fixing it"]
+status = "todo"
+
+[[node]]
+id = "prml-14-combining-models"
+title = "Combining models: trees, boosting, mixtures of experts"
+track = "prml"
+requires = ["prml-04-linear-classification"]
+sources = ["bishop:14"]
+deliverable = "math/prml/14-combining-models"
+build = ["decision trees (CART)", "AdaBoost", "bagging"]
+accept = [
+  "AdaBoost's training error decreases monotonically and bounded by the product of the weak learners' bound",
+]
+limit_cases = ["AdaBoost with label noise: weights concentrate on the mislabelled points"]
+status = "todo"
+
+# =====================================================================================
+# Track: Lean (existing material)
+# =====================================================================================
+
+[[node]]
+id = "lean-01-galois-path"
+title = "Logic to the fundamental theorem of Galois theory (Lean 4)"
+track = "lean"
+requires = []
+sources = []
+deliverable = "lean-proofs"
+build = ["see lean-proofs/README.md"]
+accept = ["`lake build` succeeds with no `sorry` in the learner's files (not yet wired: no checker exists)"]
+limit_cases = []
+related = ["lean-proofs"]
+status = "exists"

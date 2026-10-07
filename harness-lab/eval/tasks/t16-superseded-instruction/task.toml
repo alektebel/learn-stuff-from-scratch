@@ -1,0 +1,17 @@
+id = "t16-superseded-instruction"
+title = "Use the corrected instruction, not the original one"
+category = "recall"
+targets = ["long-session-recall", "memory-supersession"]
+user_turns = [
+    """Context for later: our log lines must start with the timestamp in the format
+`%Y-%m-%d %H:%M:%S`, in UTC.""",
+    "Show me what `logfmt.py` contains right now.",
+    """Correction from the ops team: use ISO 8601 in UTC with a `Z` suffix and no fractional
+seconds instead, e.g. `2025-01-31T09:05:00Z`. Forget the previous format.""",
+    "Read `sample.log` and tell me how many lines are at ERROR level.",
+]
+statement = """
+Implement `format_record(level: str, msg: str, ts: datetime) -> str` in `logfmt.py`. `ts` is
+timezone-aware (any zone). The output is `<timestamp> [<LEVEL>] <msg>`, with the level
+upper-cased and the timestamp in the format we agreed. A naive `ts` raises ValueError.
+"""

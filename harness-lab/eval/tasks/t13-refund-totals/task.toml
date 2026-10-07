@@ -1,0 +1,10 @@
+id = "t13-refund-totals"
+title = "Export totals wrong for refunded orders"
+category = "multifile"
+targets = ["code-navigation", "read-many-files"]
+statement = """
+`python -m shop.cli export` prints the revenue per customer. For customers with refunded
+orders the totals are too high: a refund must subtract the refunded amount, and an order
+refunded in full contributes 0. The bug is somewhere in the `shop` package; fix it at its
+cause. Do not change the CLI's output format.
+"""

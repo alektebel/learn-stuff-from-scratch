@@ -1,0 +1,16 @@
+id = "t14-propagate-field"
+title = "Add an optional phone field end to end"
+category = "multifile"
+targets = ["read-many-files", "multi-edit"]
+statement = """
+Contacts need an optional `phone` field. Add it end to end in the `contacts` package,
+following how `email` is handled at every layer: the model, validation, serialisation
+(to/from dict), storage, the CLI (`add` gets an optional `--phone`; `show` prints a
+`phone: ...` line after the email line only when a phone is set) and the CSV export
+(a `phone` column after `email`, empty when unset).
+
+A phone is valid if, after removing spaces and dashes, it is a "+" followed by 8 to 15
+digits; it is stored in that normalised form. An invalid phone raises ValueError
+from the validation layer. Contacts saved before this change (without the key) must
+still load, with phone None.
+"""
