@@ -411,7 +411,7 @@ limit_cases = [
   "a periodic chain that has a stationary distribution but does not converge to it",
   "a bimodal target where a small-step sampler never crosses between modes",
 ]
-status = "todo"
+status = "done"
 
 # =====================================================================================
 # Track: optimisation (Boyd & Vandenberghe)
