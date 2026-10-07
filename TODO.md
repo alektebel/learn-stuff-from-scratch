@@ -24,7 +24,10 @@ Update this file in the same commit that finishes or adds an item.
 
 - [ ] **Session-start hook**: start `dockerd` and build the harness-lab sandbox image
       automatically in cloud sessions (today it is manual, see [CLAUDE.md](CLAUDE.md)).
-- [ ] **`AGENTS.md` → `CLAUDE.md` symlink**, so harnesses that read `AGENTS.md` find the same
+- [ ] **numpy is not installed** (no pip either). Any module that imports it cannot run
+      here: `ml-systems/framework` (parts 2-3), CUDA step C. Either install numpy or keep
+      those items out of the environment's build queue.
+- [x] **`AGENTS.md` → `CLAUDE.md` symlink**, so harnesses that read `AGENTS.md` find the same
       conventions.
 
 ## Ready to build, in priority order
@@ -43,7 +46,8 @@ Update this file in the same commit that finishes or adds an item.
        broken variant and a mutation test all landed.
        → [web-launch-checklist/README.md](web-launch-checklist/README.md)
 5. [ ] **ml-systems framework part 2**: convolutions and a CNN, then a transformer trained on
-       the framework. → [ml-systems/framework/README.md](ml-systems/framework/README.md)
+       the framework. **Blocked in this environment:** the framework imports numpy, which is
+       not installed (part 3 needs it too). → [ml-systems/framework/README.md](ml-systems/framework/README.md)
 6. [ ] **Skill-tree nodes** (38), one at a time, starting from `tree.py next`.
        → [skill-tree/README.md](skill-tree/README.md)
 7. [ ] **inference-lab CPU-real projects**: #4 prefix-caching proxy, #13 gateway with
