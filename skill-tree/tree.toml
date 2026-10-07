@@ -206,7 +206,7 @@ limit_cases = [
   "a defective matrix (Jordan block) where numerical eigenvectors are nearly parallel",
   "root-finding of the characteristic polynomial losing accuracy (Wilkinson's polynomial) versus a QR-based eigensolver",
 ]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "linalg-03-spectral-theorem"
