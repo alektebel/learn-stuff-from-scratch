@@ -71,7 +71,7 @@ limit_cases = [
   "classical Gram-Schmidt losing orthogonality on nearly dependent vectors; modified Gram-Schmidt keeping it (measure ||Q^T Q - I||)",
   "a non-SPD matrix rejected as an inner product",
 ]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "foundations-03-matrix-decompositions"
