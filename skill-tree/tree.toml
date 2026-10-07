@@ -390,7 +390,7 @@ deliverable = "math/probability/06-conditional-expectation"
 build = ["Adam's law and Eve's law, verified by simulation", "E[Y|X] as the best predictor in squared error"]
 accept = ["E[Y|X] beats every other tested function of X in mean squared error"]
 limit_cases = ["a hierarchical model where the naive variance ignores Var(E[Y|X])"]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "probability-07-markov-chains-mcmc"
