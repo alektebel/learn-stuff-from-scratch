@@ -9,6 +9,8 @@ you can run.
 - A graded module is templates + `check.py` + `solutions/` + `_build/` (hints and planted
   bugs). How to build one: `.claude/skills/graded-module/SKILL.md`. Canonical examples:
   `database-from-scratch/`, `ml-systems/framework/`.
+- New material (links, project lists, books, courses) and "does the repo cover X?":
+  `.claude/skills/repo-intake/SKILL.md` (coverage script included).
 - The math / pattern-recognition curriculum is a dependency graph in `skill-tree/`; work on
   it with `.claude/skills/skill-tree-worker/SKILL.md`. Modules land in `math/`.
 - `harness-lab/` has its own `CLAUDE.md` (LEARN mode: Claude writes specs, tests and
