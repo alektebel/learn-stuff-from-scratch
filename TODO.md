@@ -32,7 +32,9 @@ Update this file in the same commit that finishes or adds an item.
 
 ## Ready to build, in priority order
 
-1. [ ] **RAG step 0, the evaluation set**, then project 1 (BM25 → LSA → HNSW → fusion).
+1. [ ] **RAG step 0, the evaluation set**: built in
+       [`rag-from-scratch/eval-set/`](rag-from-scratch/eval-set/README.md) and audited.
+       Next: project 1 (BM25 → LSA → HNSW → fusion).
        Unblocks agent-evals #5, reliability #3 and #5, interview questions 1 and 11.
        → [rag-from-scratch/README.md](rag-from-scratch/README.md)
 2. [ ] **harness-lab phase 1**: message types, model interface, scripted backend (spec and
