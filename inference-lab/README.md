@@ -1,7 +1,10 @@
 # inference-lab
 
 Fifteen inference-infrastructure projects (serve, optimise, scale), mapped onto what this repo
-already has. **Not started.** This file is the plan; a project gets code only when chosen.
+already has. **Project #4 (prefix-caching proxy)** is in
+[`prefix-caching-proxy/`](prefix-caching-proxy/) and **project #13 (AI gateway)** is the
+graded module [`ai-gateway/`](ai-gateway/); the rest is still the plan. This file is the
+plan; a project gets code only when chosen.
 
 ## The hardware constraint decides the order
 

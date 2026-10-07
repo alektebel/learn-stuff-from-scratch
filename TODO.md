@@ -52,8 +52,9 @@ Update this file in the same commit that finishes or adds an item.
        not installed (part 3 needs it too). → [ml-systems/framework/README.md](ml-systems/framework/README.md)
 6. [ ] **Skill-tree nodes** (38), one at a time, starting from `tree.py next`.
        → [skill-tree/README.md](skill-tree/README.md)
-7. [ ] **inference-lab CPU-real projects**: #4 prefix-caching proxy, #13 gateway with
-       fallbacks, #3 KV monitor. → [inference-lab/README.md](inference-lab/README.md)
+7. [ ] **inference-lab CPU-real projects**: #4 prefix-caching proxy and #13 AI gateway are
+       built and audited; #3 KV monitor remains.
+       → [inference-lab/README.md](inference-lab/README.md)
 8. [ ] **agent-evals next**: red-team v2 (tool layer, loops) and trajectory grading, both
        after harness-lab phase 1. → [agent-evals/README.md](agent-evals/README.md)
 9. [x] **database-from-scratch extension**: MVCC on top of the B+tree and durability for
