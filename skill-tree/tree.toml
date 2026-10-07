@@ -378,7 +378,7 @@ accept = [
   "the CLT approximation error shrinks as 1/sqrt(n) (Berry-Esseen order)",
 ]
 limit_cases = ["the Cauchy distribution: the sample mean does not converge"]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "probability-06-conditional-expectation"
