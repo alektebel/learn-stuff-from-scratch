@@ -109,13 +109,11 @@ def check_jensen_gap() -> None:
     g = jensen_gap(lambda x: x[0] * x[1], [(-2.0, 2.0), (-2.0, 2.0)], 300, rng)
     assert g > JENSEN_TOL, f"x*y is indefinite, the gap must be positive, got {g}"
 
-    # The midpoint alone is degenerate for -x^2: this reference shows the witness
-    # is off-centre, so a midpoint-only implementation would miss it.
-    midpoint_only = max(
-        (-(0.5 * x + 0.5 * y) ** 2) - 0.5 * (-(x ** 2)) - 0.5 * (-(y ** 2))
-        for x, y in ((-2.0, -2.0), (2.0, 2.0))
-    )
-    assert midpoint_only <= JENSEN_TOL, "sanity: the same-sign chords are not a witness"
+    # The gap must be the MAXIMUM over weights, not the minimum: a solver that kept
+    # the smallest gap would report ~0 for -x^2 and x*y, so the two asserts above
+    # already fail on it. (Sweeping every weight is robustness, not a necessity for
+    # -x^2 specifically: a general non-convexity's largest witness can sit at any
+    # weight, so the full sweep is the definition applied faithfully.)
 
 
 # ---------------------------------------------------------------------------

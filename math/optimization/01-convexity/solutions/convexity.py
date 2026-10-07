@@ -141,10 +141,12 @@ def jensen_gap(f, box, n, rng):
 
     For a convex function f(lam x + (1-lam) y) <= lam f(x) + (1-lam) f(y), so the
     gap is <= 0; a gap > 0 is a witness of non-convexity (or concavity).
-    DESIGN DECISION: sweep the whole weight grid, not just the midpoint. The
-    midpoint alone is a degenerate test: the midpoint of -x^2 sits at a minimum
-    of the chord and hides the dip that other weights reveal. The maximum is
-    returned, never the minimum, so a single witness is enough.
+    DESIGN DECISION: sweep the whole weight grid, not just the midpoint. This is
+    free robustness, not a necessity for any one example: a general non-convex
+    function's largest violation over a chord can sit at any weight, so the sweep
+    is the definition applied faithfully. (For -x^2 the maximum happens to be at
+    the midpoint, so the midpoint alone would also catch that particular case.)
+    The maximum is returned, never the minimum, so a single witness is enough.
     """
     d = len(box)
     best = 0.0

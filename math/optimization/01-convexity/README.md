@@ -55,11 +55,14 @@ that asserts and fails is a **FAIL**; an exception is an **ERROR**. The checks i
 - **Jacobi eigenvalues, not Cholesky.** A convex function may have a *semidefinite*
   Hessian (the zero matrix at `x = 0` for `x^4`), and Cholesky rejects semidefinite.
   Jacobi returns the spectrum, so the tolerance is a statement about the eigenvalues.
-- **A negative PSD tolerance.** `is_psd` accepts any eigenvalue `>= -tol`; requiring
-  strict positivity would call `x^4` non-convex at the origin.
-- **Sweep the whole convex combination, not just the midpoint.** The midpoint of `-x^2`
-  is stationary and hides the dip; the gap is a maximum over weights, so one off-centre
-  witness is enough.
+- **A negative PSD tolerance.** `is_psd` accepts any eigenvalue `>= -tol`. The
+  tolerance is load-bearing for a zero Hessian (`[[0]]`) and for log-sum-exp's rank-1
+  Hessian, whose eigenvalue is exactly `0` up to round-off; without it those would be
+  called non-convex.
+- **Sweep the whole convex combination, not just the midpoint.** This is robustness,
+  not a necessity for one example: a general non-convexity's largest violation over a
+  chord can sit at any weight. (For `-x^2` the maximum happens to be at the midpoint.)
+  The gap is a maximum over weights, never a minimum, so a single witness is enough.
 - **Maximum, never minimum.** The gap is a witness: the largest violation is the one to
   report.
 - **Two tests, kept honest.** Jensen is the definition (it finds global violations, and a
