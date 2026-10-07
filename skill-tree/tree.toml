@@ -141,7 +141,7 @@ limit_cases = [
   "a nearly singular covariance: log density computed via Cholesky, not via inverse and det",
   "change of variables forgetting the Jacobian term: the density no longer integrates to 1",
 ]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "foundations-06-optimization"
