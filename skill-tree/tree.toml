@@ -47,7 +47,7 @@ limit_cases = [
   "singular matrix: rank-deficient, inverse must raise",
   "a matrix where no pivoting gives catastrophic error (small pivot) and pivoting does not",
 ]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "foundations-02-analytic-geometry"
