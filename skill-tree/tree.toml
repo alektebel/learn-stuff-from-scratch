@@ -427,7 +427,7 @@ deliverable = "math/optimization/01-convexity"
 build = ["numerical convexity tests (Jensen on random points, PSD Hessian)", "operations that preserve convexity"]
 accept = ["the tests classify a catalogue of functions correctly, including log-sum-exp and the geometric mean"]
 limit_cases = ["a quasiconvex but non-convex function that passes a naive sublevel-set test"]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "optimization-02-duality"
