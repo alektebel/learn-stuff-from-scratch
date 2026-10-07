@@ -35,9 +35,12 @@ Update this file in the same commit that finishes or adds an item.
 2. [ ] **harness-lab phase 1**: message types, model interface, scripted backend (spec and
        tests first; the learner writes the loop), then a baseline on 20 tasks x 3 seeds.
        Needs the model API above. → [harness-lab/docs/phase0.md](harness-lab/docs/phase0.md) §5
-3. [ ] **CUDA step B**: memory system simulated and graded on CPU (coalescing, bank
-       conflicts, occupancy, roofline). → [cuda-from-scratch/ROADMAP.md](cuda-from-scratch/ROADMAP.md)
-4. [ ] **web-launch-checklist observers and check.py**, crawler and exercises 1-3 first.
+3. [x] **CUDA step B**: memory system simulated and graded on CPU (coalescing, bank
+       conflicts, occupancy, roofline). Landed as `cuda-from-scratch/memory-system/`
+       (16 checks, 4 planted bugs). → [cuda-from-scratch/ROADMAP.md](cuda-from-scratch/ROADMAP.md)
+4. [x] **web-launch-checklist observers and check.py**, crawler and exercises 1-3 first.
+       The crawler observer, `check.py`, the reference in `solutions/`, a runnable
+       broken variant and a mutation test all landed.
        → [web-launch-checklist/README.md](web-launch-checklist/README.md)
 5. [ ] **ml-systems framework part 2**: convolutions and a CNN, then a transformer trained on
        the framework. → [ml-systems/framework/README.md](ml-systems/framework/README.md)
@@ -49,6 +52,9 @@ Update this file in the same commit that finishes or adds an item.
        after harness-lab phase 1. → [agent-evals/README.md](agent-evals/README.md)
 9. [ ] **database-from-scratch extension**: MVCC on top of the B-tree; durability for MVCC
        versions in the WAL. → [database-from-scratch/README.md](database-from-scratch/README.md) §Limits
+10. [ ] **web-launch-checklist exercises 4-16** and the remaining observers
+        (`unfurl.py`, `reader.py`, `mobile.py`, `visit.py`, `impatient.py`).
+        → [web-launch-checklist/README.md](web-launch-checklist/README.md)
 
 ## Gaps with no plan yet
 

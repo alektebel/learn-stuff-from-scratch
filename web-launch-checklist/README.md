@@ -1,18 +1,20 @@
 # Web launch checklist, from the failure side
 
-Fifteen items that "every site should have before launch". The usual list says *what*;
+Sixteen items that "every site should have before launch". The usual list says *what*;
 these exercises make you find out *why*, by putting an observer in front of a site that
 lacks the item and measuring the damage, then fixing it and measuring again.
 
-**Status: planned.** The exercises below are specified; the graded module (observers and
-`check.py`) is not built yet. No answers are written anywhere in this directory, on purpose:
-each exercise ends with questions, and the observer's output is what answers them.
+**Status: exercises 1-3 are built.** `crawler.py` (the observer), `check.py`, the
+reference in `solutions/` and a runnable broken variant in `_build/broken/` are
+here. Exercises 4-16 and the other observers are still specified only. No conceptual
+answers are written anywhere in this directory, on purpose: each exercise ends with
+questions, and the observer's output is what answers them.
 
-## How it will work
+## How it works
 
-You build a small site: `site/` (HTML, CSS, images) served by `serve.py`, a stdlib
-`http.server` with routing. You do not get a framework, because frameworks do half of this
-list silently, and then you never learn which half.
+`serve.py`, a stdlib `http.server` with routing, over a site described in
+`pages.py`. You do not get a framework, because frameworks do half of this list
+silently, and then you never learn which half.
 
 The **observers** are provided. Each one sees the site the way some real agent does:
 
@@ -25,10 +27,53 @@ The **observers** are provided. Each one sees the site the way some real agent d
 | `visit.py` | a browser on a first visit over a slow network | requests made, bytes transferred, cookies set and when |
 | `impatient.py` | a user on a slow API who clicks twice | duplicate submissions, what they saw while waiting |
 
-`check.py` runs the observers and grades each exercise, in this repo's usual format.
+Only `crawler.py` exists today; the rest are specified in the exercises below.
 
-Runs on a CPU: Python standard library, Pillow (with WebP) and the Chromium binary that
-is already installed. No network.
+`check.py` runs the observers and grades each exercise, in this repo's usual format.
+Exercises 1-3 are graded now; the rest are TODO until their observers exist.
+
+Runs on a CPU: Python standard library only for exercises 1-3. Later exercises warm
+up the machine (Pillow with WebP, a Chromium binary) but there is no network.
+
+## What is provided, what you build
+
+The original plan was ambiguous about this. The smallest workable split:
+
+| Part | Who | Why |
+|---|---|---|
+| `crawler.py` | **provided** | An observer is a measuring instrument; you would not learn the exercise by re-implementing the ruler. Read it, do not edit it. |
+| `check.py` | **provided** | The grader. Never imports `solutions/`. |
+| `serve.py` | **you** | Routing and the 404 status: the decision exercise 1 is about. |
+| `pages.py` | **you** | The site's HTML: titles and descriptions, the subject of exercises 2 and 3. |
+| `_build/broken/` | **provided** | A complete site with the three defects planted; run the crawler against it for the "Break" half. |
+| `solutions/` | **reference** | Do not read it until `check.py` passes, or until you are stuck. |
+
+There is no `site/` directory of loose `.html` files. The page HTML lives in
+`pages.py` for one concrete reason: the mutation harness
+(`.claude/skills/graded-module/scripts/mutate.py`) builds its sandbox by copying
+`check.py` and every `solutions/*.py`, so a directory of HTML would not travel
+with it and two of the three planted bugs would be untestable. The HTML inside
+`pages.py` is ordinary HTML, and the observer still reads it over HTTP.
+
+## How to run
+
+```
+cd web-launch-checklist
+python3 check.py          # stop at the first step you have not written
+python3 check.py --all    # run all three
+```
+
+Start the reference site (swap `solutions` for `_build/broken` for the broken
+variant), then crawl it by hand to see what a bot sees:
+
+```
+(cd solutions && python3 serve.py) &                 # http://127.0.0.1:8000/
+python3 crawler.py http://127.0.0.1:8000/            # the report
+```
+
+`serve.py` and `pages.py` are shipped as frozen stubs: every step reports TODO
+(not ERROR) until you write it. To see the damage the checks catch, run the
+crawler against the complete broken variant in `_build/broken/` first.
 
 ## The exercises
 
@@ -168,6 +213,30 @@ the graded check passes, and the observer's numbers changed in the way you predi
 - **Questions:** Was WebP smaller for every image? Try a screenshot with flat colours and
   text against PNG. What did resizing save, compared with changing the format?
 
+## Mutation table (exercises 1-3)
+
+`_build/mutations.py`, run through
+`.claude/skills/graded-module/scripts/mutate.py`, plants one classic mistake per
+exercise. Every one must be CAUGHT by the named step.
+
+| Planted bug | File | Caught by | Why it is a classic mistake |
+|---|---|---|---|
+| Unknown path answered with status 200 | `serve.py` | step 1 | The soft 404: a bot indexes a deleted URL forever. |
+| Every page uses the home page's `<title>` | `pages.py` | step 2 | Copy-paste the layout, forget the title: ten identical tabs. |
+| The description tag is never emitted | `pages.py` | step 3 | The snippet silently falls back to an arbitrary sentence. |
+
+## Design decisions
+
+- **The 404 status is the server's, the 404 body is the site's.** `pages.not_found()`
+  returns a helpful page that links home; `do_GET` chooses status 404. Grading them
+  separately is what keeps "real 404" and "links home" from hiding each other.
+- **Route by an explicit map, not by "does the file exist".** A file-based server
+  blurs "never written" and "deleted"; the map makes the public surface explicit.
+- **The observer probes an invented path.** Soft-404 detection is a request for a
+  path that cannot exist: status 404 is real, status 200 is soft. No heuristics on
+  the body, which would flag a page that merely says "not found".
+- **The pages module, not a `site/` directory** (see "What is provided" above).
+
 ## Already in the repo
 
 - `web-scraping/` implements robots.txt from the crawler's side (exercise 5 is the
@@ -181,3 +250,18 @@ the graded check passes, and the observer's numbers changed in the way you predi
 1 → 2 → 3 → 6 → 5 → 7 → 4 (crawler and unfurl first: cheapest observers, fastest feedback),
 then 8 → 9 → 16 (what users see), then 10 → 11 → 15 (what users do), then 13 → 14 → 12
 (law and measurement).
+
+## Limits
+
+- **Only exercises 1-3 are built.** The rest are specified, not graded; `check.py`
+  reports them as absent rather than pretending they pass. The remaining observers
+  (`unfurl.py`, `reader.py`, `mobile.py`, `visit.py`, `impatient.py`) do not exist yet.
+- The crawler is a single-threaded stdlib fetcher. It follows same-origin links only and
+  does not execute JavaScript, so a client-rendered site would be measured wrong.
+- Soft-404 detection probes one invented path per host. A site that 404s some paths but
+  rewrites others to 200 needs more probes than this makes.
+- Graded against the local reference and broken servers, never the network: the numbers
+  are the toy server's, not a real site's.
+- The title and description length limits (60 and 160 characters) are conventions, not
+  hard rules; they are graded so a learner can see a page cross the line, not because a
+  longer one is wrong.
