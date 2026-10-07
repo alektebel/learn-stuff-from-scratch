@@ -5,7 +5,7 @@ import time
 import pytest
 from eval.agents import NullAgent
 from eval.contract import AgentResult, Budget, validate_record
-from eval.runner import _run_agent, run_one
+from eval.runner import run_agent, run_one
 from eval.sandbox import DockerSandbox
 from eval.tasks import apply_solution, load_tasks, materialize
 from eval.verify import verify
@@ -107,17 +107,17 @@ class CrashingAgent:
 
 def test_wall_timeout_kills_agent(box):
     t0 = time.monotonic()
-    res = _run_agent(SleepyAgent(), TASKS["t01-pagination"], box, Budget(wall_s=2), 0)
+    res = run_agent(SleepyAgent(), TASKS["t01-pagination"], box, Budget(wall_s=2), 0)
     assert res.stop_reason == "wall_timeout" and time.monotonic() - t0 < 15
 
 
 def test_crash_is_recorded(box):
-    res = _run_agent(CrashingAgent(), TASKS["t01-pagination"], box, Budget(wall_s=30), 0)
+    res = run_agent(CrashingAgent(), TASKS["t01-pagination"], box, Budget(wall_s=30), 0)
     assert res.stop_reason == "crash" and "boom" in res.error
 
 
 def test_null_agent_result_is_trivial(box):
-    res = _run_agent(NullAgent(), TASKS["t01-pagination"], box, Budget(wall_s=30), 0)
+    res = run_agent(NullAgent(), TASKS["t01-pagination"], box, Budget(wall_s=30), 0)
     assert res == AgentResult(stop_reason="no_op")
 
 

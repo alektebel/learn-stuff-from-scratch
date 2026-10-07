@@ -48,7 +48,7 @@ def _child(agent, task_input: TaskInput, sandbox: DockerSandbox, budget: Budget,
         q.put(("error", traceback.format_exc()))
 
 
-def _run_agent(agent, task: Task, sandbox: DockerSandbox, budget: Budget, seed: int) -> AgentResult:
+def run_agent(agent, task: Task, sandbox: DockerSandbox, budget: Budget, seed: int) -> AgentResult:
     ctx = mp.get_context("spawn")
     q = ctx.Queue()
     proc = ctx.Process(target=_child, args=(agent, TaskInput(task.statement, task.user_turns), sandbox, budget, seed, q))
@@ -75,7 +75,7 @@ def run_one(agent_name: str, task: Task, seed: int, budget: Budget, batch_id: st
         out = Path(tmp) / "out"
         t0 = time.monotonic()
         with DockerSandbox(image=image).start(repo) as box:
-            result = _run_agent(agent, task, box, budget, seed)
+            result = run_agent(agent, task, box, budget, seed)
             wall = time.monotonic() - t0
             box.export(out)
         verdict = verify(task, out, image=image)

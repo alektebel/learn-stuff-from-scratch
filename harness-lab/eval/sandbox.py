@@ -120,10 +120,17 @@ class DockerSandbox:
         _check(_docker("cp", f"{src}/.", f"{cid}:{dest}"), f"docker cp {dest}")
         _check(_docker("exec", "--user", "root", cid, "chmod", "-R", "a+rX", dest), f"chmod {dest}")
 
-    def export(self, dest_dir: Path) -> None:
+    def export(self, dest_dir: Path, src: str = "/work") -> None:
+        """Copy `src` out of the container. Works on a stopped container too.
+        Symlinks come out as symlinks: host-side readers must not follow them."""
         cid = self._require()
         dest_dir.mkdir(parents=True, exist_ok=True)
-        _check(_docker("cp", f"{cid}:/work/.", str(dest_dir)), "docker cp out")
+        _check(_docker("cp", f"{cid}:{src}/.", str(dest_dir)), f"docker cp out {src}")
+
+    def stop(self) -> None:
+        """Stop the container, killing every process the agent left running, so what
+        is exported afterwards cannot change underneath the reader."""
+        _check(_docker("stop", "--time", "1", self._require()), "docker stop")
 
     def close(self) -> None:
         if self.container_id is not None:

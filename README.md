@@ -54,6 +54,7 @@ relevant reading carry their own `RESOURCES.md`.
 
 ### AI Agents
 - **[harness-lab/](harness-lab/)** - Coding-agent harness from scratch: seven subsystems, the distinctive mechanism of each major harness (OpenHands, Aider, Codex, opencode, ...) as a swappable variant, and a controlled experiment comparing them. Phase 0: a Docker-sandboxed evaluation bench of 20 tasks with hardened hidden-test verifiers, null/oracle control agents and paired-comparison power analysis
+- **[agent-evals/](agent-evals/)** - Evaluation, safety and operations tooling layered on harness-lab: 15 projects mapped (trajectory grading, judge calibration, CI gates, red-teaming, drift, contamination...). Done: red-team fuzzer v1 - six adversarial scenarios (file, tool-output and statement injection, scope overreach) with state-based detectors proved by null/oracle/complicit controls
 
 ### Operations & Reliability
 - **[deploy-and-debug/](deploy-and-debug/)** - Running the systems in this repo and debugging them when they break: capacity math (KV cache sizing, N/R/W failure tolerance), percentiles/queueing/error budgets, root-cause diagnosis of 11 injected faults from metrics alone, and safe rollout (liveness vs readiness, canary analysis, budget-based auto-rollback) - plus a runbook of the real vllm/nodetool/nvidia-smi/k8s commands (12 graded checks via `python3 check.py`)
