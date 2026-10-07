@@ -82,7 +82,7 @@ graph LR
   end
   subgraph probability
     probability-01-counting-conditioning["01 Counting, conditional probability, Bayes"]:::done
-    probability-02-random-variables["02 Discrete random variables and expectation"]
+    probability-02-random-variables["02 Discrete random variables and expectation"]:::done
     probability-03-continuous["03 Continuous random variables"]
     probability-04-joint["04 Joint distributions and covariance"]
     probability-05-limits-inequalities["05 Transformations, inequalities, limit theorems"]
@@ -191,7 +191,7 @@ graph LR
 | `optimization-03-unconstrained` Unconstrained minimisation: gradient and Newton | optimization | optimization-01-convexity, linalg-05-conditioning-stability | todo |
 | `optimization-04-interior-point` Equality constraints and interior-point methods | optimization | optimization-02-duality, optimization-03-unconstrained | todo |
 | `probability-01-counting-conditioning` Counting, conditional probability, Bayes | probability | — | done |
-| `probability-02-random-variables` Discrete random variables and expectation | probability | probability-01-counting-conditioning | todo |
+| `probability-02-random-variables` Discrete random variables and expectation | probability | probability-01-counting-conditioning | done |
 | `probability-03-continuous` Continuous random variables | probability | probability-02-random-variables, foundations-04-vector-calculus | todo |
 | `prml-01-introduction` Curve fitting, bias-variance, decision and information theory | prml | foundations-05-probability, probability-03-continuous | todo |
 | `probability-04-joint` Joint distributions and covariance | probability | probability-03-continuous | todo |

@@ -327,7 +327,7 @@ accept = [
   "means and variances match simulation; Poisson approximation error to the Binomial shrinks as predicted",
 ]
 limit_cases = ["an expectation computed with indicators where the variables are dependent (linearity still holds)"]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "probability-03-continuous"
