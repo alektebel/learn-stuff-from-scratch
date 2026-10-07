@@ -67,7 +67,7 @@ graph LR
   subgraph foundations
     foundations-01-linear-algebra["01 Vectors, matrices, linear systems"]:::done
     foundations-02-analytic-geometry["02 Norms, inner products, projections, rotations"]:::done
-    foundations-03-matrix-decompositions["03 Eigendecomposition, Cholesky, SVD"]
+    foundations-03-matrix-decompositions["03 Eigendecomposition, Cholesky, SVD"]:::done
     foundations-04-vector-calculus["04 Gradients, Jacobians, chain rule, backpropagation"]:::done
     foundations-05-probability["05 Probability and distributions for ML"]
     foundations-06-optimization["06 Continuous optimisation"]
@@ -175,7 +175,7 @@ graph LR
 |---|---|---|---|
 | `foundations-01-linear-algebra` Vectors, matrices, linear systems | foundations | — | done |
 | `foundations-02-analytic-geometry` Norms, inner products, projections, rotations | foundations | foundations-01-linear-algebra | done |
-| `foundations-03-matrix-decompositions` Eigendecomposition, Cholesky, SVD | foundations | foundations-02-analytic-geometry | todo |
+| `foundations-03-matrix-decompositions` Eigendecomposition, Cholesky, SVD | foundations | foundations-02-analytic-geometry | done |
 | `foundations-04-vector-calculus` Gradients, Jacobians, chain rule, backpropagation | foundations | foundations-01-linear-algebra | done |
 | `foundations-05-probability` Probability and distributions for ML | foundations | foundations-04-vector-calculus | todo |
 | `foundations-06-optimization` Continuous optimisation | foundations | foundations-04-vector-calculus, foundations-03-matrix-decompositions | todo |

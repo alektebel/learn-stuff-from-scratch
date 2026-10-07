@@ -95,7 +95,7 @@ limit_cases = [
   "power iteration with two eigenvalues of equal magnitude (no convergence): detect it",
   "SVD via A^T A squaring the condition number: show the precision loss against numpy.linalg.svd",
 ]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "foundations-04-vector-calculus"
