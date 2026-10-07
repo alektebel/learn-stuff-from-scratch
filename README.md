@@ -2,7 +2,7 @@
 
 A collection of from-scratch implementations of various systems and projects for learning purposes.
 
-**New here? Read [PHILOSOPHY.md](PHILOSOPHY.md)** — what this repo is for, and the three
+**Open work: [TODO.md](TODO.md).** **New here? Read [PHILOSOPHY.md](PHILOSOPHY.md)** — what this repo is for, and the three
 principles every directory follows: design choices named as problem-solving decisions,
 MVP-then-complicate driven by limit cases, and verification you can run.
 

@@ -1,0 +1,78 @@
+# TODO
+
+The open work in this repository, in order. Each item links to the plan that specifies it.
+Update this file in the same commit that finishes or adds an item.
+
+## Blocked on a decision or an input from the owner
+
+- [ ] **A model API for harness-lab phase 1.** An OpenAI-compatible endpoint, its key as an
+      environment secret, and a cost cap per evaluation run. Phase 1 has been blocked on
+      this since phase 0 closed. → [harness-lab/CLAUDE.md](harness-lab/CLAUDE.md)
+- [ ] **GPU access: yes or no.** Decides whether the GPU-required half of
+      [inference-lab](inference-lab/README.md) and step A of the
+      [CUDA roadmap](cuda-from-scratch/ROADMAP.md) are in the plan, or stay code without
+      measurements.
+- [ ] **Horizon and goal for harness-lab phase 7** (memory): how many weeks, and whether the
+      aim is breadth or a result on correction/forgetting. Decides what is cut.
+- [ ] **MCP server:** what it exposes, from scratch or SDK, stdio or HTTP, and where it lives.
+      Related: [enterprise-ai-projects/10](enterprise-ai-projects/10-mcp-legacy-erp.md).
+- [ ] **Inputs only the owner can provide:** the text of the 149 unread X posts and short links
+      ([RESOURCES.md](RESOURCES.md), "Unsorted"); titles for the 60 unverified arXiv IDs;
+      the current CV; the updated `harness-lab-prompt.md` (never reached the repo).
+
+## Environment
+
+- [ ] **Session-start hook**: start `dockerd` and build the harness-lab sandbox image
+      automatically in cloud sessions (today it is manual, see [CLAUDE.md](CLAUDE.md)).
+- [ ] **`AGENTS.md` → `CLAUDE.md` symlink**, so harnesses that read `AGENTS.md` find the same
+      conventions.
+
+## Ready to build, in priority order
+
+1. [ ] **RAG step 0, the evaluation set**, then project 1 (BM25 → LSA → HNSW → fusion).
+       Unblocks agent-evals #5, reliability #3 and #5, interview questions 1 and 11.
+       → [rag-from-scratch/README.md](rag-from-scratch/README.md)
+2. [ ] **harness-lab phase 1**: message types, model interface, scripted backend (spec and
+       tests first; the learner writes the loop), then a baseline on 20 tasks x 3 seeds.
+       Needs the model API above. → [harness-lab/docs/phase0.md](harness-lab/docs/phase0.md) §5
+3. [ ] **CUDA step B**: memory system simulated and graded on CPU (coalescing, bank
+       conflicts, occupancy, roofline). → [cuda-from-scratch/ROADMAP.md](cuda-from-scratch/ROADMAP.md)
+4. [ ] **web-launch-checklist observers and check.py**, crawler and exercises 1-3 first.
+       → [web-launch-checklist/README.md](web-launch-checklist/README.md)
+5. [ ] **ml-systems framework part 2**: convolutions and a CNN, then a transformer trained on
+       the framework. → [ml-systems/framework/README.md](ml-systems/framework/README.md)
+6. [ ] **Skill-tree nodes** (38), one at a time, starting from `tree.py next`.
+       → [skill-tree/README.md](skill-tree/README.md)
+7. [ ] **inference-lab CPU-real projects**: #4 prefix-caching proxy, #13 gateway with
+       fallbacks, #3 KV monitor. → [inference-lab/README.md](inference-lab/README.md)
+8. [ ] **agent-evals next**: red-team v2 (tool layer, loops) and trajectory grading, both
+       after harness-lab phase 1. → [agent-evals/README.md](agent-evals/README.md)
+9. [ ] **database-from-scratch extension**: MVCC on top of the B-tree; durability for MVCC
+       versions in the WAL. → [database-from-scratch/README.md](database-from-scratch/README.md) §Limits
+
+## Gaps with no plan yet
+
+- [ ] Microservices, authentication protocols (sessions, JWT, OAuth), leader-follower
+      replication with failover (from the 25 system-design concepts).
+- [ ] CS249r gaps: data selection, network fabrics, responsible and sustainable AI.
+- [ ] A checker for `lean-proofs/` (`lake build`, no `sorry`).
+
+## Splitting the work across models
+
+The rule: **put the strongest (most expensive) model where an error would not be caught by
+a test, and cheaper models where a verifier catches it.**
+
+| Work | Who |
+|---|---|
+| Specs, plans, ADRs, design decisions | strongest model |
+| Designing a module's `check.py` and its planted bugs (`_build/mutations.py`) | strongest model |
+| Reviewing other models' output (sampled) | strongest model |
+| Implementing solutions against an existing, mutation-tested checker (skill-tree nodes, observers, templates) | cheaper models |
+| Triage of link dumps with the `repo-intake` skill | cheaper models, spot-checked |
+| The core the learner must write in LEARN mode | the learner |
+| Tutoring: questions, not answers; reviewing the learner's code | strongest model |
+
+Do not assume the split; measure it. harness-lab phase 1 runs the same agent on the same
+tasks with each model. With 20 tasks, success rates will rarely be distinguishable (see
+[ADR 0004](harness-lab/docs/adr/0004-statistics.md)); cost per solved task (tokens, turns,
+euros) will be, and that is the number that decides the split.
