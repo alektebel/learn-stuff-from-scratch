@@ -594,7 +594,7 @@ limit_cases = [
   "an invalid kernel whose Gram matrix has a negative eigenvalue",
   "a Gram matrix that is PSD in theory but not numerically: jitter on the diagonal",
 ]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "prml-07-svm"
