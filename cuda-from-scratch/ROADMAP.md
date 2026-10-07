@@ -55,6 +55,8 @@ a GPU.
 Checks are exact counts on constructed patterns (a strided access touching 32 sectors, a
 column read of a 32x32 tile with a 32-way conflict, padding to 33 fixing it).
 
+**Step B built:** [`memory-system/`](memory-system/) — 16 graded checks over four templates, mutation-tested.
+
 **Step C — GPU algorithms, simulated exactly on CPU** (new module, numpy):
 - tree reductions, and why the result depends on the summation order in float32;
 - scans: Hillis-Steele and Blelloch, with work and depth counted;
