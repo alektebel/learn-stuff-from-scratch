@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# cz — the short front door for codecraft.
+#
+#   cz                      your learning board
+#   cz path                 the ordered plan, with progress
+#   cz run aws-from-scratch run a course; read the nudge
+#   cz hint aws-from-scratch  a bigger nudge
+#   cz ask "..." aws-from-scratch   ask the mentor
+#
+# This is a forwarding shim; every subcommand of codecraft/cli.py works.
+
+set -eu
+
+self="$(readlink -f "${BASH_SOURCE[0]}")"
+root="$(cd "$(dirname "$self")" && pwd)"
+
+exec python3 "$root/codecraft/cli.py" "$@"
