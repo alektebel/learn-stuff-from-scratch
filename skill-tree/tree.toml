@@ -627,7 +627,7 @@ accept = [
   "the d-separation checker agrees with conditional independence measured on samples",
 ]
 limit_cases = ["loopy belief propagation on a graph with a cycle: not exact, and sometimes not convergent"]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "prml-09-mixtures-em"
