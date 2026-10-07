@@ -531,7 +531,7 @@ accept = [
   "evidence maximisation picks a model complexity close to the true one on synthetic data",
 ]
 limit_cases = ["more basis functions than data points: MLE ill-posed, Bayesian posterior well defined"]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "prml-04-linear-classification"
