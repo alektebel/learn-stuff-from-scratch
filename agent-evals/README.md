@@ -56,7 +56,7 @@ Net new: three projects (cost guardrail middleware, LLM tracing, SLO dashboard) 
 ## The RAG dependency
 
 Projects #5, reliability #3 and reliability #5 need a RAG system under test, and the repo has
-none. Proposed `rag-from-scratch/`, built before them: chunking; BM25; an **HNSW** vector index
+none. Planned in [rag-from-scratch/](../rag-from-scratch/README.md), built before them: chunking; BM25; an **HNSW** vector index
 from scratch (layered small-world graphs, greedy search with `ef`, the recall/latency trade-off
 measured against brute force); hybrid retrieval; citation-bearing answers; abstention. It is a
 target for the evals and a learning project on its own.
