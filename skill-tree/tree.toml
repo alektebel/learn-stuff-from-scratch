@@ -359,7 +359,7 @@ build = [
 ]
 accept = ["sample covariance matrices converge to the analytic ones"]
 limit_cases = ["uncorrelated but dependent variables (X and X^2 with X symmetric)"]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "probability-05-limits-inequalities"
