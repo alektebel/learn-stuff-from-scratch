@@ -475,6 +475,37 @@ def check_wilkinson_limit_case() -> None:
         "must show that (a swap of the two numbers claims the opposite)")
 
 
+def check_numerical_eigenvectors() -> None:
+    from eigenvalues import numerical_eigenvectors, qr_eigenvalues
+
+    def norm(v):
+        return math.sqrt(sum(abs(t) ** 2 for t in v))
+
+    def cosangle(u, v):
+        inner = sum(a.conjugate() * b for a, b in zip(u, v))
+        return abs(inner) / (norm(u) * norm(v))
+
+    # Limit case: a defective Jordan block. Its repeated eigenvalue has a
+    # one-dimensional eigenspace, so the numerical eigenvectors are nearly parallel.
+    J = [[2.0, 1.0], [0.0, 2.0]]
+    vecs = numerical_eigenvectors(J)
+    assert len(vecs) == 2, f"one vector per eigenvalue, got {len(vecs)}"
+    for v, lam in zip(vecs, qr_eigenvalues(J)):
+        Av = [sum(J[i][j] * v[j] for j in range(2)) for i in range(2)]
+        residual = math.sqrt(sum(abs(Av[i] - lam * v[i]) ** 2 for i in range(2)))
+        assert residual < 1e-6, f"numerical eigenvector residual {residual:.2e} for lambda {lam}"
+    assert cosangle(vecs[0], vecs[1]) > 0.999, (
+        "the two numerical eigenvectors of a defective matrix must be nearly parallel, "
+        f"got cos = {cosangle(vecs[0], vecs[1]):.4f}")
+
+    # A diagonalisable matrix with distinct eigenvalues gives orthogonal vectors instead.
+    D = [[2.0, 0.0], [0.0, 3.0]]
+    vecs = numerical_eigenvectors(D)
+    assert cosangle(vecs[0], vecs[1]) < 1e-3, (
+        "distinct eigenvalues give orthogonal numerical eigenvectors, "
+        f"got cos = {cosangle(vecs[0], vecs[1]):.4f}")
+
+
 CHECKS: List[Tuple[str, str, Callable[[], None]]] = [
     ("eigenvalues.py", "the characteristic polynomial", check_characteristic_polynomial),
     ("eigenvalues.py", "Horner and exact rational roots", check_evaluation_and_rational_roots),
@@ -485,6 +516,7 @@ CHECKS: List[Tuple[str, str, Callable[[], None]]] = [
     ("eigenvalues.py", "the QR eigensolver", check_qr_eigenvalues),
     ("eigenvalues.py", "Wilkinson's polynomial and companion", check_wilkinson_polynomial),
     ("eigenvalues.py", "root-finding versus QR (limit case)", check_wilkinson_limit_case),
+    ("eigenvalues.py", "nearly parallel numerical eigenvectors of a defective matrix", check_numerical_eigenvectors),
 ]
 
 

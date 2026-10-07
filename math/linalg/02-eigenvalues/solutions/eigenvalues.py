@@ -559,6 +559,65 @@ def qr_eigenvalues(A):
     return sorted(eigs, key=lambda z: (z.real, z.imag))
 
 
+def _solve_complex(M, b):
+    """Solve ``M z = b`` for complex ``M`` and ``b`` (Gaussian elimination, partial pivoting)."""
+    n = len(M)
+    A = [row[:] for row in M]
+    x = list(b)
+    for col in range(n):
+        piv = max(range(col, n), key=lambda r: abs(A[r][col]))
+        if abs(A[piv][col]) < 1e-300:
+            raise ValueError("singular system in inverse iteration")
+        A[col], A[piv] = A[piv], A[col]
+        x[col], x[piv] = x[piv], x[col]
+        for r in range(col + 1, n):
+            f = A[r][col] / A[col][col]
+            for k in range(col, n):
+                A[r][k] -= f * A[col][k]
+            x[r] -= f * x[col]
+    out = [0j] * n
+    for i in range(n - 1, -1, -1):
+        s = x[i] - sum(A[i][j] * out[j] for j in range(i + 1, n))
+        out[i] = s / A[i][i]
+    return out
+
+
+def numerical_eigenvectors(A):
+    """Numerical eigenvectors of A by inverse iteration with a small shift.
+
+    Returns one eigenvector per eigenvalue, in the order ``qr_eigenvalues(A)`` reports
+    them. Complex arithmetic is used, so a complex-conjugate pair is handled.
+
+    Inverse iteration repeatedly solves ``(A - (lambda + delta) I) x = v`` and
+    renormalises, which converges to the eigenvector of the eigenvalue nearest
+    ``lambda + delta``. The small shift ``delta`` is what makes the solve nonsingular.
+    DESIGN DECISION — this is the numerical route the limit case is about: on a defective
+    (Jordan) matrix the repeated eigenvalue has a one-dimensional eigenspace, so *both*
+    computed eigenvectors come out nearly parallel, which no exact method can exhibit
+    because it has only one eigenvector to return. **Chosen: inverse iteration.** The
+    cost is that the near-parallelism is a floating-point statement, checked with a
+    tolerance rather than exactly.
+    """
+    n = len(A)
+    evals = qr_eigenvalues(A)
+    vectors = []
+    for lam in evals:
+        lam = complex(lam)
+        delta = 1e-7 if lam.imag == 0.0 else 1e-7 * (1.0 + 1.0j)
+        shifted = lam + delta
+        M = [[complex(A[i][j]) - (shifted if i == j else 0j) for j in range(n)]
+             for i in range(n)]
+        v = [1.0 + 0j] * n
+        for _ in range(100):
+            x = _solve_complex(M, v)
+            nrm = math.sqrt(sum(abs(t) ** 2 for t in x))
+            if nrm < 1e-300:
+                break
+            v = [t / nrm for t in x]
+        vectors.append(v)
+    return vectors
+
+
 # ---------------------------------------------------------------------------
 # Step 8-9: Wilkinson's polynomial and the conditioning limit case
 # ---------------------------------------------------------------------------
@@ -676,6 +735,19 @@ if __name__ == "__main__":
     B = [[2, 1], [1, 2]]
     print(f"  QR eigenvalues of {B}: {[round(z, 10) for z in qr_eigenvalues(B)]}"
           f"  (expected [1, 3])")
+
+    def _cos(u, v):
+        inner = sum(a.conjugate() * b for a, b in zip(u, v))
+        nu = math.sqrt(sum(abs(t) ** 2 for t in u))
+        nv = math.sqrt(sum(abs(t) ** 2 for t in v))
+        return abs(inner) / (nu * nv)
+
+    Jv = numerical_eigenvectors([[2.0, 1.0], [0.0, 2.0]])
+    Dv = numerical_eigenvectors([[2.0, 0.0], [0.0, 3.0]])
+    print(f"  numerical eigenvectors of the Jordan block: |cos| = {_cos(Jv[0], Jv[1]):.4f}"
+          f"  (nearly parallel, 1-D eigenspace)")
+    print(f"  numerical eigenvectors of diag(2, 3):      |cos| = {_cos(Dv[0], Dv[1]):.4f}"
+          f"  (orthogonal)")
 
     poly_error, qr_error = wilkinson_experiment(20)
     print(f"  Wilkinson W_20: Newton+deflation error = {poly_error:.3e}"

@@ -17,6 +17,8 @@ Eigenvalues, eigenvectors and diagonalisability — measurements
   Jordan block diagonalisable = False   identity 2x2 diagonalisable = True
   [[0,1],[1,0]] = P D P^-1 with D = [['-1', '0'], ['0', '1']]
   QR eigenvalues of [[2, 1], [1, 2]]: [1.0, 3.0]  (expected [1, 3])
+  numerical eigenvectors of the Jordan block: |cos| = 1.0000  (nearly parallel, 1-D eigenspace)
+  numerical eigenvectors of diag(2, 3):      |cos| = 0.0000  (orthogonal)
   Wilkinson W_20: Newton+deflation error = 9.197e-01  QR companion error = 2.466e-02
   the polynomial route is worse by a factor 37.3
 ```

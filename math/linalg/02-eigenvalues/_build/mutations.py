@@ -12,9 +12,9 @@ The four the node names for this module:
   * Wilkinson's polynomial root-finding claimed accurate when the QR path is
     the stable one                                                            -> step 9
 plus an eigenspace shifted by +lambda, a root-finder that drops negative candidates, a
-QR that skips its last reflector, an eigensolver that tests the wrong subdiagonal, a
-diagonalisation that does not refuse a defective matrix, and a Wilkinson product that
-stops one factor early.
+QR that skips its last reflector, an eigensolver that reads the diagonal instead of
+iterating, a diagonalisation that does not refuse a defective matrix, a Wilkinson product
+that stops one factor early, and non-iterated numerical eigenvectors.
 """
 MUTATIONS = [
     # 1. Characteristic polynomial: the Faddeev-LeVerrier coefficient loses its sign.
@@ -57,4 +57,9 @@ MUTATIONS = [
     ("Wilkinson product stops one factor early", "eigenvalues.py",
      "    for k in range(1, n + 1):\n        expanded = [Fraction(0)] * (len(coeffs) + 1)\n",
      "    for k in range(1, n):\n        expanded = [Fraction(0)] * (len(coeffs) + 1)\n", "8"),
+    # 11. Inverse iteration never runs, so the numerical eigenvectors stay the seed
+    #     (identical) instead of converging; a diagonalisable matrix exposes it.
+    ("numerical eigenvectors never iterate", "eigenvalues.py",
+     "        v = [1.0 + 0j] * n\n        for _ in range(100):\n",
+     "        v = [1.0 + 0j] * n\n        for _ in range(0):\n", "10"),
 ]

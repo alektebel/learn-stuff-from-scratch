@@ -423,6 +423,49 @@ def qr_eigenvalues(A):
     raise NotImplementedError("qr_eigenvalues")
 
 
+def _solve_complex(M, b):
+    """Solve ``M z = b`` for complex ``M`` and ``b`` (Gaussian elimination, partial pivoting)."""
+    n = len(M)
+    A = [row[:] for row in M]
+    x = list(b)
+    for col in range(n):
+        piv = max(range(col, n), key=lambda r: abs(A[r][col]))
+        if abs(A[piv][col]) < 1e-300:
+            raise ValueError("singular system in inverse iteration")
+        A[col], A[piv] = A[piv], A[col]
+        x[col], x[piv] = x[piv], x[col]
+        for r in range(col + 1, n):
+            f = A[r][col] / A[col][col]
+            for k in range(col, n):
+                A[r][k] -= f * A[col][k]
+            x[r] -= f * x[col]
+    out = [0j] * n
+    for i in range(n - 1, -1, -1):
+        s = x[i] - sum(A[i][j] * out[j] for j in range(i + 1, n))
+        out[i] = s / A[i][i]
+    return out
+
+
+def numerical_eigenvectors(A):
+    """Numerical eigenvectors of A by inverse iteration with a small shift.
+
+    Returns one eigenvector per eigenvalue, in the order ``qr_eigenvalues(A)`` reports
+    them. Complex arithmetic is used, so a complex-conjugate pair is handled.
+
+    Inverse iteration repeatedly solves ``(A - (lambda + delta) I) x = v`` and
+    renormalises, which converges to the eigenvector of the eigenvalue nearest
+    ``lambda + delta``. The small shift ``delta`` is what makes the solve nonsingular.
+    DESIGN DECISION — this is the numerical route the limit case is about: on a defective
+    (Jordan) matrix the repeated eigenvalue has a one-dimensional eigenspace, so *both*
+    computed eigenvectors come out nearly parallel, which no exact method can exhibit
+    because it has only one eigenvector to return. **Chosen: inverse iteration.** The
+    cost is that the near-parallelism is a floating-point statement, checked with a
+    tolerance rather than exactly.
+    """
+    # TODO: Inverse iteration, one vector per eigenvalue from qr_eigenvalues: repeatedly solve (A - (lambda + delta) I) x = v with a small shift delta (keeps the solve nonsingular) and renormalise; use complex arithmetic. On a defective (Jordan) matrix the repeated eigenvalue has a one-dimensional eigenspace, so BOTH computed vectors come out nearly parallel (cos ~ 1), which the numerical route exhibits and an exact method cannot.
+    raise NotImplementedError("numerical_eigenvectors")
+
+
 # ---------------------------------------------------------------------------
 # Step 8-9: Wilkinson's polynomial and the conditioning limit case
 # ---------------------------------------------------------------------------

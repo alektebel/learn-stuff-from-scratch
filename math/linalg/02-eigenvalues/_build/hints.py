@@ -19,6 +19,7 @@ HINTS = {
         "diagonalize": "Stack eigenvectors as the columns of P and put the matching eigenvalues on D's diagonal; return None when they number fewer than n.",
         "qr_decompose": "Householder: for each column build v = x - alpha e1 with alpha = -sign(x_0)||x||, apply H = I - 2 v v^T to R, and accumulate H into Q.",
         "qr_eigenvalues": "hessenberg(A), then shifted QR with the Wilkinson shift, deflating the last row; solve a trailing 2x2 in closed form for a complex pair.",
+        "numerical_eigenvectors": "Inverse iteration, one vector per eigenvalue from qr_eigenvalues: repeatedly solve (A - (lambda + delta) I) x = v with a small shift delta (keeps the solve nonsingular) and renormalise; use complex arithmetic. On a defective (Jordan) matrix the repeated eigenvalue has a one-dimensional eigenspace, so BOTH computed vectors come out nearly parallel (cos ~ 1), which the numerical route exhibits and an exact method cannot.",
         "wilkinson_polynomial": "Multiply out (x - 1)(x - 2)...(x - n) exactly; return the coefficients high to low.",
         "companion_matrix": "1s on the subdiagonal; last column holds -c[n-i]/c[0] for i = 0..n-1.",
         "roots_newton_deflation": "Newton from index n down to 1; after each root, synthetic-divide it out of the polynomial.",

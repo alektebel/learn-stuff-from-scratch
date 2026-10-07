@@ -27,7 +27,8 @@ multiplicities always sum to n (a Jordan block has n counting multiplicity and i
 | Householder QR | reflectors `H = I − 2vvᵀ`, so `Q ᵀ Q = I` | 6 |
 | QR eigensolver | Hessenberg → Wilkinson-shifted QR, closed-form 2×2 | 7 |
 | Wilkinson's polynomial | `∏(x − k)`, exact, and its companion matrix | 8 |
-| Limit case | Newton+deflation loses accuracy, QR stays stable | 9 |
+| Numerical eigenvectors | inverse iteration with a small shift (complex allowed) | 10 |
+| Limit cases | Newton+deflation loses accuracy where QR stays stable; numerical eigenvectors of a defective matrix come out nearly parallel | 9, 10 |
 
 ## How to use this directory
 
@@ -78,8 +79,8 @@ Each function's docstring names the alternatives and the cost of the choice. In 
 
 ## The checker was itself tested
 
-Ten classic bugs were planted in copies of the solutions, and each one has to be caught by
-its check (`_build/mutations.py`):
+Eleven classic bugs were planted in copies of the solutions, and each one has to be caught
+by its check (`_build/mutations.py`):
 
 | Planted bug | Caught by |
 |---|---|
@@ -93,14 +94,33 @@ its check (`_build/mutations.py`):
 | eigensolver reads the diagonal instead of iterating | step 7 |
 | diagonalize does not check independence | step 5 |
 | Wilkinson product stops one factor early | step 8 |
+| numerical eigenvectors never iterate | step 10 |
 
 Run it yourself:
 `python3 .claude/skills/graded-module/scripts/mutate.py math/linalg/02-eigenvalues math/linalg/02-eigenvalues/_build/mutations.py`
-— every line must read `CAUGHT`. Two checks needed care: step 4 must contain a matrix
+— every line must read `CAUGHT`. Three checks needed care: step 4 must contain a matrix
 with a repeated eigenvalue that is *still* diagonalisable (the identity), otherwise
 counting distinct eigenvalues and counting eigenvectors agree on every test and the
-mutation slips through; and step 9 must report both errors from the same experiment, so
-swapping them is a detectable lie rather than a matter of opinion.
+mutation slips through; step 9 must report both errors from the same experiment, so
+swapping them is a detectable lie rather than a matter of opinion; and step 10 must test a
+*diagonalisable* matrix alongside the defective one, so that a routine which never
+iterates (and leaves both vectors equal) is caught by the orthogonal case rather than
+passing by accident.
+
+## The two limit cases
+
+- **Wilkinson's polynomial (step 9).** `W₂₀` is a matrix whose eigenvalues are the
+  integers 1…20 and whose characteristic polynomial is extremely ill-conditioned. Forming
+  the coefficients and finding their roots loses about `9.2e-01`; the QR eigensolver on the
+  companion matrix loses about `2.5e-02`, a factor of ~37. The lesson is that *forming the
+  coefficients* is the fragile step.
+- **Nearly parallel numerical eigenvectors (step 10).** A defective matrix such as the
+  Jordan block `[[2,1],[0,2]]` has a repeated eigenvalue with a one-dimensional eigenspace:
+  the exact route has a single eigenvector to return. Numerical inverse iteration, run once
+  per computed eigenvalue, produces two vectors that both converge to that one direction,
+  so their `|cos|` is essentially 1 — the eigenvalue problem is infinitely ill-conditioned
+  in the eigenvector. A diagonalisable matrix with distinct eigenvalues is the control: its
+  numerical eigenvectors are orthogonal.
 
 ## Questions to answer before reading the solutions
 
