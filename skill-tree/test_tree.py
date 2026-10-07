@@ -1,0 +1,76 @@
+"""Each test breaks the real tree in one way and checks that the validator notices."""
+
+import copy
+import unittest
+from pathlib import Path
+
+import tree
+
+NODES, BOOKS = tree.load()
+
+
+def problems_after(mutate):
+    nodes = copy.deepcopy(NODES)
+    mutate(nodes)
+    return tree.validate(nodes, BOOKS)
+
+
+def node(nodes, nid):
+    return next(n for n in nodes if n["id"] == nid)
+
+
+class TreeTests(unittest.TestCase):
+    def test_real_tree_is_valid(self):
+        self.assertEqual(tree.validate(NODES, BOOKS), [])
+
+    def test_cycle(self):
+        p = problems_after(lambda ns: node(ns, "foundations-01-linear-algebra")["requires"].append("prml-14-combining-models"))
+        self.assertTrue(any("cycle" in x for x in p), p)
+
+    def test_unknown_prerequisite(self):
+        p = problems_after(lambda ns: node(ns, "prml-09-mixtures-em")["requires"].append("prml-99-nope"))
+        self.assertTrue(any("unknown node" in x for x in p), p)
+
+    def test_unknown_book(self):
+        p = problems_after(lambda ns: node(ns, "prml-09-mixtures-em")["sources"].append("hastie:9"))
+        self.assertTrue(any("source" in x for x in p), p)
+
+    def test_duplicate_id(self):
+        p = problems_after(lambda ns: ns.append(copy.deepcopy(ns[0])))
+        self.assertTrue(any("duplicate" in x for x in p), p)
+
+    def test_done_without_checker(self):
+        p = problems_after(lambda ns: node(ns, "foundations-01-linear-algebra").update(status="done"))
+        self.assertTrue(any("check.py does not exist" in x for x in p), p)
+
+    def test_done_before_prerequisite(self):
+        def mutate(ns):
+            node(ns, "foundations-02-analytic-geometry").update(status="done")
+        p = problems_after(mutate)
+        self.assertTrue(any("prerequisite" in x for x in p), p)
+
+    def test_bad_id_format_and_track(self):
+        p = problems_after(lambda ns: node(ns, "prml-09-mixtures-em").update(track="stats"))
+        self.assertTrue(any("unknown track" in x for x in p), p)
+
+    def test_missing_acceptance(self):
+        p = problems_after(lambda ns: node(ns, "prml-09-mixtures-em").update(accept=[]))
+        self.assertTrue(any("acceptance" in x for x in p), p)
+
+    def test_ready_follows_done(self):
+        ns = copy.deepcopy(NODES)
+        self.assertIn("foundations-01-linear-algebra", [n["id"] for n in tree.ready_nodes(ns)])
+        self.assertNotIn("foundations-02-analytic-geometry", [n["id"] for n in tree.ready_nodes(ns)])
+        node(ns, "foundations-01-linear-algebra")["status"] = "done"
+        self.assertIn("foundations-02-analytic-geometry", [n["id"] for n in tree.ready_nodes(ns)])
+
+    def test_order_respects_edges(self):
+        order = tree.topological_order(NODES)
+        pos = {i: k for k, i in enumerate(order)}
+        for n in NODES:
+            for r in n["requires"]:
+                self.assertLess(pos[r], pos[n["id"]], f"{r} must come before {n['id']}")
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=1)
