@@ -75,7 +75,7 @@ def validate(nodes: list[dict], books: dict, repo: Path = REPO) -> list[str]:
             for r in n["requires"]:
                 if r in by_id and by_id[r]["status"] != "done":
                     problems.append(f"{nid}: done although prerequisite {r} is {by_id[r]['status']}")
-    if not problems:
+    if len(set(ids)) == len(ids):  # cycle detection needs unique ids
         try:
             topological_order(nodes)
         except ValueError as exc:
@@ -84,12 +84,20 @@ def validate(nodes: list[dict], books: dict, repo: Path = REPO) -> list[str]:
 
 
 def topological_order(nodes: list[dict]) -> list[str]:
-    """Kahn's algorithm; ties broken by id so the order is stable."""
-    indeg = {n["id"]: len(n["requires"]) for n in nodes}
+    """Kahn's algorithm; ties broken by id so the order is stable.
+
+    Edges to ids that are not in the node set are ignored, so an unknown
+    prerequisite is reported by validate() as an unknown node and does not
+    masquerade as a cycle here.
+    """
+    ids = {n["id"] for n in nodes}
+    indeg = {i: 0 for i in ids}
     children = defaultdict(list)
     for n in nodes:
         for r in n["requires"]:
-            children[r].append(n["id"])
+            if r in ids:
+                indeg[n["id"]] += 1
+                children[r].append(n["id"])
     ready = sorted(i for i, d in indeg.items() if d == 0)
     order = []
     while ready:
@@ -114,7 +122,14 @@ def ready_nodes(nodes: list[dict]) -> list[dict]:
 
 def render(nodes: list[dict]) -> str:
     style = {"done": ":::done", "in-progress": ":::wip", "exists": ":::exists", "todo": ""}
-    lines = ["```mermaid", "graph LR"]
+    done = sum(1 for n in nodes if n["status"] == "done")
+    per = []
+    for t in TRACKS:
+        mem = [n for n in nodes if n["track"] == t]
+        if mem:
+            per.append(f"{t} {sum(1 for n in mem if n['status'] == 'done')}/{len(mem)}")
+    lines = [f"**{done} of {len(nodes)} nodes built** ({', '.join(per)}).", "",
+             "```mermaid", "graph LR"]
     for track in TRACKS:
         members = [n for n in nodes if n["track"] == track]
         if not members:

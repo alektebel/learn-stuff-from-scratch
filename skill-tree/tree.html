@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Skill Tree — a dependency map of the mathematics curriculum</title>
+<style>
+  :root{
+    --paper:#161821; --panel:#1B1E29; --panel2:#20243352; --ink:#E8E6DE; --soft:#B9B7AE;
+    --dim:#82879B; --line:#282C3A; --focus:#E8E6DE;
+    --serif:"DejaVu Serif Condensed","Liberation Serif",Georgia,serif;
+    --mono:"Hack","DejaVu Sans Mono","Liberation Mono",monospace;
+    --colw:210px; --rowh:108px;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);
+    font-size:16px;line-height:1.5;text-rendering:optimizeLegibility}
+  .mono{font-family:var(--mono)}
+  a{color:inherit}
+  :focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:3px}
+
+  /* ---- masthead: quiet, the map is the hero ---- */
+  header.masthead{padding:clamp(22px,3.4vw,44px) clamp(18px,3.4vw,44px) 18px;
+    border-bottom:1px solid var(--line)}
+  .masthead .cols{display:flex;flex-wrap:wrap;gap:26px 48px;align-items:flex-end;
+    justify-content:space-between}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(2.1rem,4.6vw,3.5rem);
+    line-height:.98;letter-spacing:-.012em;margin:0}
+  .lede{margin:.7rem 0 0;max-width:60ch;color:var(--soft);font-size:1.02rem}
+  .lede b{color:var(--ink);font-weight:600}
+  .stat{display:flex;flex-direction:column;gap:10px;min-width:min(360px,100%)}
+  .progress{display:flex;align-items:center;gap:16px}
+  .big{font-family:var(--mono);font-size:3.5rem;line-height:.9;letter-spacing:-.03em}
+  .big .slash{color:var(--dim);font-size:2.2rem;vertical-align:.06em}
+  .pwrap{display:flex;flex-direction:column;gap:5px;flex:1;min-width:150px}
+  .plabel{color:var(--dim);font-size:.72rem;letter-spacing:.02em}
+  .bar{display:flex;gap:3px;height:7px}
+  .seg{flex:1;background:#2b3040;border-radius:99px;overflow:hidden;position:relative}
+  .seg .fill{display:block;height:100%;background:var(--c);border-radius:99px}
+  .legend{list-style:none;display:flex;flex-wrap:wrap;gap:6px 16px;margin:0;padding:0;
+    color:var(--soft);font-size:.86rem}
+  .legend.states{margin-top:2px}
+  .legend li{display:flex;align-items:center;gap:7px}
+  .swatch{width:14px;height:4px;border-radius:99px;background:var(--c);display:inline-block}
+  .sdot{width:11px;height:11px;border-radius:50%;display:inline-block;border:1.5px solid var(--dim)}
+  .sdot.s-done{background:var(--ink);border-color:var(--ink)}
+  .sdot.s-ready{border-color:var(--ink);box-shadow:inset 0 0 0 2.5px var(--paper),inset 0 0 0 5px var(--ink)}
+  .sdot.s-todo{border-color:#5a5f72}
+  .sdot.s-exists{border-style:dashed}
+
+  /* ---- atlas ---- */
+  .atlas{min-width:0;padding:0 clamp(8px,1.6vw,20px) 8px}
+  .scroller{overflow:auto;max-height:calc(100vh - 40px)}
+  .colheaders{position:sticky;top:0;z-index:5;display:grid;
+    grid-template-columns:repeat(6,var(--colw));background:
+      linear-gradient(var(--paper) 78%,transparent)}
+  .colhead{display:flex;align-items:center;gap:9px;padding:12px 12px 10px;font-size:.98rem}
+  .colhead .swatch{width:16px;height:5px}
+  .colhead .cname{font-weight:600}
+  .colhead .ctally{margin-left:auto;color:var(--dim);font-size:.76rem}
+
+  #map{position:relative;width:calc(6 * var(--colw))}
+  #edges{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+  .lane{position:absolute;top:0;bottom:0;width:var(--colw);border-left:1px solid var(--line);
+    opacity:.5;pointer-events:none}
+  .lane.alt{background:#ffffff05}
+
+  .station{position:absolute;display:flex;gap:9px;align-items:flex-start;width:calc(var(--colw) - 26px);
+    padding:9px 10px 9px 0;background:none;border:0;color:inherit;text-align:left;cursor:pointer;
+    font-family:var(--serif);border-radius:6px;transition:opacity .18s ease,transform .18s ease}
+  .station .dot{flex:0 0 auto;width:13px;height:13px;border-radius:50%;margin-top:3px;
+    border:1.6px solid var(--dim);background:transparent;position:relative}
+  .station .name{font-size:.92rem;line-height:1.22}
+  .station .id{display:block;font-family:var(--mono);font-size:.63rem;color:var(--dim);
+    margin-top:3px;letter-spacing:.01em}
+  .station[data-status="done"] .dot{background:var(--c);border-color:var(--c)}
+  .station[data-status="done"] .name{color:var(--ink)}
+  .station[data-status="ready"] .dot{border-color:var(--c);
+    box-shadow:inset 0 0 0 2px var(--paper),inset 0 0 0 3.5px var(--c)}
+  .station[data-status="ready"] .name{color:var(--ink)}
+  .station[data-status="todo"] .name{color:var(--soft)}
+  .station[data-status="exists"] .dot{border-style:dashed}
+  .station[data-status="exists"] .name{color:var(--dim);font-style:italic}
+  .station:hover,.station:focus-visible{background:#ffffff0a}
+  .station[aria-current="true"]{background:#ffffff12}
+  .station[aria-current="true"] .name{font-weight:700}
+  #map.dimming .station{opacity:.22}
+  #map.dimming .station.inchain{opacity:1}
+  path.edge{fill:none;stroke-width:1.5;transition:opacity .18s ease}
+  #map.dimming path.edge{opacity:.12}
+  #map.dimming path.edge.inchain{opacity:.95;stroke-width:2.1}
+
+  /* ---- detail rail ---- */
+  main.layout{display:grid;grid-template-columns:1fr;gap:0}
+  @media(min-width:1180px){main.layout{grid-template-columns:minmax(0,1fr) 340px}}
+  aside#detail{border-top:1px solid var(--line);padding:22px clamp(18px,3vw,34px) 60px}
+  @media(min-width:1180px){
+    aside#detail{border-top:0;border-left:1px solid var(--line);position:sticky;top:0;
+      max-height:100vh;overflow:auto;align-self:start}
+  }
+  .tag{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:.7rem;
+    color:var(--soft);border:1px solid var(--line);border-radius:99px;padding:3px 9px}
+  .tag .swatch{width:11px;height:3px}
+  #detail h2{font-size:1.5rem;line-height:1.12;margin:12px 0 4px;letter-spacing:-.01em}
+  #detail .path{font-family:var(--mono);font-size:.72rem;color:var(--dim);word-break:break-all}
+  #detail h3{font-family:var(--mono);font-weight:400;font-size:.7rem;color:var(--dim);
+    margin:20px 0 6px;letter-spacing:.02em}
+  #detail ul{margin:0;padding-left:1.05em}
+  #detail li{margin:.28em 0;color:var(--soft)}
+  #detail .reqs{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+  #detail .reqs button{font-family:var(--mono);font-size:.7rem;background:#ffffff08;color:var(--soft);
+    border:1px solid var(--line);border-radius:99px;padding:3px 9px;cursor:pointer}
+  #detail .reqs button:hover{color:var(--ink);border-color:var(--dim)}
+  .empty{color:var(--dim)}
+  #lowbar{display:flex;flex-wrap:wrap;gap:8px;padding:12px clamp(18px,3.4vw,44px);border-top:1px solid var(--line)}
+  #lowbar button{font-family:var(--mono);font-size:.72rem;background:#ffffff08;color:var(--soft);
+    border:1px solid var(--line);border-radius:99px;padding:4px 11px;cursor:pointer}
+  #lowbar button[aria-pressed="true"]{color:var(--ink);border-color:var(--dim);background:#ffffff14}
+  footer{padding:22px clamp(18px,3.4vw,44px) 46px;color:var(--dim);font-size:.8rem;
+    border-top:1px solid var(--line)}
+  footer code{font-family:var(--mono);color:var(--soft)}
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none!important;animation:none!important}
+  }
+  @media (max-width:640px){
+    :root{--colw:196px;--rowh:112px}
+  }
+</style>
+</head>
+<body>
+<header class="masthead">
+  <div class="cols">
+    <div>
+      <h1>The Skill Tree</h1>
+      <p class="lede">A from-scratch mathematics and pattern-recognition curriculum, drawn as the
+        dependency map it is. <b>Columns are tracks, the vertical order is dependency</b> — a node
+        unlocks only when everything above it, in its own column or another, is built. Each station
+        is one graded module in <code>math/</code>.</p>
+    </div>
+    <div class="stat">
+      <div class="progress"><span class="big">8<span class="slash">/</span>38</span><span class="pwrap"><span class="plabel mono">nodes built</span><span class="bar"><span class="seg" style="--c:#E0B33C" title="Foundations: 5/6 built"><span class="fill" style="width:83.3%"></span></span><span class="seg" style="--c:#58B0A4" title="Linear algebra: 1/6 built"><span class="fill" style="width:16.7%"></span></span><span class="seg" style="--c:#B48AD6" title="Probability: 2/7 built"><span class="fill" style="width:28.6%"></span></span><span class="seg" style="--c:#E08A5A" title="Optimisation: 0/4 built"><span class="fill" style="width:0.0%"></span></span><span class="seg" style="--c:#8CBF68" title="Pattern recognition: 0/14 built"><span class="fill" style="width:0.0%"></span></span><span class="seg" style="--c:#96A0B2" title="Lean: 0/1 built"><span class="fill" style="width:0.0%"></span></span></span></span></div>
+      <ul class="legend tracks"><li><span class="swatch" style="--c:#E0B33C"></span>Foundations</li><li><span class="swatch" style="--c:#58B0A4"></span>Linear algebra</li><li><span class="swatch" style="--c:#B48AD6"></span>Probability</li><li><span class="swatch" style="--c:#E08A5A"></span>Optimisation</li><li><span class="swatch" style="--c:#8CBF68"></span>Pattern recognition</li><li><span class="swatch" style="--c:#96A0B2"></span>Lean</li></ul><ul class="legend states"><li><span class="sdot s-done"></span>built</li><li><span class="sdot s-ready"></span>ready</li><li><span class="sdot s-todo"></span>todo</li><li><span class="sdot s-exists"></span>exists</li></ul>
+    </div>
+  </div>
+</header>
+
+<main class="layout">
+  <section class="atlas">
+    <div id="lowbar" role="group" aria-label="Filter and reset">
+      <button type="button" data-filter="all" aria-pressed="true">all</button>
+      <button type="button" data-filter="ready" aria-pressed="false">ready</button>
+      <button type="button" data-filter="done" aria-pressed="false">built</button>
+      <button type="button" data-filter="todo" aria-pressed="false">todo</button>
+      <button type="button" id="reset" aria-pressed="false">clear selection</button>
+    </div>
+    <div class="scroller">
+      <div class="colheaders"><div class="colhead" style="--c:#E0B33C"><span class="swatch"></span><span class="cname">Foundations</span><span class="ctally mono">5/6</span></div><div class="colhead" style="--c:#58B0A4"><span class="swatch"></span><span class="cname">Linear algebra</span><span class="ctally mono">1/6</span></div><div class="colhead" style="--c:#B48AD6"><span class="swatch"></span><span class="cname">Probability</span><span class="ctally mono">2/7</span></div><div class="colhead" style="--c:#E08A5A"><span class="swatch"></span><span class="cname">Optimisation</span><span class="ctally mono">0/4</span></div><div class="colhead" style="--c:#8CBF68"><span class="swatch"></span><span class="cname">Pattern recognition</span><span class="ctally mono">0/14</span></div><div class="colhead" style="--c:#96A0B2"><span class="swatch"></span><span class="cname">Lean</span><span class="ctally mono">0/1</span></div></div>
+      <div id="map" role="group" aria-label="Skill tree: tracks as columns, dependency order downward">
+        <svg id="edges" aria-hidden="true"></svg>
+      </div>
+    </div>
+  </section>
+  <aside id="detail" aria-live="polite"></aside>
+</main>
+
+<footer>
+  Generated from <code>tree.toml</code> by <code>python3 skill-tree/render_html.py</code>.
+  <b>8 of 38 nodes built.</b> Regenerate after changing the tree; the
+  command-line view is <code>python3 skill-tree/tree.py</code>.
+</footer>
+
+<script>
+const DATA = {"nodes": [{"id": "foundations-01-linear-algebra", "title": "Vectors, matrices, linear systems", "track": "foundations", "requires": [], "sources": ["mml:2"], "deliverable": "math/foundations/01-linear-algebra", "build": ["Gaussian elimination with partial pivoting to row echelon form", "solve Ax = b, rank, null space basis, particular + homogeneous solution", "matrix inverse via Gauss-Jordan; determinant from the elimination"], "accept": ["solutions match numpy.linalg.solve on 200 random well-conditioned systems", "null space vectors satisfy A n = 0 and the basis size equals n - rank", "an inconsistent system is reported as inconsistent, not solved"], "limit_cases": ["a zero pivot that partial pivoting must swap around", "singular matrix: rank-deficient, inverse must raise", "a matrix where no pivoting gives catastrophic error (small pivot) and pivoting does not"], "status": "done"}, {"id": "foundations-02-analytic-geometry", "title": "Norms, inner products, projections, rotations", "track": "foundations", "requires": ["foundations-01-linear-algebra"], "sources": ["mml:3"], "deliverable": "math/foundations/02-analytic-geometry", "build": ["inner product from a symmetric positive definite matrix; induced norm and angle", "orthogonal projection onto a subspace (projection matrix) and onto an affine subspace", "Gram-Schmidt orthonormalisation", "2-D and 3-D rotation matrices"], "accept": ["projection P is idempotent (P^2 = P) and symmetric, and the residual is orthogonal to the subspace", "Gram-Schmidt output Q satisfies Q^T Q = I to 1e-10", "rotations preserve norms and have determinant +1"], "limit_cases": ["classical Gram-Schmidt losing orthogonality on nearly dependent vectors; modified Gram-Schmidt keeping it (measure ||Q^T Q - I||)", "a non-SPD matrix rejected as an inner product"], "status": "done"}, {"id": "foundations-03-matrix-decompositions", "title": "Eigendecomposition, Cholesky, SVD", "track": "foundations", "requires": ["foundations-02-analytic-geometry"], "sources": ["mml:4"], "deliverable": "math/foundations/03-matrix-decompositions", "build": ["power iteration and deflation for the dominant eigenpairs", "Cholesky decomposition", "SVD from the eigendecomposition of A^T A, and low-rank approximation"], "accept": ["Cholesky L L^T reconstructs A to 1e-10 for random SPD matrices", "rank-k approximation error equals the (k+1)-th singular value in spectral norm (Eckart-Young)", "eigenpairs satisfy A v = lambda v"], "limit_cases": ["Cholesky on a non-SPD matrix must raise, not return NaN", "power iteration with two eigenvalues of equal magnitude (no convergence): detect it", "SVD via A^T A squaring the condition number: show the precision loss against numpy.linalg.svd"], "status": "done"}, {"id": "foundations-04-vector-calculus", "title": "Gradients, Jacobians, chain rule, backpropagation", "track": "foundations", "requires": ["foundations-01-linear-algebra"], "sources": ["mml:5"], "deliverable": "math/foundations/04-vector-calculus", "build": ["analytic gradients of standard matrix expressions (x^T A x, ||Ax - b||^2, log det, trace forms)", "a finite-difference checker (central differences) used by every later node", "Taylor expansion to second order with the Hessian"], "accept": ["every analytic gradient matches central differences to relative error 1e-6", "second-order Taylor error shrinks as h^3"], "limit_cases": ["finite differences with h too small (round-off dominates): show the U-shaped error curve over h", "gradient of x^T A x with non-symmetric A is (A + A^T) x, not 2 A x"], "related": ["ml-systems/framework"], "status": "done"}, {"id": "foundations-05-probability", "title": "Probability and distributions for ML", "track": "foundations", "requires": ["foundations-04-vector-calculus"], "sources": ["mml:6"], "deliverable": "math/foundations/05-probability", "build": ["multivariate Gaussian: density, sampling via Cholesky, marginals and conditionals", "product of Gaussians, linear transformation of a Gaussian", "change of variables for densities"], "accept": ["sampled mean and covariance match the parameters (Monte Carlo, tolerance from the CLT)", "conditional mean and covariance of a 2-block Gaussian match regression on samples", "a transformed density integrates to 1 numerically"], "limit_cases": ["a nearly singular covariance: log density computed via Cholesky, not via inverse and det", "change of variables forgetting the Jacobian term: the density no longer integrates to 1"], "status": "done"}, {"id": "foundations-06-optimization", "title": "Continuous optimisation", "track": "foundations", "requires": ["foundations-04-vector-calculus", "foundations-03-matrix-decompositions"], "sources": ["mml:7"], "deliverable": "math/foundations/06-optimization", "build": ["gradient descent with fixed step and with backtracking line search", "momentum", "Lagrange multipliers for an equality-constrained quadratic"], "accept": ["on a quadratic, the number of iterations grows with the condition number as predicted", "the constrained optimum satisfies the KKT conditions to 1e-8"], "limit_cases": ["step size above 2 / L diverges; just below converges (L = largest Hessian eigenvalue)", "an ill-conditioned valley where plain GD zig-zags and momentum does not"], "status": "todo"}, {"id": "linalg-01-vector-spaces", "title": "Vector spaces and linear maps", "track": "linalg", "requires": ["foundations-01-linear-algebra"], "sources": ["axler:1", "axler:2", "axler:3"], "deliverable": "math/linalg/01-vector-spaces", "build": ["polynomial spaces P_n as coordinate vectors; the differentiation map as a matrix", "change of basis; matrix of a linear map in two bases", "fundamental theorem of linear maps: dim V = dim null T + dim range T, checked on random maps"], "accept": ["the matrix of a map changes by S^-1 A S under a change of basis, verified on random bases", "rank-nullity holds for 100 random maps between spaces of different dimension"], "limit_cases": ["the differentiation map on P_n is nilpotent: its matrix to the power n+1 is zero"], "status": "done"}, {"id": "linalg-02-eigenvalues", "title": "Eigenvalues, invariant subspaces, diagonalisability", "track": "linalg", "requires": ["linalg-01-vector-spaces"], "sources": ["axler:5"], "deliverable": "math/linalg/02-eigenvalues", "build": ["characteristic polynomial and its roots (small n) versus numerical eigenvalues", "test for diagonalisability; Jordan-block example"], "accept": ["a matrix is diagonalisable iff it has n independent eigenvectors, checked on constructed examples"], "limit_cases": ["a defective matrix (Jordan block) where numerical eigenvectors are nearly parallel", "root-finding of the characteristic polynomial losing accuracy (Wilkinson's polynomial) versus a QR-based eigensolver"], "status": "todo"}, {"id": "linalg-03-spectral-theorem", "title": "Inner product spaces and the spectral theorem", "track": "linalg", "requires": ["linalg-02-eigenvalues", "foundations-02-analytic-geometry"], "sources": ["axler:6", "axler:7"], "deliverable": "math/linalg/03-spectral-theorem", "build": ["orthonormal eigenbasis of a symmetric matrix", "positive operators and square roots; polar decomposition", "singular value decomposition from the spectral theorem"], "accept": ["eigenvectors of a symmetric matrix are orthonormal to 1e-10", "polar decomposition A = Q P with Q orthogonal and P positive semidefinite"], "limit_cases": ["a symmetric matrix with a repeated eigenvalue: any basis of the eigenspace is valid; the check must not assume a specific one"], "related": ["spectral-graphs"], "status": "todo"}, {"id": "linalg-04-qr-least-squares", "title": "QR factorisation and least squares", "track": "linalg", "requires": ["linalg-03-spectral-theorem"], "sources": ["trefethen:lecture6", "trefethen:lecture7", "trefethen:lecture8", "trefethen:lecture10", "trefethen:lecture11"], "deliverable": "math/linalg/04-qr-least-squares", "build": ["Householder QR", "least squares three ways: normal equations, QR, SVD"], "accept": ["Householder Q is orthogonal to machine precision even for ill-conditioned A", "the three least-squares methods agree on well-conditioned problems"], "limit_cases": ["an ill-conditioned problem where the normal equations lose about twice as many digits as QR (measure against a high-precision reference)"], "status": "todo"}, {"id": "linalg-05-conditioning-stability", "title": "Conditioning and numerical stability", "track": "linalg", "requires": ["linalg-04-qr-least-squares"], "sources": ["trefethen:lecture12", "trefethen:lecture13", "trefethen:lecture14", "trefethen:lecture15", "trefethen:lecture20", "trefethen:lecture21"], "deliverable": "math/linalg/05-conditioning-stability", "build": ["condition numbers of problems versus stability of algorithms", "LU without pivoting versus with partial pivoting; growth factor"], "accept": ["forward error is bounded by condition number times backward error on 100 random problems"], "limit_cases": ["a matrix where LU without pivoting is unstable and with pivoting is fine", "the classic matrix with growth factor 2^(n-1) under partial pivoting"], "status": "todo"}, {"id": "linalg-06-eigenvalue-algorithms", "title": "Eigenvalue algorithms", "track": "linalg", "requires": ["linalg-05-conditioning-stability", "linalg-02-eigenvalues"], "sources": ["trefethen:lecture25", "trefethen:lecture26", "trefethen:lecture27", "trefethen:lecture28", "trefethen:lecture29"], "deliverable": "math/linalg/06-eigenvalue-algorithms", "build": ["reduction to Hessenberg / tridiagonal form", "Rayleigh quotient iteration", "unshifted and shifted QR algorithm"], "accept": ["eigenvalues match numpy.linalg.eigvalsh on random symmetric matrices to 1e-10", "Rayleigh quotient iteration converges cubically (measure the error sequence)"], "limit_cases": ["unshifted QR stalling on eigenvalues of equal magnitude; Wilkinson shift fixing it"], "related": ["spectral-graphs"], "status": "todo"}, {"id": "probability-01-counting-conditioning", "title": "Counting, conditional probability, Bayes", "track": "probability", "requires": [], "sources": ["blitzstein:1", "blitzstein:2"], "deliverable": "math/probability/01-counting-conditioning", "build": ["exact probabilities by counting, checked by simulation", "Bayes' rule on diagnostic-test problems; law of total probability"], "accept": ["every exact answer agrees with a 10^5-trial simulation within 4 standard errors"], "limit_cases": ["the Monty Hall problem, simulated, including the variant where the host does not know", "a base-rate problem where the intuitive answer is off by an order of magnitude"], "status": "done"}, {"id": "probability-02-random-variables", "title": "Discrete random variables and expectation", "track": "probability", "requires": ["probability-01-counting-conditioning"], "sources": ["blitzstein:3", "blitzstein:4"], "deliverable": "math/probability/02-random-variables", "build": ["PMFs and CDFs of Bernoulli, Binomial, Geometric, Negative Binomial, Poisson", "linearity of expectation and indicator random variables"], "accept": ["means and variances match simulation; Poisson approximation error to the Binomial shrinks as predicted"], "limit_cases": ["an expectation computed with indicators where the variables are dependent (linearity still holds)"], "status": "done"}, {"id": "probability-03-continuous", "title": "Continuous random variables", "track": "probability", "requires": ["probability-02-random-variables", "foundations-04-vector-calculus"], "sources": ["blitzstein:5"], "deliverable": "math/probability/03-continuous", "build": ["Uniform, Normal, Exponential; universality of the uniform (inverse-CDF sampling)", "memorylessness of the Exponential"], "accept": ["inverse-CDF samples pass a Kolmogorov-Smirnov test against the target"], "limit_cases": ["inverse-CDF sampling of a heavy tail where float precision near u = 1 truncates the tail"], "status": "todo"}, {"id": "probability-04-joint", "title": "Joint distributions and covariance", "track": "probability", "requires": ["probability-03-continuous"], "sources": ["blitzstein:7"], "deliverable": "math/probability/04-joint", "build": ["joint, marginal and conditional distributions; covariance and correlation", "multinomial and bivariate normal"], "accept": ["sample covariance matrices converge to the analytic ones"], "limit_cases": ["uncorrelated but dependent variables (X and X^2 with X symmetric)"], "status": "todo"}, {"id": "probability-05-limits-inequalities", "title": "Transformations, inequalities, limit theorems", "track": "probability", "requires": ["probability-04-joint"], "sources": ["blitzstein:8", "blitzstein:10"], "deliverable": "math/probability/05-limits-inequalities", "build": ["change of variables and convolutions", "Markov, Chebyshev, Chernoff bounds compared with exact tails", "law of large numbers and CLT by simulation"], "accept": ["every bound is above the exact tail probability on all tested points", "the CLT approximation error shrinks as 1/sqrt(n) (Berry-Esseen order)"], "limit_cases": ["the Cauchy distribution: the sample mean does not converge"], "status": "todo"}, {"id": "probability-06-conditional-expectation", "title": "Conditional expectation", "track": "probability", "requires": ["probability-04-joint"], "sources": ["blitzstein:9"], "deliverable": "math/probability/06-conditional-expectation", "build": ["Adam's law and Eve's law, verified by simulation", "E[Y|X] as the best predictor in squared error"], "accept": ["E[Y|X] beats every other tested function of X in mean squared error"], "limit_cases": ["a hierarchical model where the naive variance ignores Var(E[Y|X])"], "status": "todo"}, {"id": "probability-07-markov-chains-mcmc", "title": "Markov chains and MCMC", "track": "probability", "requires": ["probability-06-conditional-expectation"], "sources": ["blitzstein:11", "blitzstein:12"], "deliverable": "math/probability/07-markov-chains-mcmc", "build": ["stationary distribution by eigenvector and by simulation", "Metropolis-Hastings and Gibbs sampling"], "accept": ["the empirical distribution of a long chain matches the stationary distribution", "Metropolis-Hastings recovers a known target's mean and variance"], "limit_cases": ["a periodic chain that has a stationary distribution but does not converge to it", "a bimodal target where a small-step sampler never crosses between modes"], "status": "todo"}, {"id": "optimization-01-convexity", "title": "Convex sets and convex functions", "track": "optimization", "requires": ["foundations-06-optimization"], "sources": ["boyd:2", "boyd:3"], "deliverable": "math/optimization/01-convexity", "build": ["numerical convexity tests (Jensen on random points, PSD Hessian)", "operations that preserve convexity"], "accept": ["the tests classify a catalogue of functions correctly, including log-sum-exp and the geometric mean"], "limit_cases": ["a quasiconvex but non-convex function that passes a naive sublevel-set test"], "status": "todo"}, {"id": "optimization-02-duality", "title": "Lagrangian duality and KKT", "track": "optimization", "requires": ["optimization-01-convexity"], "sources": ["boyd:5"], "deliverable": "math/optimization/02-duality", "build": ["dual of a QP and an LP", "KKT conditions checker", "weak and strong duality, numerically"], "accept": ["dual value <= primal value always; equal when Slater's condition holds"], "limit_cases": ["a problem without Slater's condition and a positive duality gap"], "status": "todo"}, {"id": "optimization-03-unconstrained", "title": "Unconstrained minimisation: gradient and Newton", "track": "optimization", "requires": ["optimization-01-convexity", "linalg-05-conditioning-stability"], "sources": ["boyd:9"], "deliverable": "math/optimization/03-unconstrained", "build": ["gradient descent with backtracking", "Newton's method with the Newton decrement as stopping criterion"], "accept": ["Newton converges quadratically near the optimum (digits double per iteration)"], "limit_cases": ["Newton without line search diverging from a far start; damped Newton converging"], "status": "todo"}, {"id": "optimization-04-interior-point", "title": "Equality constraints and interior-point methods", "track": "optimization", "requires": ["optimization-02-duality", "optimization-03-unconstrained"], "sources": ["boyd:10", "boyd:11"], "deliverable": "math/optimization/04-interior-point", "build": ["equality-constrained Newton", "log-barrier method for an inequality-constrained LP"], "accept": ["the barrier method's duality gap follows m / t", "solutions match a simplex reference on random LPs"], "limit_cases": ["an infeasible LP detected by a phase-I method"], "status": "todo"}, {"id": "prml-01-introduction", "title": "Curve fitting, bias-variance, decision and information theory", "track": "prml", "requires": ["foundations-05-probability", "probability-03-continuous"], "sources": ["bishop:1", "murphy1:4"], "deliverable": "math/prml/01-introduction", "build": ["polynomial curve fitting by least squares and with an L2 penalty", "bias-variance decomposition by simulation over many training sets", "decision theory: minimum-risk decisions with a loss matrix; entropy, KL divergence, mutual information"], "accept": ["the simulated bias^2 + variance + noise equals the expected test error", "KL divergence is non-negative and zero only for equal distributions"], "limit_cases": ["degree-9 polynomial on 10 points: zero training error, huge test error; regularisation fixing it", "an asymmetric loss matrix that moves the decision boundary away from p = 0.5"], "status": "todo"}, {"id": "prml-02-distributions", "title": "Probability distributions and conjugacy", "track": "prml", "requires": ["prml-01-introduction", "probability-04-joint"], "sources": ["bishop:2", "murphy1:3"], "deliverable": "math/prml/02-distributions", "build": ["Beta-Bernoulli and Dirichlet-multinomial posterior updates", "Gaussian: MLE, sequential estimation, conjugate prior for the mean", "exponential family form and sufficient statistics", "nonparametric density estimation: histogram, kernel density, k-nearest neighbours"], "accept": ["sequential and batch posterior updates give identical posteriors", "the MLE of the variance is biased by (N-1)/N, shown by simulation"], "limit_cases": ["MLE of a Bernoulli after 3 heads in 3 tosses (p = 1) versus the Beta posterior mean", "KDE bandwidth too small and too large: the two failure modes"], "status": "todo"}, {"id": "prml-03-linear-regression", "title": "Linear models for regression", "track": "prml", "requires": ["prml-02-distributions", "foundations-03-matrix-decompositions"], "sources": ["bishop:3", "mml:9"], "deliverable": "math/prml/03-linear-regression", "build": ["basis-function regression; MLE and regularised least squares", "Bayesian linear regression: posterior over weights, predictive distribution", "evidence approximation to choose alpha and beta"], "accept": ["the predictive variance grows away from the training data", "evidence maximisation picks a model complexity close to the true one on synthetic data"], "limit_cases": ["more basis functions than data points: MLE ill-posed, Bayesian posterior well defined"], "status": "todo"}, {"id": "prml-04-linear-classification", "title": "Linear models for classification", "track": "prml", "requires": ["prml-03-linear-regression", "foundations-06-optimization"], "sources": ["bishop:4"], "deliverable": "math/prml/04-linear-classification", "build": ["least-squares classification, Fisher's linear discriminant, the perceptron", "logistic regression trained by IRLS (Newton)", "Laplace approximation for Bayesian logistic regression"], "accept": ["IRLS converges in far fewer iterations than gradient descent on the same problem", "the Laplace approximation's mean equals the MAP estimate"], "limit_cases": ["linearly separable data: the logistic MLE diverges (weights grow without bound); a prior keeps it finite", "least-squares classification ruined by outliers that logistic regression ignores"], "related": ["ml-systems/framework"], "status": "todo"}, {"id": "prml-05-neural-networks", "title": "Neural networks: backprop, Hessian, regularisation", "track": "prml", "requires": ["prml-04-linear-classification", "foundations-04-vector-calculus"], "sources": ["bishop:5"], "deliverable": "math/prml/05-neural-networks", "build": ["backpropagation derived by hand for a 2-layer network, checked by finite differences", "exact Hessian by finite differences of gradients; outer-product approximation", "weight decay and early stopping"], "accept": ["the outer-product Hessian approximation matches the exact one near a minimum with small residuals"], "limit_cases": ["the outer-product approximation failing far from the minimum (large residuals)"], "related": ["ml-systems/framework"], "status": "todo"}, {"id": "prml-06-kernels-gps", "title": "Kernel methods and Gaussian processes", "track": "prml", "requires": ["prml-03-linear-regression"], "sources": ["bishop:6", "murphy1:17"], "deliverable": "math/prml/06-kernels-gps", "build": ["kernel construction rules; checking validity by Gram-matrix PSD-ness", "Gaussian process regression with Cholesky; marginal likelihood for hyperparameters"], "accept": ["GP posterior mean interpolates noise-free training data exactly", "marginal-likelihood gradient matches finite differences"], "limit_cases": ["an invalid kernel whose Gram matrix has a negative eigenvalue", "a Gram matrix that is PSD in theory but not numerically: jitter on the diagonal"], "status": "todo"}, {"id": "prml-07-svm", "title": "Sparse kernel machines: SVM", "track": "prml", "requires": ["prml-06-kernels-gps", "optimization-02-duality"], "sources": ["bishop:7"], "deliverable": "math/prml/07-svm", "build": ["SVM dual solved by SMO", "soft margin; support vectors from the KKT conditions"], "accept": ["only support vectors have non-zero alpha; the margin computed from them matches the primal", "results match a reference QP solver on small problems"], "limit_cases": ["non-separable data with a hard margin (infeasible) versus a soft margin"], "status": "todo"}, {"id": "prml-08-graphical-models", "title": "Graphical models and message passing", "track": "prml", "requires": ["prml-02-distributions"], "sources": ["bishop:8"], "deliverable": "math/prml/08-graphical-models", "build": ["Bayesian networks: d-separation checker", "sum-product on a factor graph tree; max-sum (Viterbi-style) decoding"], "accept": ["sum-product marginals equal brute-force marginals on random tree-structured models", "the d-separation checker agrees with conditional independence measured on samples"], "limit_cases": ["loopy belief propagation on a graph with a cycle: not exact, and sometimes not convergent"], "status": "todo"}, {"id": "prml-09-mixtures-em", "title": "Mixture models and EM", "track": "prml", "requires": ["prml-02-distributions"], "sources": ["bishop:9", "mml:11"], "deliverable": "math/prml/09-mixtures-em", "build": ["K-means", "EM for Gaussian mixtures", "EM for a mixture of Bernoullis"], "accept": ["the log-likelihood never decreases between EM iterations", "EM recovers synthetic mixture parameters within tolerance (up to label permutation)"], "limit_cases": ["a component collapsing onto one point (likelihood to infinity); a covariance floor preventing it", "a bad initialisation converging to a poor local optimum; restarts finding a better one"], "status": "todo"}, {"id": "prml-10-variational-inference", "title": "Approximate inference: variational methods", "track": "prml", "requires": ["prml-09-mixtures-em", "prml-08-graphical-models"], "sources": ["bishop:10", "murphy2:10"], "deliverable": "math/prml/10-variational-inference", "build": ["mean-field VI for a univariate Gaussian with unknown mean and precision", "variational Gaussian mixture", "the ELBO computed and monitored"], "accept": ["the ELBO never decreases under coordinate ascent", "the ELBO is below the log evidence where the evidence is computable"], "limit_cases": ["mean-field underestimating posterior variance on a correlated Gaussian (reverse-KL mode seeking)"], "status": "todo"}, {"id": "prml-11-sampling", "title": "Sampling methods", "track": "prml", "requires": ["prml-02-distributions", "probability-07-markov-chains-mcmc"], "sources": ["bishop:11"], "deliverable": "math/prml/11-sampling", "build": ["rejection and importance sampling", "Metropolis-Hastings and Gibbs for a Bayesian model", "Hamiltonian Monte Carlo"], "accept": ["importance-sampling estimates are unbiased across repeated runs", "HMC has a higher effective sample size per gradient than random-walk MH on a correlated Gaussian"], "limit_cases": ["importance sampling with a proposal lighter-tailed than the target: infinite variance"], "status": "todo"}, {"id": "prml-12-latent-continuous", "title": "Continuous latent variables: PCA, probabilistic PCA", "track": "prml", "requires": ["prml-09-mixtures-em", "foundations-03-matrix-decompositions"], "sources": ["bishop:12", "mml:10"], "deliverable": "math/prml/12-latent-continuous", "build": ["PCA by eigendecomposition and by SVD", "probabilistic PCA closed form and by EM", "kernel PCA"], "accept": ["PCA reconstruction error equals the sum of the discarded eigenvalues", "PPCA by EM converges to the closed-form solution (up to rotation)"], "limit_cases": ["more dimensions than samples (D > N): PCA via the N x N Gram matrix"], "status": "todo"}, {"id": "prml-13-sequential", "title": "Sequential data: HMMs and linear dynamical systems", "track": "prml", "requires": ["prml-08-graphical-models", "prml-09-mixtures-em", "prml-12-latent-continuous"], "sources": ["bishop:13"], "deliverable": "math/prml/13-sequential", "build": ["forward-backward and Viterbi for HMMs", "Baum-Welch", "Kalman filter and RTS smoother"], "accept": ["forward-backward marginals equal brute-force enumeration on short sequences", "the Kalman filter equals the exact Gaussian posterior computed in batch"], "limit_cases": ["a long sequence where unscaled forward probabilities underflow to zero; scaling or log-space fixing it"], "status": "todo"}, {"id": "prml-14-combining-models", "title": "Combining models: trees, boosting, mixtures of experts", "track": "prml", "requires": ["prml-04-linear-classification"], "sources": ["bishop:14"], "deliverable": "math/prml/14-combining-models", "build": ["decision trees (CART)", "AdaBoost", "bagging"], "accept": ["AdaBoost's training error decreases monotonically and bounded by the product of the weak learners' bound"], "limit_cases": ["AdaBoost with label noise: weights concentrate on the mislabelled points"], "status": "todo"}, {"id": "lean-01-galois-path", "title": "Logic to the fundamental theorem of Galois theory (Lean 4)", "track": "lean", "requires": [], "sources": [], "deliverable": "lean-proofs", "build": ["see lean-proofs/README.md"], "accept": ["`lake build` succeeds with no `sorry` in the learner's files (not yet wired: no checker exists)"], "limit_cases": [], "related": ["lean-proofs"], "status": "exists"}], "books": {"mml": {"title": "Mathematics for Machine Learning", "authors": "Deisenroth, Faisal, Ong", "year": 2020, "access": "free PDF from the authors, mml-book.github.io (verify)"}, "bishop": {"title": "Pattern Recognition and Machine Learning", "authors": "Bishop", "year": 2006, "access": "free PDF released by Microsoft Research (verify)"}, "axler": {"title": "Linear Algebra Done Right, 4th edition", "authors": "Axler", "year": 2024, "access": "open access, linear.axler.net (verify)"}, "trefethen": {"title": "Numerical Linear Algebra", "authors": "Trefethen, Bau", "year": 1997, "access": "not free (SIAM)"}, "blitzstein": {"title": "Introduction to Probability, 2nd edition", "authors": "Blitzstein, Hwang", "year": 2019, "access": "free PDF, probabilitybook.net (verify)"}, "boyd": {"title": "Convex Optimization", "authors": "Boyd, Vandenberghe", "year": 2004, "access": "free PDF, stanford.edu/~boyd/cvxbook (verify)"}, "murphy1": {"title": "Probabilistic Machine Learning: An Introduction", "authors": "Murphy", "year": 2022, "access": "free, probml.github.io/pml-book/book1.html"}, "murphy2": {"title": "Probabilistic Machine Learning: Advanced Topics", "authors": "Murphy", "year": 2023, "access": "free, probml.github.io/pml-book/book2.html"}}, "tracks": ["foundations", "linalg", "probability", "optimization", "prml", "lean"], "labels": {"foundations": "Foundations", "linalg": "Linear algebra", "probability": "Probability", "optimization": "Optimisation", "prml": "Pattern recognition", "lean": "Lean"}, "colors": {"foundations": "#E0B33C", "linalg": "#58B0A4", "probability": "#B48AD6", "optimization": "#E08A5A", "prml": "#8CBF68", "lean": "#96A0B2"}, "bookName": {"trefethen:lecture6": "Numerical Linear Algebra (Trefethen, Bau, 1997)", "mml:2": "Mathematics for Machine Learning (Deisenroth, Faisal, Ong, 2020)", "trefethen:lecture26": "Numerical Linear Algebra (Trefethen, Bau, 1997)", "trefethen:lecture14": "Numerical Linear Algebra (Trefethen, Bau, 1997)", "boyd:10": "Convex Optimization (Boyd, Vandenberghe, 2004)", "trefethen:lecture29": "Numerical Linear Algebra (Trefethen, Bau, 1997)", "bishop:4": "Pattern Recognition and Machine Learning (Bishop, 2006)", "bishop:11": "Pattern Recognition and Machine Learning (Bishop, 2006)", "blitzstein:7": "Introduction to Probability, 2nd edition (Blitzstein, Hwang, 2019)", "bishop:10": "Pattern Recognition and Machine Learning (Bishop, 2006)", "axler:1": "Linear Algebra Done Right, 4th edition (Axler, 2024)", "boyd:9": "Convex Optimization (Boyd, Vandenberghe, 2004)", "trefethen:lecture11": "Numerical Linear Algebra (Trefethen, Bau, 1997)", "bishop:1": "Pattern Recognition and Machine Learning (Bishop, 2006)", "trefethen:lecture28": "Numerical Linear Algebra (Trefethen, Bau, 1997)", "mml:10": "Mathematics for Machine Learning (Deisenroth, Faisal, Ong, 2020)", "bishop:13": "Pattern Recognition and Machine Learning (Bishop, 2006)", "trefethen:lecture21": "Numerical Linear Algebra (Trefethen, Bau, 1997)", "axler:2": "Linear Algebra Done Right, 4th edition (Axler, 2024)", "axler:5": "Linear Algebra Done Right, 4th edition (Axler, 2024)", "mml:9": "Mathematics for Machine Learning (Deisenroth, Faisal, Ong, 2020)", "murphy2:10": "Probabilistic Machine Learning: Advanced Topics (Murphy, 2023)", "bishop:14": "Pattern Recognition and Machine Learning (Bishop, 2006)", "mml:11": "Mathematics for Machine Learning (Deisenroth, Faisal, Ong, 2020)", "bishop:2": "Pattern Recognition and Machine Learning (Bishop, 2006)", "blitzstein:1": "Introduction to Probability, 2nd edition (Blitzstein, Hwang, 2019)", "blitzstein:3": "Introduction to Probability, 2nd edition (Blitzstein, Hwang, 2019)", "mml:5": "Mathematics for Machine Learning (Deisenroth, Faisal, Ong, 2020)", "blitzstein:11": "Introduction to Probability, 2nd edition (Blitzstein, Hwang, 2019)", "blitzstein:2": "Introduction to Probability, 2nd edition (Blitzstein, Hwang, 2019)", "trefethen:lecture8": "Numerical Linear Algebra (Trefethen, Bau, 1997)", "trefethen:lecture25": "Numerical Linear Algebra (Trefethen, Bau, 1997)", "boyd:5": "Convex Optimization (Boyd, Vandenberghe, 2004)", "blitzstein:8": "Introduction to Probability, 2nd edition (Blitzstein, Hwang, 2019)", "bishop:6": "Pattern Recognition and Machine Learning (Bishop, 2006)", "murphy1:3": "Probabilistic Machine Learning: An Introduction (Murphy, 2022)", "mml:7": "Mathematics for Machine Learning (Deisenroth, Faisal, Ong, 2020)", "bishop:5": "Pattern Recognition and Machine Learning (Bishop, 2006)", "murphy1:4": "Probabilistic Machine Learning: An Introduction (Murphy, 2022)", "blitzstein:5": "Introduction to Probability, 2nd edition (Blitzstein, Hwang, 2019)", "trefethen:lecture10": "Numerical Linear Algebra (Trefethen, Bau, 1997)", "trefethen:lecture20": "Numerical Linear Algebra (Trefethen, Bau, 1997)", "bishop:7": "Pattern Recognition and Machine Learning (Bishop, 2006)", "bishop:3": "Pattern Recognition and Machine Learning (Bishop, 2006)", "mml:3": "Mathematics for Machine Learning (Deisenroth, Faisal, Ong, 2020)", "murphy1:17": "Probabilistic Machine Learning: An Introduction (Murphy, 2022)", "boyd:3": "Convex Optimization (Boyd, Vandenberghe, 2004)", "blitzstein:12": "Introduction to Probability, 2nd edition (Blitzstein, Hwang, 2019)", "axler:3": "Linear Algebra Done Right, 4th edition (Axler, 2024)", "axler:6": "Linear Algebra Done Right, 4th edition (Axler, 2024)", "bishop:8": "Pattern Recognition and Machine Learning (Bishop, 2006)", "trefethen:lecture13": "Numerical Linear Algebra (Trefethen, Bau, 1997)", "blitzstein:9": "Introduction to Probability, 2nd edition (Blitzstein, Hwang, 2019)", "boyd:11": "Convex Optimization (Boyd, Vandenberghe, 2004)", "trefethen:lecture7": "Numerical Linear Algebra (Trefethen, Bau, 1997)", "mml:6": "Mathematics for Machine Learning (Deisenroth, Faisal, Ong, 2020)", "mml:4": "Mathematics for Machine Learning (Deisenroth, Faisal, Ong, 2020)", "bishop:9": "Pattern Recognition and Machine Learning (Bishop, 2006)", "blitzstein:10": "Introduction to Probability, 2nd edition (Blitzstein, Hwang, 2019)", "axler:7": "Linear Algebra Done Right, 4th edition (Axler, 2024)", "trefethen:lecture12": "Numerical Linear Algebra (Trefethen, Bau, 1997)", "trefethen:lecture15": "Numerical Linear Algebra (Trefethen, Bau, 1997)", "trefethen:lecture27": "Numerical Linear Algebra (Trefethen, Bau, 1997)", "boyd:2": "Convex Optimization (Boyd, Vandenberghe, 2004)", "bishop:12": "Pattern Recognition and Machine Learning (Bishop, 2006)", "blitzstein:4": "Introduction to Probability, 2nd edition (Blitzstein, Hwang, 2019)"}};
+const map = document.getElementById('map');
+const svg = document.getElementById('edges');
+const detail = document.getElementById('detail');
+const byId = Object.fromEntries(DATA.nodes.map(n => [n.id, n]));
+const trackIndex = t => DATA.tracks.indexOf(t);
+const children = {};
+DATA.nodes.forEach(n => n.requires.forEach(r => (children[r] = children[r] || []).push(n.id)));
+
+const depthMemo = {};
+function depth(id){
+  if (id in depthMemo) return depthMemo[id];
+  const r = byId[id].requires;
+  return (depthMemo[id] = r.length ? 1 + Math.max(...r.map(depth)) : 0);
+}
+const status = n => n.status === 'todo' && n.requires.every(r => byId[r].status === 'done')
+  ? 'ready' : n.status;
+
+const CSS = getComputedStyle(document.documentElement);
+const COLW = parseInt(CSS.getPropertyValue('--colw')) || 210;
+const ROWH = parseInt(CSS.getPropertyValue('--rowh')) || 108;
+const PADY = 22;
+const cx = t => trackIndex(t) * COLW + COLW / 2;
+
+/* One row per node within a track, ordered by dependency depth: nodes that share a
+   depth are independent, so they stack in the same column instead of colliding. */
+const rowOf = {};
+for (const t of DATA.tracks) {
+  DATA.nodes.filter(n => n.track === t)
+    .sort((a, b) => depth(a.id) - depth(b.id) || a.id.localeCompare(b.id))
+    .forEach((n, i) => (rowOf[n.id] = i));
+}
+const maxRows = Math.max(...DATA.nodes.map(n => rowOf[n.id])) + 1;
+const cy = id => PADY + rowOf[id] * ROWH + ROWH / 2;
+
+/* lanes */
+DATA.tracks.forEach((t, i) => {
+  const lane = document.createElement('div');
+  lane.className = 'lane' + (i % 2 ? ' alt' : '');
+  lane.style.left = trackIndex(t) * COLW + 'px';
+  map.appendChild(lane);
+});
+
+/* stations */
+const stations = document.createElement('div');
+for (const n of DATA.nodes) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'station';
+  b.dataset.id = n.id;
+  b.dataset.status = status(n);
+  b.setAttribute('aria-current', 'false');
+  b.style.setProperty('--c', DATA.colors[n.track]);
+  b.style.left = trackIndex(n.track) * COLW + 'px';
+  b.style.top = PADY + rowOf[n.id] * ROWH + 4 + 'px';
+  b.style.height = ROWH - 8 + 'px';
+  const d = document.createElement('span'); d.className = 'dot';
+  const s = document.createElement('span'); s.className = 'name';
+  s.textContent = n.title;
+  const id = document.createElement('span'); id.className = 'id';
+  id.textContent = n.id.replace(/^([a-z]+)-\d\d-/, '$1 · ');
+  b.append(d, s);
+  s.appendChild(id);
+  b.addEventListener('click', () => select(n.id, true));
+  b.addEventListener('mouseenter', () => highlight(n.id));
+  b.addEventListener('mouseleave', () => (selected ? highlight(selected) : unhighlight()));
+  b.addEventListener('keydown', e => nav(e, n));
+  stations.appendChild(b);
+}
+function nav(e, n){
+  const r = rowOf[n.id];
+  const inTrack = t => DATA.nodes.filter(x => x.track === t);
+  const nearest = (list, r) => list.slice().sort((a, b) => Math.abs(rowOf[a.id] - r) - Math.abs(rowOf[b.id] - r))[0];
+  let target = null;
+  if (e.key === 'ArrowUp') target = inTrack(n.track).find(x => rowOf[x.id] === r - 1);
+  else if (e.key === 'ArrowDown') target = inTrack(n.track).find(x => rowOf[x.id] === r + 1);
+  else if (e.key === 'ArrowLeft') target = nearest(inTrack(DATA.tracks[trackIndex(n.track) - 1]), r);
+  else if (e.key === 'ArrowRight') target = nearest(inTrack(DATA.tracks[trackIndex(n.track) + 1]), r);
+  if (target) { e.preventDefault(); stationEl(target.id).focus(); }
+  else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select(n.id, true); }
+}
+map.insertBefore(stations, svg.nextSibling);
+const stationEl = id => map.querySelector('.station[data-id="' + id + '"]');
+
+/* edges */
+const NS = 'http://www.w3.org/2000/svg';
+for (const n of DATA.nodes) {
+  for (const r of n.requires) {
+    const x1 = cx(byId[r].track), y1 = cy(r), x2 = cx(n.track), y2 = cy(n.id);
+    const p = document.createElementNS(NS, 'path');
+    const mid = (y1 + y2) / 2;
+    p.setAttribute('d', `M ${x1} ${y1} C ${x1} ${mid}, ${x2} ${mid}, ${x2} ${y2}`);
+    p.setAttribute('class', 'edge');
+    p.setAttribute('stroke', DATA.colors[n.track]);
+    p.setAttribute('opacity', '0.5');
+    p.dataset.from = r; p.dataset.to = n.id;
+    svg.appendChild(p);
+  }
+}
+
+/* chain highlight */
+function chain(id){
+  const up = new Set(), down = new Set();
+  (function walkUp(x){ for (const r of byId[x].requires) if (!up.has(r)) { up.add(r); walkUp(r); } })(id);
+  (function walkDown(x){ for (const c of children[x] || []) if (!down.has(c)) { down.add(c); walkDown(c); } })(id);
+  up.add(id); down.add(id);
+  return { up, down, all: new Set([...up, ...down]) };
+}
+function highlight(id){
+  const { all } = chain(id);
+  map.classList.add('dimming');
+  map.querySelectorAll('.station').forEach(el => el.classList.toggle('inchain', all.has(el.dataset.id)));
+  svg.querySelectorAll('path.edge').forEach(p => p.classList.toggle('inchain', all.has(p.dataset.from) && all.has(p.dataset.to)));
+}
+function unhighlight(){
+  map.classList.remove('dimming');
+  map.querySelectorAll('.station').forEach(el => el.classList.remove('inchain'));
+  svg.querySelectorAll('path.edge').forEach(p => p.classList.remove('inchain'));
+}
+
+/* selection + detail */
+let selected = null;
+function select(id, focus){
+  selected = id;
+  map.querySelectorAll('.station').forEach(el => el.setAttribute('aria-current', el.dataset.id === id ? 'true' : 'false'));
+  highlight(id);
+  renderDetail(byId[id]);
+  if (focus) stationEl(id).focus({ preventScroll: true });
+}
+function srcText(s){ return (DATA.bookName[s] || s) + ' · ' + s; }
+function section(title, items){
+  if (!items || !items.length) return '';
+  return '<h3>' + title + '</h3><ul>' + items.map(x => '<li>' + escapeHtml(x) + '</li>').join('') + '</ul>';
+}
+function escapeHtml(s){ const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function renderDetail(n){
+  const st = status(n);
+  const reqs = n.requires.length
+    ? n.requires.map(r => '<button type="button" data-goto="' + r + '">' + r + ' · ' + status(byId[r]) + '</button>').join('')
+    : '<span class="empty">nothing — a root</span>';
+  detail.innerHTML =
+    '<span class="tag"><span class="swatch" style="--c:' + DATA.colors[n.track] + '"></span>' +
+      DATA.labels[n.track] + '</span> <span class="tag">' + st + '</span>' +
+    '<h2>' + escapeHtml(n.title) + '</h2>' +
+    '<div class="path">' + escapeHtml(n.deliverable) + '/</div>' +
+    '<h3>requires</h3><div class="reqs">' + reqs + '</div>' +
+    section('build', n.build) +
+    section('accept', n.accept) +
+    section('limit cases', n.limit_cases) +
+    section('sources', n.sources.map(srcText));
+  detail.querySelectorAll('[data-goto]').forEach(b => b.addEventListener('click', () => select(b.dataset.goto, true)));
+}
+
+/* filters */
+let filter = 'all';
+function applyFilter(){
+  map.querySelectorAll('.station').forEach(el => {
+    const hidden = filter !== 'all' && el.dataset.status !== filter;
+    el.style.display = hidden ? 'none' : '';
+  });
+}
+document.getElementById('lowbar').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.id === 'reset') { selected = null; unhighlight(); map.querySelectorAll('.station').forEach(el => el.setAttribute('aria-current','false')); renderDetailDefault(); return; }
+  filter = b.dataset.filter;
+  document.querySelectorAll('#lowbar button[data-filter]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  applyFilter();
+});
+
+function renderDetailDefault(){
+  const ready = DATA.nodes.filter(n => status(n) === 'ready');
+  detail.innerHTML = '<h2>Next up</h2><p class="empty">Pick a station to see what it asks of you, ' +
+    'or start with one that is ready. Hovering traces the dependency chain.</p>' +
+    '<div class="reqs">' + (ready.length
+      ? ready.map(n => '<button type="button" data-goto="' + n.id + '">' + n.id + '</button>').join('')
+      : '<span class="empty">every ready node is built</span>') + '</div>';
+  detail.querySelectorAll('[data-goto]').forEach(b => b.addEventListener('click', () => select(b.dataset.goto, true)));
+}
+
+/* size the map */
+map.style.height = maxRows * ROWH + 2 * PADY + 'px';
+svg.setAttribute('viewBox', '0 0 ' + (DATA.tracks.length * COLW) + ' ' + (maxRows * ROWH + 2 * PADY));
+svg.setAttribute('preserveAspectRatio', 'none');
+map.style.setProperty('--colw', COLW + 'px');
+
+renderDetailDefault();
+</script>
+</body>
+</html>

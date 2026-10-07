@@ -40,12 +40,18 @@ class TreeTests(unittest.TestCase):
         self.assertTrue(any("duplicate" in x for x in p), p)
 
     def test_done_without_checker(self):
-        p = problems_after(lambda ns: node(ns, "foundations-01-linear-algebra").update(status="done"))
+        def mutate(ns):
+            n = node(ns, "foundations-01-linear-algebra")
+            n["deliverable"] = "math/foundations/zz-not-built"
+            n["status"] = "done"
+        p = problems_after(mutate)
         self.assertTrue(any("check.py does not exist" in x for x in p), p)
 
     def test_done_before_prerequisite(self):
         def mutate(ns):
-            node(ns, "foundations-02-analytic-geometry").update(status="done")
+            n = node(ns, "foundations-02-analytic-geometry")
+            n["requires"] = ["lean-01-galois-path"]  # a node that is not done
+            n["status"] = "done"
         p = problems_after(mutate)
         self.assertTrue(any("prerequisite" in x for x in p), p)
 
@@ -59,10 +65,14 @@ class TreeTests(unittest.TestCase):
 
     def test_ready_follows_done(self):
         ns = copy.deepcopy(NODES)
-        self.assertIn("foundations-01-linear-algebra", [n["id"] for n in tree.ready_nodes(ns)])
-        self.assertNotIn("foundations-02-analytic-geometry", [n["id"] for n in tree.ready_nodes(ns)])
+        for n in ns:
+            n["status"] = "todo"
+        ready = [n["id"] for n in tree.ready_nodes(ns)]
+        self.assertIn("foundations-01-linear-algebra", ready)
+        self.assertNotIn("foundations-02-analytic-geometry", ready)
         node(ns, "foundations-01-linear-algebra")["status"] = "done"
-        self.assertIn("foundations-02-analytic-geometry", [n["id"] for n in tree.ready_nodes(ns)])
+        ready = [n["id"] for n in tree.ready_nodes(ns)]
+        self.assertIn("foundations-02-analytic-geometry", ready)
 
     def test_order_respects_edges(self):
         order = tree.topological_order(NODES)
