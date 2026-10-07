@@ -46,3 +46,9 @@ and **unverified**; check before citing.
 ## Numerical linear algebra
 
 - [INT8 sparse QR: Krylov, quantization and preconditioning](https://www.reidatcheson.com/sparse%20linear%20algebra/krylov/quantization/preconditioning/2026/06/30/int8-sparse-qr.html)
+
+## GPU MODE lectures
+
+- [GPU MODE lectures: code, notebooks and slides](https://github.com/gpu-mode/lectures) (Apache-2.0; read at `77a8df4`)
+- Lecture-by-lecture map onto this repo: [ROADMAP.md](ROADMAP.md)
+- Videos: the GPU MODE YouTube channel (verify URL)

@@ -25,7 +25,7 @@ three groups:
 | 4 | Prefix-caching proxy | CPU-real | **routing exists**: `context-caching/cache_router.py` (cache-aware policies vs round robin), `radix_cache.py` | a real HTTP proxy in front of replicas |
 | 5 | Quantization comparison lab (FP16/FP8/INT8/AWQ) | GPU-required | `ml-inference/phase2_optimization`, `tensorrt-inference/` (guides) | measured quality × latency × VRAM table |
 | 6 | Speculative decoding with acceptance-rate tracking | Simulated or GPU | nothing | draft/verify loop; acceptance math runs on the tiny CPU transformer in `context-caching/tiny_transformer.py` |
-| 7 | Triton fused kernel (softmax/RMSNorm) vs PyTorch | GPU-required (perf); `TRITON_INTERPRET=1` checks correctness on CPU | `cuda-from-scratch/` (CUDA C, not Triton) | Triton kernel + benchmark |
+| 7 | Triton fused kernel (softmax/RMSNorm) vs PyTorch (GPU MODE lectures 14, 29; see `cuda-from-scratch/ROADMAP.md`) | GPU-required (perf); `TRITON_INTERPRET=1` checks correctness on CPU | `cuda-from-scratch/` (CUDA C, not Triton) | Triton kernel + benchmark |
 | 8 | Chunked prefill scheduler experiment | Simulated | nothing | scheduler + mixed prefill/decode workload |
 | 9 | PagedAttention under memory pressure | Simulated | `context-caching/paged_kv_cache.py` (paged blocks, copy-on-write) | eviction, preemption, fragmentation report |
 | 10 | Disaggregated prefill/decode | Simulated | nothing | two pools, KV transfer cost model |

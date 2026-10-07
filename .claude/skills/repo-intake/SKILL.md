@@ -19,7 +19,10 @@ This skill is the triage that prevents it. Building a module afterwards is the
   DOCS, LINK, or NONE, and in which directories.
 - **A match is not coverage.** Open the top hits before claiming anything: a word in a
   comment or a README bullet is DOCS at best. Earlier in this repo a 20-hit grep for
-  "index" turned out to mean no index implementation at all.
+  "index" turned out to mean no index implementation at all. Generic words are the worst:
+  "scan" matched database scans and "reduction" matched AWS code when the question was
+  the parallel prefix-sum and GPU reductions. Search for a specific phrase ("prefix sum",
+  "__shared__", "online softmax") and read the hits.
 - Check the other branches too: `git branch -r`, then `git grep -il "<term>" <branch>`.
   Two whole courses (distributed-systems docs, RL post-training) were found on unmerged
   branches only after being half-planned again.
