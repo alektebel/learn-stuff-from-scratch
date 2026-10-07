@@ -81,7 +81,7 @@ graph LR
     linalg-06-eigenvalue-algorithms["06 Eigenvalue algorithms"]
   end
   subgraph probability
-    probability-01-counting-conditioning["01 Counting, conditional probability, Bayes"]
+    probability-01-counting-conditioning["01 Counting, conditional probability, Bayes"]:::done
     probability-02-random-variables["02 Discrete random variables and expectation"]
     probability-03-continuous["03 Continuous random variables"]
     probability-04-joint["04 Joint distributions and covariance"]
@@ -190,7 +190,7 @@ graph LR
 | `optimization-02-duality` Lagrangian duality and KKT | optimization | optimization-01-convexity | todo |
 | `optimization-03-unconstrained` Unconstrained minimisation: gradient and Newton | optimization | optimization-01-convexity, linalg-05-conditioning-stability | todo |
 | `optimization-04-interior-point` Equality constraints and interior-point methods | optimization | optimization-02-duality, optimization-03-unconstrained | todo |
-| `probability-01-counting-conditioning` Counting, conditional probability, Bayes | probability | — | todo |
+| `probability-01-counting-conditioning` Counting, conditional probability, Bayes | probability | — | done |
 | `probability-02-random-variables` Discrete random variables and expectation | probability | probability-01-counting-conditioning | todo |
 | `probability-03-continuous` Continuous random variables | probability | probability-02-random-variables, foundations-04-vector-calculus | todo |
 | `prml-01-introduction` Curve fitting, bias-variance, decision and information theory | prml | foundations-05-probability, probability-03-continuous | todo |

@@ -310,7 +310,7 @@ limit_cases = [
   "the Monty Hall problem, simulated, including the variant where the host does not know",
   "a base-rate problem where the intuitive answer is off by an order of magnitude",
 ]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "probability-02-random-variables"
