@@ -67,6 +67,9 @@ relevant reading carry their own `RESOURCES.md`.
 ### Operations & Reliability
 - **[deploy-and-debug/](deploy-and-debug/)** - Running the systems in this repo and debugging them when they break: capacity math (KV cache sizing, N/R/W failure tolerance), percentiles/queueing/error budgets, root-cause diagnosis of 11 injected faults from metrics alone, and safe rollout (liveness vs readiness, canary analysis, budget-based auto-rollback) - plus a runbook of the real vllm/nodetool/nvidia-smi/k8s commands (12 graded checks via `python3 check.py`)
 
+### Web
+- **[web-launch-checklist/](web-launch-checklist/)** - Sixteen pre-launch items (404, titles, descriptions, favicon, robots.txt, sitemap, Open Graph, alt text, mobile, loading and error states, legal pages, cookies, analytics, contact, WebP) learned from the failure side: an observer (crawler, link unfurler, screen reader, phone, impatient user) measures the damage before and after each fix. Planned; no answers by design
+
 ### Data Engineering & Analytics
 - **[sas-lineage-tool/](sas-lineage-tool/)** - SAS field lineage parser for tracking data transformations and dependencies
 - **[web-scraping/](web-scraping/)** - Industrial web scraping/crawler library (Python/C, CUDA acceleration, CAPTCHA bypass, distributed architecture)
