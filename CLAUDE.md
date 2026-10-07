@@ -22,7 +22,11 @@ Open work, in order: [TODO.md](TODO.md). Update it in the same commit that finis
 
 ## Running things
 
-- Most modules: `cd <module> && python3 check.py`. numpy is available to `python3`.
+- Most modules: `cd <module> && python3 check.py`. This environment has **no numpy and no
+  pip** (Python 3.14): solutions and checkers are standard-library only; use
+  `fractions.Fraction` as an exact oracle where a matrix or probability allows it. Anything
+  that names numpy (CUDA step C; the `numpy.linalg.svd` comparison in foundations-03) must
+  use a stdlib or high-precision substitute and say so in its README.
 - `harness-lab/` and `agent-evals/` need Docker. In a cloud session start the daemon with
   `dockerd &`, then build the sandbox image with
   `harness-lab/.venv/bin/python -m eval.setup` (add `--ca /root/.ccr/ca-bundle.crt` behind
