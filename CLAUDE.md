@@ -4,6 +4,8 @@ From-scratch implementations for learning. Read `PHILOSOPHY.md` first: name desi
 decisions, build the MVP and then the limit cases that break it, verify with checks
 you can run.
 
+Open work, in order: [TODO.md](TODO.md). Update it in the same commit that finishes or adds an item.
+
 ## Conventions
 
 - A graded module is templates + `check.py` + `solutions/` + `_build/` (hints and planted
