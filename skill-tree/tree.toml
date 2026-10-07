@@ -512,7 +512,7 @@ limit_cases = [
   "MLE of a Bernoulli after 3 heads in 3 tosses (p = 1) versus the Beta posterior mean",
   "KDE bandwidth too small and too large: the two failure modes",
 ]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "prml-03-linear-regression"
