@@ -463,7 +463,7 @@ deliverable = "math/optimization/04-interior-point"
 build = ["equality-constrained Newton", "log-barrier method for an inequality-constrained LP"]
 accept = ["the barrier method's duality gap follows m / t", "solutions match a simplex reference on random LPs"]
 limit_cases = ["an infeasible LP detected by a phase-I method"]
-status = "todo"
+status = "done"
 
 # =====================================================================================
 # Track: pattern recognition (Bishop, PRML)
