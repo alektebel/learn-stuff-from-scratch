@@ -33,6 +33,13 @@ DESIGN DECISION - orders are counted by asking the server, not by trusting the
     `/orders` before and after, so the count is the server's own state, and the
     difference is what the user's clicks actually did.
 
+DESIGN DECISION - the HTTP helpers are public, so one check can reuse them.
+    `fetch` and `post_form` wrap the same "read a 4xx/5xx body, do not raise"
+    contract the observer uses for its own requests. The error-message check
+    (`check.py` step 10) submits the contact form through `post_form` and reads
+    the 500 page through `fetch`, so the graded check and the observer agree on
+    how a request is made and what an error response looks like.
+
 Standard library only (`urllib.request`, `urllib.parse`, `html.parser`, `re`,
 `argparse`, `json`, `time`). No network beyond the server it is given.
 """
@@ -170,6 +177,41 @@ def _get(base_url, path):
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     try:
         with urllib.request.urlopen(request, timeout=10) as response:
+            return (response.status, response.read().decode("utf-8", "replace"),
+                    response.headers.get("Content-Type", ""))
+    except OSError as error:  # HTTPError and URLError both subclass OSError
+        body = error.read().decode("utf-8", "replace") if hasattr(error, "read") else ""
+        headers = getattr(error, "headers", None)
+        content_type = headers.get("Content-Type", "") if headers else ""
+        return getattr(error, "code", 0), body, content_type
+
+
+def fetch(base_url, path):
+    """GET `path` from `base_url`; return (status, body, content_type).
+
+    The public face of `_get`, kept on this observer so a graded check can reuse
+    one HTTP helper instead of growing its own. A 4xx/5xx body is returned, not
+    raised, so the caller can inspect an error page.
+    """
+    return _get(base_url, path)
+
+
+def post_form(base_url, path, fields):
+    """POST `fields` (urlencoded) to `path`; return (status, body, content_type).
+
+    The generic form helper beside `post_order`: same "read an error body, do not
+    raise" contract, but for any urlencoded form, so the error-message check can
+    submit the contact form and assert what an invalid response does and does not
+    leak. The User-Agent and content type match the observer's other requests.
+    """
+    data = urllib.parse.urlencode(fields).encode("utf-8")
+    url = base_url.rstrip("/") + path
+    request = urllib.request.Request(
+        url, data=data, method="POST",
+        headers={"User-Agent": USER_AGENT,
+                 "Content-Type": "application/x-www-form-urlencoded"})
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
             return (response.status, response.read().decode("utf-8", "replace"),
                     response.headers.get("Content-Type", ""))
     except OSError as error:  # HTTPError and URLError both subclass OSError

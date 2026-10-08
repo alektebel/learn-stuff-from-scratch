@@ -58,6 +58,16 @@ copy the same `alt` values into every page and into the learner template, where
 they would leak the answer, so the samples sit in the home page body: an
 informative image, a decorative one, and an image that is the only content of a
 link, whose alt is therefore the link's accessible name.
+
+DESIGN DECISION - a form error is a 200 page next to the field, and a server
+error is a generic 500. `contact_page` re-renders the form with the user's
+`values` and one `error_message` per bad field, placed right after that field's
+input; the status stays 200 because an invalid form is the user's mistake, not a
+request the server failed to handle. `server_error` is the other half: a page a
+user can act on, carrying no traceback, exception, path, version or environment
+variable, because all of that is detail for the log. A framework's default (a
+bare error, or the same "invalid input" for every field) is the thing these
+replace.
 """
 
 import html
@@ -72,6 +82,11 @@ SITE_URL = "https://example.com"
 # The size a link-preview card wants (the 1.91:1 ratio chat apps crop to).
 OG_IMAGE_WIDTH = 1200
 OG_IMAGE_HEIGHT = 630
+
+# The shortest message the contact form accepts, in characters. `error_message`
+# names this same number in the message the user reads, and `serve.py` validates
+# against it: one constant, so the rule and the sentence cannot drift apart.
+MIN_MESSAGE = 10
 
 NAV = (
     '<nav><a href="/">Home</a> · <a href="/about">About</a> · '
@@ -221,6 +236,93 @@ def _doc(title, description, main, path="/"):
     )
 
 
+def error_message(field, value):
+    """Return a specific, actionable sentence for one invalid field.
+
+    The message says *what* is wrong and *how* to fix it, and it is different
+    for each field: one generic sentence ("invalid input") for every field is
+    the framework default this exercise replaces, and it leaves the user with
+    nothing to change. `value` is the submitted value, kept out of the message
+    so the text can be rendered without echoing the user's input back at them.
+    """
+    if field == "name":
+        return "Enter your name so we know who to reply to."
+    if field == "email":
+        return ("That is not an email address: use one @ with a domain after it, "
+                "like you@example.com.")
+    if field == "message":
+        return (f"Your message is too short: write at least {MIN_MESSAGE} "
+                "characters so we can help.")
+    return f'Check the "{field}" field and try again.'
+
+
+def contact_page(values=None, errors=None):
+    """Return the `/contact` form, re-rendered with the user's input and errors.
+
+    `values` refills every input, so a user who got one field wrong does not
+    retype the rest; `errors` maps a field name to its `error_message`, rendered
+    right after that field's input (`<p class="error" id="error-email">`), so
+    the complaint sits where the mistake is. The form posts to itself: the
+    server validates, and an invalid submission comes back as this same page
+    with the messages attached and status 200. The opposite - a bare framework
+    error, or a silent red border - tells the user nothing about what to change.
+    """
+    values = values or {}
+    errors = errors or {}
+
+    def field_input(name, label, kind="text"):
+        value = html.escape(str(values.get(name, "")), quote=True)
+        rendered = (f'<label for="{name}">{label}</label>\n'
+                    f'<input type="{kind}" id="{name}" name="{name}" value="{value}">\n')
+        if name in errors:
+            message = html.escape(str(errors[name]), quote=True)
+            rendered += f'<p class="error" id="error-{name}">{message}</p>\n'
+        return rendered
+
+    message_value = html.escape(str(values.get("message", "")), quote=True)
+    message_block = ('<label for="message">Message</label>\n'
+                     '<textarea id="message" name="message" rows="5">'
+                     f'{message_value}</textarea>\n')
+    if "message" in errors:
+        message = html.escape(str(errors["message"]), quote=True)
+        message_block += f'<p class="error" id="error-message">{message}</p>\n'
+
+    main = (
+        "<h1>Contact</h1>\n"
+        '<form method="post" action="/contact">\n'
+        f'{field_input("name", "Name")}'
+        f'{field_input("email", "Email", kind="email")}'
+        f'{message_block}'
+        '<button type="submit">Send message</button>\n'
+        "</form>\n"
+    )
+    return _doc(
+        "Contact Acme Tools",
+        "Send the Acme Tools team a message: report a broken page or ask for a launch review.",
+        main,
+        path="/contact",
+    )
+
+
+def server_error():
+    """Return the generic 500 page: a next step, never the detail.
+
+    The traceback, the exception text, the request path, the source file paths,
+    the Python version and any environment variable belong in the server log,
+    not in this body. A user cannot act on a stack trace, and an attacker reads
+    versions, paths and secrets out of one. So this page only says that
+    something failed, that it was logged, and what the user can do next.
+    """
+    return _doc(
+        "Something went wrong — Acme Tools",
+        "We could not complete that request. The problem has been logged.",
+        "<h1>Something went wrong</h1>\n"
+        "<p>We hit a problem on our side and have logged it. Please try again in "
+        "a moment; if it keeps happening, <a href=\"/contact\">tell us</a>.</p>\n",
+        path="/",
+    )
+
+
 def pages():
     """Return {path: html} for every public page the site serves."""
     return {
@@ -247,12 +349,7 @@ def pages():
             "<h1>Pricing</h1><p>One plan. It is free until we leave beta.</p>",
             path="/pricing",
         ),
-        "/contact": _doc(
-            "Contact Acme Tools",
-            "Email the team, report a broken page, or ask for a launch review.",
-            "<h1>Contact</h1><p>Write to <a href=\"mailto:team@example.com\">team@example.com</a>.</p>",
-            path="/contact",
-        ),
+        "/contact": contact_page(),
         "/docs": _doc(
             "Docs — Acme Tools",
             "Install Acme Tools, run the observers, and read every check the crawler makes.",

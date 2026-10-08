@@ -19,6 +19,10 @@ check step). One classic mistake per exercise:
 9. loading states: the server records every repeat, the form ships no
    idempotency key, the control is never disabled, the server dedups on the
    body instead of the key, or the order count route is missing.
+10. error messages: the 500 page leaks the traceback, one generic string is
+    returned for every field, an invalid POST gets the generic error page
+    instead of the field-level form, bad input is accepted with no message, or
+    the exception detail never reaches the server log.
 """
 
 MUTATIONS = [
@@ -96,10 +100,10 @@ MUTATIONS = [
     (
         "there is no route for /og-image.png, so the card image 404s",
         "serve.py",
-        '        if route == "/og-image.png":\n'
-        '            self._respond(200, og_image_png(), "image/png")\n'
-        '        elif route == "/favicon.ico":',
-        '        if route == "/favicon.ico":',
+        '            elif route == "/og-image.png":\n'
+        '                self._respond(200, og_image_png(), "image/png")\n'
+        '            elif route == "/favicon.ico":',
+        '            elif route == "/favicon.ico":',
         "6",
     ),
     (
@@ -140,8 +144,8 @@ MUTATIONS = [
     (
         "there is no route for /favicon.ico, so the icon 404s",
         "serve.py",
-        '        elif route == "/favicon.ico":\n'
-        '            self._respond(200, favicon_png(), "image/png")\n',
+        '            elif route == "/favicon.ico":\n'
+        '                self._respond(200, favicon_png(), "image/png")\n',
         "",
         "7",
     ),
@@ -223,10 +227,69 @@ MUTATIONS = [
     (
         "there is no /orders route, so the observer cannot count orders",
         "serve.py",
-        '        elif route == "/orders":\n'
-        '            self._respond(200, json.dumps({"count": len(ORDERS)}),\n'
-        '                          "application/json; charset=utf-8")\n',
+        '            elif route == "/orders":\n'
+        '                self._respond(200, json.dumps({"count": len(ORDERS)}),\n'
+        '                              "application/json; charset=utf-8")\n',
         "",
         "9",
+    ),
+    (
+        "the 500 page leaks the traceback instead of logging it",
+        "pages.py",
+        '        "<h1>Something went wrong</h1>\\n"',
+        '        "Traceback (most recent call last):\\n"'
+        '        "<h1>Something went wrong</h1>\\n"',
+        "10",
+    ),
+    (
+        "every field gets the same generic error message",
+        "pages.py",
+        '    if field == "email":\n'
+        '        return ("That is not an email address: use one @ with a domain after it, "\n'
+        '                "like you@example.com.")\n',
+        '    return "Invalid input: check this field and try again."\n',
+        "10",
+    ),
+    (
+        "an invalid POST gets the generic error page, not the field-level form",
+        "serve.py",
+        "                    self._respond(200, contact_page(values, errors))",
+        "                    self._respond(200, server_error())",
+        "10",
+    ),
+    (
+        "the bad email is accepted, so no field-level message appears",
+        "serve.py",
+        '                if email.count("@") != 1 or not local or "." not in domain:\n'
+        '                    errors["email"] = error_message("email", values["email"])\n',
+        '                if False:\n'
+        '                    errors["email"] = error_message("email", values["email"])\n',
+        "10",
+    ),
+    (
+        "the 500 path never writes the exception detail to SERVER_LOG",
+        "serve.py",
+        "        SERVER_LOG.append(traceback.format_exc())\n",
+        "        pass\n",
+        "10",
+    ),
+    # A version number on the page tells an attacker which exploits to try; step 10 now
+    # scans for a dotted version, so this is caught even without the word "python".
+    (
+        "the 500 page leaks a version number",
+        "pages.py",
+        '        "<h1>Something went wrong</h1>\\n"',
+        '        "<h1>Something went wrong</h1><p>3.14.7</p>\\n"',
+        "10",
+    ),
+    # A real environment value is a secret; step 10 plants a sentinel and scans for it,
+    # so this is caught deterministically whatever HOME happens to be.
+    (
+        "the 500 page leaks an environment value",
+        "pages.py",
+        '        "<h1>Something went wrong</h1>\\n"',
+        '        "<h1>Something went wrong</h1>"\n'
+        '        + __import__("os").environ.get("WLC_LEAK_PROBE", "") + "\\n"',
+        "10",
     ),
 ]

@@ -82,9 +82,10 @@ Update this file in the same commit that finishes or adds an item.
        MVCC versions in the WAL — both lands (steps 18-19, audited). The engine's remaining
        limits are in the module README §Limits.
        → [database-from-scratch/README.md](database-from-scratch/README.md)
-10. [ ] **web-launch-checklist exercises 9 and 11-16** and the `mobile.py` observer.
-        Exercises 1-8 and 10 (loading states, check step 9) are now graded with
-        `impatient.py`; `mobile.py` (responsive, exercise 9) remains.
+10. [ ] **web-launch-checklist exercises 9 and 12-16** and the `mobile.py` observer.
+        Exercises 1-8 and 10-11 are now graded (loading states, check step 9, with
+        `impatient.py`; error messages, check step 10, with `fetch`/`post_form`);
+        `mobile.py` (responsive, exercise 9) remains.
         → [web-launch-checklist/README.md](web-launch-checklist/README.md)
 
 ## Gaps with no plan yet

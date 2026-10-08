@@ -1,5 +1,5 @@
 """
-Progress checker for the web launch checklist, exercises 1-9.
+Progress checker for the web launch checklist, exercises 1-10.
 
     python3 check.py           # run every check, stop at the first unimplemented step
     python3 check.py 2         # run only step 2
@@ -12,7 +12,8 @@ is simply the next thing to write. Nothing here imports solutions/. It tests YOU
 `crawler.py` (a search bot), `unfurl.py` (a chat app building a preview),
 `visit.py` (a browser's first visit, implicit favicon and all), `reader.py`
 (a screen reader linearising the page) and `impatient.py` (a user who clicks a
-slow order form too many times).
+slow order form too many times, and whose HTTP helpers this checker reuses to
+submit the contact form and read the 500 page).
 """
 
 import shutil
@@ -439,6 +440,123 @@ def check_loading_state():
                   f"in {attempt.seconds * 1000:.1f} ms{RESET}")
 
 
+# ---------------------------------------------------------------------------
+# Step 10: an invalid form gets a field-level message; a 500 leaks nothing
+# ---------------------------------------------------------------------------
+
+_LEAK_SENTINEL_NAME = "WLC_LEAK_PROBE"
+_LEAK_SENTINEL_VALUE = "wlc-probe-2f9c-secret"
+
+
+def check_error_messages():
+    import os
+    import re
+
+    import serve
+    from impatient import fetch, post_form
+    from pages import error_message
+
+    # Plant a long, known value so the environment-leak proof is deterministic and does
+    # not depend on whatever HOME happens to be on this machine.
+    os.environ[_LEAK_SENTINEL_NAME] = _LEAK_SENTINEL_VALUE
+
+    bad_email = "not-an-email"
+    valid = {"name": "Ada", "email": "ada@example.com",
+             "message": "Please help me launch the site."}
+    with _RunningSite() as base:
+        # An invalid email is the user's mistake: status 200, the form comes back
+        # with what they typed, and the specific message sits next to the field.
+        status, body, _content_type = post_form(base, "/contact", {
+            "name": valid["name"], "email": bad_email, "message": valid["message"]})
+        assert status == 200, (
+            f"POST /contact with an invalid email returned {status}, not 200. An "
+            "invalid form is the user's mistake, not a request the server failed to "
+            "handle: re-render the form with the field-level message and keep 200.")
+        expected_email = error_message("email", bad_email)
+        assert 'name="email"' in body, (
+            "the invalid POST did not re-render the contact form: the email input is "
+            "gone, so the user loses the rest of their input and has nothing to fix.")
+        assert bad_email in body, (
+            "the re-rendered form dropped the submitted email value: the user has to "
+            "retype the field they were already editing.")
+        assert expected_email in body, (
+            f"the invalid email did not produce its field-level message "
+            f"{expected_email!r} next to the field. A bare framework error, or a "
+            "silent red border, tells the user nothing about what to change.")
+        print(f"      {GREY}invalid email -> {expected_email!r}{RESET}")
+
+        # A too-short message gets its OWN message, not the email one: the errors
+        # are field-level, so a field that is fine is never blamed.
+        status, body, _content_type = post_form(base, "/contact", {
+            "name": valid["name"], "email": valid["email"], "message": "x"})
+        assert status == 200, (
+            f"POST /contact with a too-short message returned {status}, not 200.")
+        expected_message = error_message("message", "x")
+        assert expected_message in body, (
+            f"a too-short message did not produce its own field-level message "
+            f"{expected_message!r}. Each field must say what it wants.")
+        assert expected_message != expected_email, (
+            f"the email and message errors are the same string {expected_message!r}: "
+            "one generic message for every field is exactly the framework default "
+            "this exercise replaces. Name the field and the fix.")
+        assert expected_email not in body, (
+            "a too-short message also showed the email error: the messages are not "
+            "field-level, so the user is told to fix a field that is fine.")
+        print(f"      {GREY}short message  -> {expected_message!r}{RESET}")
+
+        # A valid submission shows no validation error at all.
+        status, body, _content_type = post_form(base, "/contact", valid)
+        assert status == 200, (
+            f"POST /contact with valid input returned {status}, not 200.")
+        assert expected_email not in body and expected_message not in body, (
+            "a valid submission still showed a validation error: the form rejects "
+            "input that is correct.")
+        print(f"      {GREY}valid input    -> accepted, no field error{RESET}")
+
+        # A raised exception is the server's mistake: status 500, a generic page a
+        # user can act on, and the detail only in SERVER_LOG.
+        status, body, _content_type = fetch(base, "/boom")
+        assert status == 500, (
+            f"GET /boom returned {status}, not 500. A raised exception must surface "
+            "as a server error, with the detail kept out of the response.")
+        import os
+        import re
+
+        leaks = [token for token in ("Traceback", "RuntimeError", "boom", ".py",
+                                     "version_info", "environ")
+                 if token.lower() in body.lower()]
+        version = re.search(r"\b\d+\.\d+\.\d+\b", body)
+        if version:
+            leaks.append(f"a version number ({version.group(0)})")
+        # A real secret on the page is a leak. Scan the sentinel this check plants (so
+        # the proof is deterministic) and the values of secret-looking variables;
+        # scanning every environment value would flag an ordinary word that merely
+        # happens to be one variable's value (e.g. SOME_SERVICE=contact).
+        secret_names = re.compile(r"(SECRET|TOKEN|PASSWORD|PASSWD|API_?KEY|CREDENTIAL|"
+                                  r"AUTH|PRIVATE)", re.IGNORECASE)
+        secret_values = {os.environ.get(_LEAK_SENTINEL_NAME, _LEAK_SENTINEL_VALUE)}
+        secret_values |= {value for name, value in os.environ.items()
+                          if secret_names.search(name) and value and len(value) > 3}
+        env_leaks = sorted({value for value in secret_values if value and value in body})
+        if env_leaks:
+            leaks.append(f"a secret or environment value ({env_leaks[0]!r})")
+        assert not leaks, (
+            f"the 500 page leaks {leaks}: the traceback, the exception, the request "
+            "path, a source path, a version or an environment value reached the user. "
+            "Keep the detail in the server log and show a generic page.")
+        assert "python" not in body.lower(), (
+            "the 500 page leaks a Python version banner. A version tells an attacker "
+            "which exploits to try; it belongs in the log, not the page.")
+        assert serve.SERVER_LOG, (
+            "no exception was logged on the /boom path: the detail the user must not "
+            "see still has to reach the server log, or the bug is invisible to the "
+            "team.")
+        assert "boom" in serve.SERVER_LOG[-1].lower(), (
+            "the server log's last entry does not mention the exception raised by "
+            "/boom: the catch logged something else, or swallowed the error.")
+        print(f"      {GREY}500 page leaks nothing; the log holds the detail{RESET}")
+
+
 CHECKS: List[Tuple[str, str, Callable[[], None]]] = [
     ("serve.py", "unknown paths return a real 404 page that links home", check_custom_404),
     ("pages.py", "every page has a unique <title> within the length limit", check_titles),
@@ -449,6 +567,7 @@ CHECKS: List[Tuple[str, str, Callable[[], None]]] = [
     ("pages.py/serve.py", "every page points at a real favicon the browser can fetch", check_favicon),
     ("pages.py", "images carry alt text, decorative ones are silent", check_alt_text),
     ("pages.py/serve.py", "a double submit records one order and the control disables on submit", check_loading_state),
+    ("pages.py/serve.py", "invalid input gets a field-level message; a 500 leaks nothing", check_error_messages),
 ]
 
 
@@ -479,7 +598,7 @@ def main(argv: List[str]) -> int:
     wanted = [int(a) for a in argv if a.isdigit()]
     if len(wanted) > 1:
         wanted = list(range(min(wanted), max(wanted) + 1))
-    print(f"\n{BOLD}Web launch checklist — progress check (exercises 1-9){RESET}")
+    print(f"\n{BOLD}Web launch checklist — progress check (exercises 1-10){RESET}")
     print(f"{GREY}implement serve.py and pages.py, then run the observers{RESET}\n")
     passed = failed = todo = 0
     first_gap = None

@@ -1,4 +1,4 @@
-# Solutions — web launch checklist, exercises 1-9
+# Solutions — web launch checklist, exercises 1-10
 
 The reference site. `serve.py` routes the pages in `pages.py` and answers every
 unknown path with the 404 page and status 404. It also serves `robots.txt` from
@@ -6,9 +6,15 @@ unknown path with the 404 page and status 404. It also serves `robots.txt` from
 from `pages.og_image_png` at `/og-image.png` as `image/png`, the favicon from
 `pages.favicon_png` at `/favicon.ico` as `image/png`, the two body images at
 `/logo.png` and `/chart.png` as `image/png` (reusing the same two helpers), the
-order form from `pages.order_page` at `/order`, and the recorded-order count at
-`/orders`. `POST /order` records `(product, idempotency_key)` once per key, under
-a lock, so a multi-click on one form is one order. `crawler.py`, `unfurl.py`,
+order form from `pages.order_page` at `/order`, the recorded-order count at
+`/orders`, and the contact form from `pages.contact_page` at `/contact`.
+`POST /order` records `(product, idempotency_key)` once per key, under
+a lock, so a multi-click on one form is one order. `POST /contact` validates the
+name, email and message and re-renders the form at status 200 with one
+`pages.error_message` next to each bad field; a valid submission gets a short
+confirmation. `GET /boom` deliberately raises: the handler catches it, appends
+the traceback to `SERVER_LOG` and answers 500 with the generic
+`pages.server_error()`, which carries no detail. `crawler.py`, `unfurl.py`,
 `visit.py`, `reader.py` and `impatient.py` are the provided observers (symlinked
 from the module root so the mutation harness can carry them).
 
@@ -19,7 +25,7 @@ Copy these files next to `check.py` and run:
 ```
 $ python3 check.py --all
 
-Web launch checklist — progress check (exercises 1-9)
+Web launch checklist — progress check (exercises 1-10)
 implement serve.py and pages.py, then run the observers
 
   ✓  1. serve.py  unknown paths return a real 404 page that links home
@@ -35,8 +41,13 @@ implement serve.py and pages.py, then run the observers
       order attempt key=912aaf11 -> 200 in 0.5 ms
       order attempt key=912aaf11 -> 200 in 0.5 ms
   ✓  9. pages.py/serve.py a double submit records one order and the control disables on submit
+      invalid email -> 'That is not an email address: use one @ with a domain after it, like you@example.com.'
+      short message  -> 'Your message is too short: write at least 10 characters so we can help.'
+      valid input    -> accepted, no field error
+      500 page leaks nothing; the log holds the detail
+  ✓ 10. pages.py/serve.py invalid input gets a field-level message; a 500 leaks nothing
 
-  9/9 passing
+  10/10 passing
 
   All checks pass — the crawler sees a launchable site.
   Run crawler.py against it, then compare with solutions/.
@@ -173,13 +184,74 @@ same run reports each click at about `3.00 s` and still one recorded order — t
 UX half (feedback, a disabled control) and the correctness half (the idempotency
 key) are separate, and the check grades both.
 
+## Seeing the error messages and the 500 page
+
+The contact form validates on the server and comes back as the same page with a
+message next to each bad field. `GET /boom` raises on purpose: the handler keeps
+the traceback in `SERVER_LOG` and returns the generic 500 page, whose body carries
+none of it.
+
+```
+$ python3 - <<'PY'
+import threading, urllib.request, urllib.parse
+import serve
+server = serve.make_server(port=0)
+base = "http://127.0.0.1:%d" % server.server_address[1]
+threading.Thread(target=server.serve_forever, daemon=True).start()
+
+def post(fields):
+    data = urllib.parse.urlencode(fields).encode()
+    req = urllib.request.Request(base + "/contact", data=data, method="POST",
+        headers={"Content-Type": "application/x-www-form-urlencoded"})
+    try:
+        r = urllib.request.urlopen(req, timeout=5)
+        return r.status, r.read().decode()
+    except OSError as e:
+        return e.code, e.read().decode()
+
+def get(path):
+    try:
+        r = urllib.request.urlopen(base + path, timeout=5)
+        return r.status, r.read().decode()
+    except OSError as e:
+        return e.code, e.read().decode()
+
+status, body = post({"name": "Ada", "email": "not-an-email",
+                     "message": "Please help me launch the site."})
+print("POST /contact email=not-an-email ->", status)
+print("  ", [l.strip() for l in body.splitlines() if 'class="error"' in l][0])
+
+status, body = post({"name": "Ada", "email": "ada@example.com", "message": "x"})
+print("POST /contact message=x ->", status)
+print("  ", [l.strip() for l in body.splitlines() if 'class="error"' in l][0])
+
+status, body = get("/boom")
+print("GET /boom ->", status, "leaks:",
+      [t for t in ("Traceback", "RuntimeError", "boom", ".py")
+       if t.lower() in body.lower()] or "none")
+print("  log tail:", serve.SERVER_LOG[-1].strip().splitlines()[-1])
+server.shutdown(); server.server_close()
+PY
+POST /contact email=not-an-email -> 200
+   <p class="error" id="error-email">That is not an email address: use one @ with a domain after it, like you@example.com.</p>
+POST /contact message=x -> 200
+   <p class="error" id="error-message">Your message is too short: write at least 10 characters so we can help.</p>
+GET /boom -> 500 leaks: none
+  log tail: RuntimeError: boom: simulated backend failure
+```
+
+The two field errors are different strings: the email message names the `@` and a
+domain, the message one names the minimum length. The 500 body names none of
+`Traceback`, `RuntimeError`, `boom`, `.py` or a Python version; the last line of
+`SERVER_LOG` names the exception. `check.py` step 10 asserts exactly that.
+
 ## The planted bugs
 
 `_build/mutations.py` plants classic mistakes across the exercises; each is caught
-by the named step (see the module README for the table). **Twenty-eight** mutations
+by the named step (see the module README for the table). **Thirty-five** mutations
 are planted in total: seven across check steps 1-5 (the 404, titles,
 descriptions, robots and sitemap), six for Open Graph (check step 6), five for the
-favicon (check step 7), five for alt text (check step 8), and five for loading
-states (check step 9). To reproduce any single bug: mutate `solutions/`, copy
-`solutions/*.py` and `check.py` into a temporary directory, and run
-`python3 check.py <step>` there.
+favicon (check step 7), five for alt text (check step 8), five for loading
+states (check step 9), and seven for error messages (check step 10). To reproduce
+any single bug: mutate `solutions/`, copy `solutions/*.py` and `check.py` into a
+temporary directory, and run `python3 check.py <step>` there.

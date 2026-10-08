@@ -58,6 +58,16 @@ copy the same `alt` values into every page and into the learner template, where
 they would leak the answer, so the samples sit in the home page body: an
 informative image, a decorative one, and an image that is the only content of a
 link, whose alt is therefore the link's accessible name.
+
+DESIGN DECISION - a form error is a 200 page next to the field, and a server
+error is a generic 500. `contact_page` re-renders the form with the user's
+`values` and one `error_message` per bad field, placed right after that field's
+input; the status stays 200 because an invalid form is the user's mistake, not a
+request the server failed to handle. `server_error` is the other half: a page a
+user can act on, carrying no traceback, exception, path, version or environment
+variable, because all of that is detail for the log. A framework's default (a
+bare error, or the same "invalid input" for every field) is the thing these
+replace.
 """
 
 import html
@@ -72,6 +82,11 @@ SITE_URL = "https://example.com"
 # The size a link-preview card wants (the 1.91:1 ratio chat apps crop to).
 OG_IMAGE_WIDTH = 1200
 OG_IMAGE_HEIGHT = 630
+
+# The shortest message the contact form accepts, in characters. `error_message`
+# names this same number in the message the user reads, and `serve.py` validates
+# against it: one constant, so the rule and the sentence cannot drift apart.
+MIN_MESSAGE = 10
 
 NAV = (
     '<nav><a href="/">Home</a> · <a href="/about">About</a> · '
@@ -192,6 +207,47 @@ def _doc(title, description, main, path="/"):
         "</body>\n"
         "</html>\n"
     )
+
+
+def error_message(field, value):
+    """Return a specific, actionable sentence for one invalid field.
+
+    The message says *what* is wrong and *how* to fix it, and it is different
+    for each field: one generic sentence ("invalid input") for every field is
+    the framework default this exercise replaces, and it leaves the user with
+    nothing to change. `value` is the submitted value, kept out of the message
+    so the text can be rendered without echoing the user's input back at them.
+    """
+    # TODO: return a specific, actionable sentence for one invalid field: say what is wrong and how to fix it, and make it different for each field (the email message mentions an address and the @; the message one names the minimum MIN_MESSAGE length). One generic string for every field is the framework default this exercise replaces
+    raise NotImplementedError("error_message")
+
+
+def contact_page(values=None, errors=None):
+    """Return the `/contact` form, re-rendered with the user's input and errors.
+
+    `values` refills every input, so a user who got one field wrong does not
+    retype the rest; `errors` maps a field name to its `error_message`, rendered
+    right after that field's input (`<p class="error" id="error-email">`), so
+    the complaint sits where the mistake is. The form posts to itself: the
+    server validates, and an invalid submission comes back as this same page
+    with the messages attached and status 200. The opposite - a bare framework
+    error, or a silent red border - tells the user nothing about what to change.
+    """
+    # TODO: return the /contact form as HTML: method="post" action="/contact" with a name, an email and a message field and a submit button; prefill every input from `values` and, for each field named in `errors`, render that field's message right after its input, e.g. <p class="error" id="error-email">...</p>. Keep it out of _doc/NAV; re-render the same page for an invalid submission
+    raise NotImplementedError("contact_page")
+
+
+def server_error():
+    """Return the generic 500 page: a next step, never the detail.
+
+    The traceback, the exception text, the request path, the source file paths,
+    the Python version and any environment variable belong in the server log,
+    not in this body. A user cannot act on a stack trace, and an attacker reads
+    versions, paths and secrets out of one. So this page only says that
+    something failed, that it was logged, and what the user can do next.
+    """
+    # TODO: return the generic 500 page: something went wrong, it has been logged, try again later, plus a way to reach the team. It must contain no traceback, exception text, source file path, Python version, environment variable or the request path - all of that belongs in the server log
+    raise NotImplementedError("server_error")
 
 
 def pages():
