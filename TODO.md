@@ -32,7 +32,7 @@ Update this file in the same commit that finishes or adds an item.
 
 ## Ready to build, in priority order
 
-1. [ ] **RAG project 1, hybrid search**: step 0 (the evaluation set) is built in
+1. [x] **RAG project 1, hybrid search**: step 0 (the evaluation set) is built in
        [`rag-from-scratch/eval-set/`](rag-from-scratch/eval-set/README.md) and audited; the
        **BM25 stage** is built in [`rag-from-scratch/bm25/`](rag-from-scratch/bm25/README.md)
        and audited (inverted index, Okapi BM25, metadata filters, abstention, measured on the
@@ -66,6 +66,9 @@ Update this file in the same commit that finishes or adds an item.
        the framework. **Blocked in this environment:** the framework imports numpy, which is
        not installed (part 3 needs it too). → [ml-systems/framework/README.md](ml-systems/framework/README.md)
 6. [ ] **Skill-tree nodes** (38), one at a time, starting from `tree.py next`.
+       37 of 38 built and audited; `lean-01-galois-path` is the only node left and is
+       blocked in this environment (no `lake`/`lean`/`elan`, so `lake build` cannot run),
+       tracked under "Gaps" below.
        → [skill-tree/README.md](skill-tree/README.md)
 7. [ ] **inference-lab CPU-real projects**: #4 prefix-caching proxy and #13 AI gateway are
        built and audited; #3 KV monitor remains.
