@@ -1,5 +1,5 @@
 """
-Progress checker for the web launch checklist, exercises 1-7.
+Progress checker for the web launch checklist, exercises 1-8.
 
     python3 check.py           # run every check, stop at the first unimplemented step
     python3 check.py 2         # run only step 2
@@ -9,8 +9,9 @@ Progress checker for the web launch checklist, exercises 1-7.
 A check that raises NotImplementedError is reported as TODO (not a failure): that
 is simply the next thing to write. Nothing here imports solutions/. It tests YOUR
 `serve.py` and `pages.py` by starting a server and observing it with the provided
-`crawler.py` (a search bot), `unfurl.py` (a chat app building a preview) and
-`visit.py` (a browser's first visit, implicit favicon and all).
+`crawler.py` (a search bot), `unfurl.py` (a chat app building a preview),
+`visit.py` (a browser's first visit, implicit favicon and all) and `reader.py`
+(a screen reader linearising the page).
 """
 
 import shutil
@@ -319,6 +320,60 @@ def check_favicon():
                 "the bytes makes the browser skip the icon or fetch a second one.")
 
 
+# ---------------------------------------------------------------------------
+# Step 8: alt text on every image, and silence for decoration
+# ---------------------------------------------------------------------------
+
+def check_alt_text():
+    from crawler import crawl
+    from reader import read_page
+
+    with _RunningSite() as base:
+        # Read every page the crawler can reach, not one sample: a bad alt on a page
+        # someone forgot to check is exactly the bug this exercise is about.
+        pages = [(path, read_page(base, path)) for path in sorted(crawl(base).paths)]
+
+        warnings = [f"{path}: {warning}"
+                    for path, reading in pages for warning in reading.warnings]
+        assert not warnings, (
+            "the screen reader reports: " + "; ".join(warnings) + ". Every image needs an "
+            "alt attribute: a real description on an informative image, alt=\"\" on a "
+            "decorative one, and never a file name. A missing alt makes the reader "
+            "announce the src file name instead.")
+
+        images = [image for _path, reading in pages for image in reading.images]
+        texts = "\n".join(reading.text for _path, reading in pages)
+
+        decorative = [image for image in images if image.has_alt and image.alt == ""]
+        assert decorative, (
+            "no image carries alt=\"\". A decorative image (a divider, a spacer, a chart "
+            "that repeats nearby text) must be explicitly silent, or the screen reader "
+            "reads it out as if it carried meaning.")
+        for image in decorative:
+            assert image.src not in texts, (
+                f"the decorative image {image.src!r} is not silent: its src still reaches "
+                "the linear text. Decoration must contribute nothing the reader can hear.")
+
+        informative = [image for image in images if image.has_alt and image.alt]
+        assert informative, (
+            "no image carries a real description. At least one informative image needs a "
+            "non-empty alt that describes what it shows (and that is not just its file "
+            "name).")
+        assert any(image.alt in texts for image in informative), (
+            "no informative alt text reaches the linear text. The description must be "
+            "part of what the screen reader reads, not only an attribute on the tag.")
+
+        link_images = [image for image in images if image.in_link]
+        assert link_images, (
+            "no image is the only content of a link. The exercise wants a link whose whole "
+            "label is an image, so that image's alt is the only text a screen reader can "
+            "announce for the link.")
+        assert any(image.has_alt and image.alt for image in link_images), (
+            "an image-only link has no accessible name: its alt is missing or empty. With "
+            "no text inside the <a>, the alt is the link's label; alt=\"\" leaves a screen "
+            "reader announcing only \"link\".")
+
+
 CHECKS: List[Tuple[str, str, Callable[[], None]]] = [
     ("serve.py", "unknown paths return a real 404 page that links home", check_custom_404),
     ("pages.py", "every page has a unique <title> within the length limit", check_titles),
@@ -327,6 +382,7 @@ CHECKS: List[Tuple[str, str, Callable[[], None]]] = [
     ("pages.py", "sitemap.xml is valid, complete and fetches 200", check_sitemap),
     ("pages.py/serve.py", "the unfurled card shows the page title, description and an absolute, real image", check_open_graph),
     ("pages.py/serve.py", "every page points at a real favicon the browser can fetch", check_favicon),
+    ("pages.py", "images carry alt text, decorative ones are silent", check_alt_text),
 ]
 
 
@@ -357,7 +413,7 @@ def main(argv: List[str]) -> int:
     wanted = [int(a) for a in argv if a.isdigit()]
     if len(wanted) > 1:
         wanted = list(range(min(wanted), max(wanted) + 1))
-    print(f"\n{BOLD}Web launch checklist — progress check (exercises 1-7){RESET}")
+    print(f"\n{BOLD}Web launch checklist — progress check (exercises 1-8){RESET}")
     print(f"{GREY}implement serve.py and pages.py, then run the observers{RESET}\n")
     passed = failed = todo = 0
     first_gap = None

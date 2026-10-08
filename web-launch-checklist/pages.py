@@ -49,6 +49,15 @@ the same reason as the Open Graph image: a `.py`-only sandbox still carries it,
 and the checker measures the bytes against the declared size. `/favicon.ico` is
 also the URL a browser guesses when a page declares no icon, so the linked request
 and the implicit one hit the same route.
+
+DESIGN DECISION - every image is either described or explicitly silent, and the
+images live in `pages()`, not in `_doc` or `NAV`. `alt` is a promise about the
+image: a real description when the picture carries meaning, `alt=""` when it is
+decoration, and never a file name. Putting the images in the shared chrome would
+copy the same `alt` values into every page and into the learner template, where
+they would leak the answer, so the samples sit in the home page body: an
+informative image, a decorative one, and an image that is the only content of a
+link, whose alt is therefore the link's accessible name.
 """
 
 import html
@@ -167,7 +176,7 @@ def _doc(title, description, main, path="/"):
 
 def pages():
     """Return {path: html} for every public page the site serves."""
-    # TODO: return {path: html} for every public page; each page needs a <title> and a <meta name="description">, and the home page must link to all of them
+    # TODO: return {path: html} for every public page; each page needs a <title> and a <meta name="description">, and the home page must link to all of them; include across the site an informative image with a real description in alt, a decorative image with alt="", and a link whose only content is an image whose alt describes the link's destination (its accessible name)
     raise NotImplementedError("pages")
 
 

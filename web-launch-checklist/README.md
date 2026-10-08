@@ -4,12 +4,12 @@ Sixteen items that "every site should have before launch". The usual list says *
 these exercises make you find out *why*, by putting an observer in front of a site that
 lacks the item and measuring the damage, then fixing it and measuring again.
 
-**Status: exercises 1-7 are built.** `crawler.py`, `unfurl.py` and `visit.py` (the
-observers), `check.py`, the reference in `solutions/` and a runnable broken variant
-in `_build/broken/` are here. Exercises 8-16, and the other observers, are still
-specified only. No conceptual answers are written anywhere in this directory, on
-purpose: each exercise ends with questions, and the observer's output is what
-answers them.
+**Status: exercises 1-8 are built.** `crawler.py`, `unfurl.py`, `visit.py` and
+`reader.py` (the observers), `check.py`, the reference in `solutions/` and a
+runnable broken variant in `_build/broken/` are here. Exercises 9-16, and the
+remaining observers, are still specified only. No conceptual answers are written
+anywhere in this directory, on purpose: each exercise ends with questions, and the
+observer's output is what answers them.
 
 ## How it works
 
@@ -28,14 +28,14 @@ The **observers** are provided. Each one sees the site the way some real agent d
 | `visit.py` | a browser on a first visit over a slow network | requests made, bytes transferred, cookies set and when |
 | `impatient.py` | a user on a slow API who clicks twice | duplicate submissions, what they saw while waiting |
 
-`crawler.py`, `unfurl.py` and `visit.py` exist today; the rest are specified in the
-exercises below.
+`crawler.py`, `unfurl.py`, `visit.py` and `reader.py` exist today; the rest are
+specified in the exercises below.
 
 `check.py` runs the observers and grades each exercise, in this repo's usual format.
-Exercises 1-7 are graded now (seven checks); the rest are TODO until their observers
+Exercises 1-8 are graded now (eight checks); the rest are TODO until their observers
 exist.
 
-Runs on a CPU: Python standard library only for exercises 1-7. Later exercises warm
+Runs on a CPU: Python standard library only for exercises 1-8. Later exercises warm
 up the machine (Pillow with WebP, a Chromium binary) but there is no network.
 
 ## What is provided, what you build
@@ -46,10 +46,11 @@ The original plan was ambiguous about this. The smallest workable split:
 |---|---|---|
 | `crawler.py` | **provided** | An observer is a measuring instrument; you would not learn the exercise by re-implementing the ruler. Read it, do not edit it. |
 | `unfurl.py` | **provided** | The chat-app observer: what a pasted link's preview card shows, for exercise 7. |
+| `reader.py` | **provided** | The screen-reader observer: the linear text, every image and the two `alt` mistakes, for exercise 8. |
 | `visit.py` | **provided** | The per-visit browser observer: every request on a first load, the icon measurements and the cookies set, for exercise 4 (and 13). |
 | `check.py` | **provided** | The grader. Never imports `solutions/`. |
 | `serve.py` | **you** | Routing and the 404 status: the decision exercise 1 is about. |
-| `pages.py` | **you** | The site's HTML: titles and descriptions, the icon link, the subject of exercises 2, 3 and 4. |
+| `pages.py` | **you** | The site's HTML: titles and descriptions, the icon link and the images' alt text, the subject of exercises 2, 3, 4 and 8. |
 | `_build/broken/` | **provided** | A complete site with the three defects planted; run the crawler against it for the "Break" half. |
 | `solutions/` | **reference** | Do not read it until `check.py` passes, or until you are stuck. |
 
@@ -65,17 +66,19 @@ with it and two of the three planted bugs would be untestable. The HTML inside
 ```
 cd web-launch-checklist
 python3 check.py          # stop at the first step you have not written
-python3 check.py --all    # run all seven checks (exercises 1-7)
+python3 check.py --all    # run all eight checks (exercises 1-8)
 ```
 
 Start the reference site (swap `solutions` for `_build/broken` for the broken
-variant), then observe it by hand to see what a bot, a chat app and a browser see:
+variant), then observe it by hand to see what a bot, a chat app, a browser and a
+screen reader see:
 
 ```
 (cd solutions && python3 serve.py) &                 # http://127.0.0.1:8000/
 python3 crawler.py http://127.0.0.1:8000/            # the search-bot report
 python3 unfurl.py http://127.0.0.1:8000/             # the chat-app preview card
 python3 visit.py http://127.0.0.1:8000/ /about       # the browser's first visit
+python3 reader.py http://127.0.0.1:8000/ /about      # the screen-reader linear text
 ```
 
 `serve.py` and `pages.py` are shipped as frozen stubs: every step reports TODO
@@ -224,11 +227,11 @@ the graded check passes, and the observer's numbers changed in the way you predi
 - **Questions:** Was WebP smaller for every image? Try a screenshot with flat colours and
   text against PNG. What did resizing save, compared with changing the format?
 
-## Mutation table (exercises 1-7)
+## Mutation table (exercises 1-8)
 
 `_build/mutations.py`, run through
 `.claude/skills/graded-module/scripts/mutate.py`, plants the classic mistake for
-each exercise (eighteen in all). Every one must be CAUGHT by the named step.
+each exercise (twenty-three in all). Every one must be CAUGHT by the named step.
 
 | Planted bug | File | Caught by | Why it is a classic mistake |
 |---|---|---|---|
@@ -250,6 +253,11 @@ each exercise (eighteen in all). Every one must be CAUGHT by the named step.
 | The favicon is a 1x1 pixel | `pages.py` | step 7 | A single pixel is scaled to a blur or ignored. |
 | No `/favicon.ico` route | `serve.py` | step 7 | Every page's implicit request 404s, paying for a full 404 page. |
 | The favicon is served as `text/html` | `serve.py` | step 7 | The browser refuses to render it as an icon. |
+| The decorative image's `alt=""` becomes a description | `pages.py` | step 8 | Without the empty `alt` the decoration is announced as if it carried meaning. |
+| The informative image's `alt` is its file name | `pages.py` | step 8 | A screen reader then says "chart dot p n g"; a file name describes nothing. |
+| The image-only link's `alt=""` | `pages.py` | step 8 | With no text inside the `<a>`, the alt is the link's label; empty leaves it unnamed. |
+| An image's `alt` attribute is dropped | `pages.py` | step 8 | Missing alt is the fallback to the file name; the reader announces the `src`. |
+| Every `<img>` is removed from the pages | `pages.py` | step 8 | The informative images are gone and none of the alt rules is exercised. |
 
 ## Design decisions
 
@@ -273,6 +281,12 @@ each exercise (eighteen in all). Every one must be CAUGHT by the named step.
   so a page that declares 16x16 while serving 32x32 is caught. The icon is built by
   `favicon_png` for the same `.py`-only-sandbox reason as the card image, and it is
   served at the one URL a browser also guesses when a page declares no icon.
+- **Every image is described or explicitly silent.** `alt` is a real description on
+  an informative image and `alt=""` on decoration; a missing `alt` makes the screen
+  reader fall back to the file name, and `reader.py` flags an alt that *is* a file
+  name. An image that is the only content of a link takes its alt as the link's
+  accessible name. The body images reuse `favicon_png`/`og_image_png` through the
+  `/logo.png` and `/chart.png` routes, so no new image code is needed.
 
 ## Already in the repo
 
@@ -294,9 +308,9 @@ against it, so the file that publishes the reference has to exist first.
 
 ## Limits
 
-- **Only exercises 1-7 are built.** The rest are specified, not graded; `check.py`
+- **Only exercises 1-8 are built.** The rest are specified, not graded; `check.py`
   reports them as absent rather than pretending they pass. The remaining observers
-  (`reader.py`, `mobile.py`, `impatient.py`) do not exist yet.
+  (`mobile.py`, `impatient.py`) do not exist yet.
 - The crawler is a single-threaded stdlib fetcher. It follows same-origin links only and
   does not execute JavaScript, so a client-rendered site would be measured wrong.
 - Soft-404 detection probes one invented path per host. A site that 404s some paths but

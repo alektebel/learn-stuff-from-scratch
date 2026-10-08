@@ -1,4 +1,4 @@
-"""Graded hints for the learner templates (exercises 1-7).
+"""Graded hints for the learner templates (exercises 1-8).
 
 `make_templates.py` reads each `solutions/<file>` and replaces the listed
 functions with a `# TODO` and `raise NotImplementedError`. The rest of the file
@@ -11,6 +11,8 @@ HINTS = {
             "route the request path: a path in pages() gets status 200 and its HTML; "
             "GET /og-image.png serves og_image_png() as image/png; "
             "GET /favicon.ico serves favicon_png() as image/png; "
+            "GET /logo.png and /chart.png serve a real image/png (reuse favicon_png and "
+            "og_image_png - no new image code); "
             "GET /robots.txt serves robots_txt(base) as text/plain; GET /sitemap.xml "
             "serves sitemap_xml over the page paths as application/xml (base = Host header); "
             "anything else gets the 404 page with status 404 (no redirect to /)"
@@ -33,7 +35,10 @@ HINTS = {
         ),
         "pages": (
             "return {path: html} for every public page; each page needs a <title> "
-            "and a <meta name=\"description\">, and the home page must link to all of them"
+            "and a <meta name=\"description\">, and the home page must link to all of them; "
+            "include across the site an informative image with a real description in alt, "
+            "a decorative image with alt=\"\", and a link whose only content is an image "
+            "whose alt describes the link's destination (its accessible name)"
         ),
         "not_found": (
             "return the 404 page as HTML; it must link back to the home page, not redirect to it"

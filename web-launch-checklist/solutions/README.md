@@ -1,12 +1,13 @@
-# Solutions — web launch checklist, exercises 1-7
+# Solutions — web launch checklist, exercises 1-8
 
 The reference site. `serve.py` routes the pages in `pages.py` and answers every
 unknown path with the 404 page and status 404. It also serves `robots.txt` from
 `pages.robots_txt`, `sitemap.xml` from `pages.sitemap_xml`, the Open Graph image
-from `pages.og_image_png` at `/og-image.png` as `image/png`, and the favicon from
-`pages.favicon_png` at `/favicon.ico` as `image/png`. `crawler.py`, `unfurl.py`
-and `visit.py` are the provided observers (symlinked from the module root so the
-mutation harness can carry them).
+from `pages.og_image_png` at `/og-image.png` as `image/png`, the favicon from
+`pages.favicon_png` at `/favicon.ico` as `image/png`, and the two body images at
+`/logo.png` and `/chart.png` as `image/png` (reusing the same two helpers).
+`crawler.py`, `unfurl.py`, `visit.py` and `reader.py` are the provided observers
+(symlinked from the module root so the mutation harness can carry them).
 
 ## Expected output
 
@@ -15,7 +16,7 @@ Copy these files next to `check.py` and run:
 ```
 $ python3 check.py --all
 
-Web launch checklist — progress check (exercises 1-7)
+Web launch checklist — progress check (exercises 1-8)
 implement serve.py and pages.py, then run the observers
 
   ✓  1. serve.py  unknown paths return a real 404 page that links home
@@ -26,8 +27,9 @@ implement serve.py and pages.py, then run the observers
   ✓  6. pages.py/serve.py the unfurled card shows the page title, description and an absolute, real image
       icon /favicon.ico (linked=True): 32x32 png
   ✓  7. pages.py/serve.py every page points at a real favicon the browser can fetch
+  ✓  8. pages.py  images carry alt text, decorative ones are silent
 
-  7/7 passing
+  8/8 passing
 
   All checks pass — the crawler sees a launchable site.
   Run crawler.py against it, then compare with solutions/.
@@ -83,17 +85,46 @@ declared `sizes="32x32"`.
 ```
 $ python3 visit.py http://127.0.0.1:8000/ /about
 visited 2 page(s) on http://127.0.0.1:8000
-  200  /                           1228 B  text/html; charset=utf-8 page
+  200  /                           1370 B  text/html; charset=utf-8 page
   200  /about                      1248 B  text/html; charset=utf-8 page
   200  /favicon.ico                  99 B  image/png                linked
   icon: /favicon.ico -> 32x32 png
   cookies: none
-  total: 2575 bytes in 3 request(s)
+  total: 2717 bytes in 3 request(s)
 ```
 
 Remove the `<link rel="icon">` and a page still makes the browser guess
 `/favicon.ico` (`guessed`): that unlinked request is the one exercise 4 is about,
 and against the broken variant it lands on the exercise-1 404 page.
+
+## Seeing the screen reader
+
+`reader.py` linearises each page and lists the images it heard. The home page
+carries three images: a logo that is the only content of its link, so its `alt`
+becomes the link's name; an informative chart with a real description; and a
+decorative chart whose `alt=""` keeps it out of the text. The linear text contains
+the two spoken alts and no file name, and the `/about` page has no images.
+
+```
+$ python3 reader.py http://127.0.0.1:8000/ /about
+page / — linearised text:
+  Acme Tools — ship a small site Home · About · Pricing · Contact · Docs Acme Tools Everything you need to launch a small, honest website. Home Headcount by department, 2025 Home · About · Pricing · Contact · Docs
+  images:
+    /logo.png alt='Home' image-only link
+    /chart.png alt='Headcount by department, 2025'
+    /chart.png alt=''
+  warnings: none
+page /about — linearised text:
+  About Acme Tools Home · About · Pricing · Contact · Docs About Acme Tools We measure what a search bot, a chat card and a screen reader actually see. Home · About · Pricing · Contact · Docs
+  images:
+    (none)
+  warnings: none
+```
+
+Break an image — drop its `alt`, or set `alt="chart.png"` — and the observer
+prints a warning naming the `src` and the two mistakes the fix removes: a missing
+alt falls back to the file name, and an alt that is a file name is not a
+description.
 
 Against the broken variant (`_build/broken/`) the same crawl reports status 200
 for the invented path (a soft 404), five identical titles, and no sitemap. That
@@ -103,14 +134,17 @@ HTML (status 200 with no `Sitemap:` line), and its `pages.py` has no `sitemap_xm
 so step 5 reports ERROR (ImportError) rather than a clean FAIL. Step 6 fails too:
 the broken pages carry no `og:` tags, so the card has no title, description or
 image. Step 7 fails as well: the broken pages have no `<link rel="icon">`, and the
-server has no `/favicon.ico` route, so the browser's guess 404s.
+server has no `/favicon.ico` route, so the browser's guess lands on the soft-404
+HTML (status 200, `text/html`), not an image. Step 8 fails for
+the same reason its "break" half describes: the broken pages carry no images at
+all, so none of the alt rules can pass.
 
 ## The planted bugs
 
 `_build/mutations.py` plants classic mistakes across the exercises; each is caught
-by the named step (see the module README for the table). **Eighteen** mutations
-are planted in total: seven across the first five check steps (exercises 1, 2, 3,
-5 and 6), six more for Open Graph (exercise 7, check step 6), and five for the
-favicon (exercise 4, check step 7). To reproduce any single bug: mutate
-`solutions/`, copy `solutions/*.py` and `check.py` into a temporary directory, and
-run `python3 check.py <step>` there.
+by the named step (see the module README for the table). **Twenty-three** mutations
+are planted in total: seven across check steps 1-5 (the 404, titles,
+descriptions, robots and sitemap), six for Open Graph (check step 6), five for the
+favicon (check step 7), and five for alt text (check step 8). To reproduce any
+single bug: mutate `solutions/`, copy `solutions/*.py` and `check.py` into a
+temporary directory, and run `python3 check.py <step>` there.

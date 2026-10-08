@@ -13,6 +13,9 @@ check step). One classic mistake per exercise:
    image below the recommended height.
 7. favicon: no <link rel="icon">, a declared size that lies, a 1x1 icon, no
    /favicon.ico route, or the icon served as text/html.
+8. alt text: the decorative image loses alt="", the informative alt is a file
+   name, the image-only link's alt is empty, an alt attribute is dropped, or
+   every image is removed.
 """
 
 MUTATIONS = [
@@ -92,12 +95,8 @@ MUTATIONS = [
         "serve.py",
         '        if route == "/og-image.png":\n'
         '            self._respond(200, og_image_png(), "image/png")\n'
-        '        elif route == "/favicon.ico":\n'
-        '            self._respond(200, favicon_png(), "image/png")\n'
-        '        elif route == "/robots.txt":',
-        '        if route == "/favicon.ico":\n'
-        '            self._respond(200, favicon_png(), "image/png")\n'
-        '        elif route == "/robots.txt":',
+        '        elif route == "/favicon.ico":',
+        '        if route == "/favicon.ico":',
         "6",
     ),
     (
@@ -149,5 +148,42 @@ MUTATIONS = [
         '            self._respond(200, favicon_png(), "image/png")',
         '            self._respond(200, favicon_png(), "text/html; charset=utf-8")',
         "7",
+    ),
+    (
+        "the decorative image stops being silent (alt=\"\" becomes a description)",
+        "pages.py",
+        '<img src="/chart.png" alt="">',
+        '<img src="/chart.png" alt="chart">',
+        "8",
+    ),
+    (
+        "the informative image uses its file name as alt",
+        "pages.py",
+        'alt="Headcount by department, 2025"',
+        'alt="chart.png"',
+        "8",
+    ),
+    (
+        "the image-only link has no accessible name (alt=\"\")",
+        "pages.py",
+        '<img src="/logo.png" alt="Home">',
+        '<img src="/logo.png" alt="">',
+        "8",
+    ),
+    (
+        "an image's alt attribute is removed entirely",
+        "pages.py",
+        '<img src="/chart.png" alt="Headcount by department, 2025">',
+        '<img src="/chart.png">',
+        "8",
+    ),
+    (
+        "every <img> is removed from the pages",
+        "pages.py",
+        '            \'<p><a href="/"><img src="/logo.png" alt="Home"></a></p>\'\n'
+        '            \'<img src="/chart.png" alt="Headcount by department, 2025">\'\n'
+        '            \'<img src="/chart.png" alt="">\'',
+        "",
+        "8",
     ),
 ]
