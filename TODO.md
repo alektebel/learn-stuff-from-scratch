@@ -44,7 +44,12 @@ Update this file in the same commit that finishes or adds an item.
        in [`rag-from-scratch/hnsw/`](rag-from-scratch/hnsw/README.md) and audited (a real
        multilayer navigable-small-world graph index over the LSA embeddings, recall@k vs
        exact search with the distance-computation trade-off measured, and a post-ANN
-       selective-filter limit case). Next: fusion (reciprocal rank and weighted scores).
+       selective-filter limit case). The **fusion stage** is built in
+       [`rag-from-scratch/fusion/`](rag-from-scratch/fusion/README.md) and audited (reciprocal
+       rank fusion and per-query normalised weighted score fusion over the two stages, the
+       per-query paired counts, and the limit cases: weights tuned on one family degrade
+       another, and abstention is asymmetric). All four stages are measured on the shared set;
+       on this set fusion ties BM25 overall and beats LSA only on multi-hop, reported honestly.
        Unblocks agent-evals #5, reliability #3 and #5, interview questions 1 and 11.
        → [rag-from-scratch/README.md](rag-from-scratch/README.md)
 2. [ ] **harness-lab phase 1**: message types, model interface, scripted backend (spec and
