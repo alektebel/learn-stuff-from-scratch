@@ -573,7 +573,7 @@ accept = [
 ]
 limit_cases = ["the outer-product approximation failing far from the minimum (large residuals)"]
 related = ["ml-systems/framework"]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "prml-06-kernels-gps"
@@ -609,7 +609,7 @@ accept = [
   "results match a reference QP solver on small problems",
 ]
 limit_cases = ["non-separable data with a hard margin (infeasible) versus a soft margin"]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "prml-08-graphical-models"
@@ -664,7 +664,7 @@ accept = [
   "the ELBO is below the log evidence where the evidence is computable",
 ]
 limit_cases = ["mean-field underestimating posterior variance on a correlated Gaussian (reverse-KL mode seeking)"]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "prml-11-sampling"
@@ -723,7 +723,7 @@ accept = [
   "AdaBoost's training error decreases monotonically and bounded by the product of the weak learners' bound",
 ]
 limit_cases = ["AdaBoost with label noise: weights concentrate on the mislabelled points"]
-status = "todo"
+status = "done"
 
 # =====================================================================================
 # Track: Lean (existing material)
