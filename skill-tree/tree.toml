@@ -709,7 +709,7 @@ accept = [
   "the Kalman filter equals the exact Gaussian posterior computed in batch",
 ]
 limit_cases = ["a long sequence where unscaled forward probabilities underflow to zero; scaling or log-space fixing it"]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "prml-14-combining-models"
