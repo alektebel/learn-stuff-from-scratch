@@ -119,7 +119,8 @@ def build(nodes: list[dict], books: dict) -> str:
         "tracks": list(TRACKS),
         "labels": TRACK_LABEL,
         "colors": COLORS,
-        "bookName": {n: book_name(books, n) for n in {s for x in nodes for s in x["sources"]}},
+        "bookName": {n: book_name(books, n)
+                     for n in sorted({s for x in nodes for s in x["sources"]})},
     }
     done = sum(1 for n in nodes if n["status"] == "done")
     payload = json.dumps(data).replace("</", "<\\/")
