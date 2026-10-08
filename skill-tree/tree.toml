@@ -694,7 +694,7 @@ accept = [
   "PPCA by EM converges to the closed-form solution (up to rotation)",
 ]
 limit_cases = ["more dimensions than samples (D > N): PCA via the N x N Gram matrix"]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "prml-13-sequential"
