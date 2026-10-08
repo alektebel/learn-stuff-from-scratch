@@ -1,5 +1,5 @@
 """
-Progress checker for the web launch checklist, exercises 1-5.
+Progress checker for the web launch checklist, exercises 1-3 and 5-7.
 
     python3 check.py           # run every check, stop at the first unimplemented step
     python3 check.py 2         # run only step 2
@@ -8,8 +8,8 @@ Progress checker for the web launch checklist, exercises 1-5.
 
 A check that raises NotImplementedError is reported as TODO (not a failure): that
 is simply the next thing to write. Nothing here imports solutions/. It tests YOUR
-`serve.py` and `pages.py` by starting a server and crawling it with the provided
-`crawler.py`, exactly as a search bot would.
+`serve.py` and `pages.py` by starting a server and observing it with the provided
+`crawler.py` (a search bot) and `unfurl.py` (a chat app building a preview).
 """
 
 import shutil
@@ -208,12 +208,69 @@ def check_sitemap():
                 "must include every path it is given, linked from the navigation or not.")
 
 
+# ---------------------------------------------------------------------------
+# Step 6: Open Graph tags so a chat app unfurls a preview card
+# ---------------------------------------------------------------------------
+
+def check_open_graph():
+    from crawler import fetch
+    from unfurl import unfurl
+
+    with _RunningSite() as base:
+        card = unfurl(base, "/")
+        assert not card.problems, (
+            "the card for / has problems: " + "; ".join(card.problems)
+            + ". The site must carry Open Graph tags for its title, description and image, "
+            "and the image must be an absolute URL to a real image the server serves.")
+
+        page = fetch(base, "/")
+        assert card.title, (
+            "the card shows no title: the page has no usable `og:title`. A chat app "
+            "pasting the link shows the URL alone instead of a named card.")
+        assert card.title == page.title, (
+            f"the card title {card.title!r} does not match the page <title> {page.title!r}. "
+            "`og:title` must repeat the page's real title, not a hard-coded one, or every "
+            "shared link is mislabelled.")
+        assert card.description == page.description, (
+            f"the card description {card.description!r} does not match the page's meta "
+            f"description {page.description!r}. `og:description` is what the chat app shows "
+            "under the title; it must come from the page.")
+
+        assert card.image and card.image.startswith("http"), (
+            f"og:image is {card.image!r}, not an absolute http(s) URL. A chat app rendering "
+            "the card later has no page to resolve a relative path against, so the image "
+            "silently disappears.")
+        assert card.image_content_type.startswith("image/"), (
+            f"the og:image was served as {card.image_content_type!r}, not an image type. "
+            "Browsers and unfurlers trust the content type; an HTML page in an <img> shows "
+            "a broken-image icon.")
+        assert card.image_width >= 600 and card.image_height >= 315, (
+            f"the og:image measures {card.image_width}x{card.image_height}; a preview card "
+            "wants at least 600x315 (the 1.91:1 ratio), or the picture is upscaled or cropped.")
+        assert 0 < card.image_bytes <= 5 * 1024 * 1024, (
+            f"the og:image is {card.image_bytes} bytes. It must be non-empty and at most "
+            "5 MB: a huge image delays the card or makes the chat app skip it.")
+
+        about = unfurl(base, "/about")
+        assert about.title != card.title, (
+            f"the / and /about cards share the title {card.title!r}. Each page must pass its "
+            "own path to the tags, so its card describes that page and not the home page.")
+        assert about.url and about.url.rstrip("/").endswith("/about"), (
+            f"the /about card's og:url is {about.url!r}, which does not point at /about. "
+            "The page's own path has to reach the tag helper; a default path makes every "
+            "card claim to be the home page.")
+        assert about.image and about.image.startswith("http"), (
+            f"the /about card's og:image is {about.image!r}, not absolute. Every page needs "
+            "the same absolute image URL.")
+
+
 CHECKS: List[Tuple[str, str, Callable[[], None]]] = [
     ("serve.py", "unknown paths return a real 404 page that links home", check_custom_404),
     ("pages.py", "every page has a unique <title> within the length limit", check_titles),
     ("pages.py", "every page has a <meta description> within snippet length", check_descriptions),
     ("serve.py/pages.py", "robots.txt allows the public site and names no secret", check_robots),
     ("pages.py", "sitemap.xml is valid, complete and fetches 200", check_sitemap),
+    ("pages.py/serve.py", "the unfurled card shows the page title, description and an absolute, real image", check_open_graph),
 ]
 
 
@@ -244,7 +301,7 @@ def main(argv: List[str]) -> int:
     wanted = [int(a) for a in argv if a.isdigit()]
     if len(wanted) > 1:
         wanted = list(range(min(wanted), max(wanted) + 1))
-    print(f"\n{BOLD}Web launch checklist — progress check (exercises 1-5){RESET}")
+    print(f"\n{BOLD}Web launch checklist — progress check (exercises 1-3, 5-7){RESET}")
     print(f"{GREY}implement serve.py and pages.py, then run the observers{RESET}\n")
     passed = failed = todo = 0
     first_gap = None

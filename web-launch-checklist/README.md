@@ -4,11 +4,12 @@ Sixteen items that "every site should have before launch". The usual list says *
 these exercises make you find out *why*, by putting an observer in front of a site that
 lacks the item and measuring the damage, then fixing it and measuring again.
 
-**Status: exercises 1-5 are built.** `crawler.py` (the observer), `check.py`, the
-reference in `solutions/` and a runnable broken variant in `_build/broken/` are
-here. Exercise 4 and exercises 7-16, and the other observers, are still specified
-only. No conceptual answers are written anywhere in this directory, on purpose:
-each exercise ends with questions, and the observer's output is what answers them.
+**Status: exercises 1-3 and 5-7 are built.** `crawler.py` and `unfurl.py` (the observers),
+`check.py`, the reference in `solutions/` and a runnable broken variant in
+`_build/broken/` are here. Exercise 4 and exercises 8-16, and the other observers,
+are still specified only. No conceptual answers are written anywhere in this
+directory, on purpose: each exercise ends with questions, and the observer's
+output is what answers them.
 
 ## How it works
 
@@ -27,12 +28,14 @@ The **observers** are provided. Each one sees the site the way some real agent d
 | `visit.py` | a browser on a first visit over a slow network | requests made, bytes transferred, cookies set and when |
 | `impatient.py` | a user on a slow API who clicks twice | duplicate submissions, what they saw while waiting |
 
-Only `crawler.py` exists today; the rest are specified in the exercises below.
+`crawler.py` and `unfurl.py` exist today; the rest are specified in the exercises
+below.
 
 `check.py` runs the observers and grades each exercise, in this repo's usual format.
-Exercises 1-5 are graded now; the rest are TODO until their observers exist.
+Exercises 1-3 and 5-7 are graded now (six checks); the rest — including 4 — are TODO
+until their observers exist.
 
-Runs on a CPU: Python standard library only for exercises 1-5. Later exercises warm
+Runs on a CPU: Python standard library only for exercises 1-3 and 5-7. Later exercises warm
 up the machine (Pillow with WebP, a Chromium binary) but there is no network.
 
 ## What is provided, what you build
@@ -42,6 +45,7 @@ The original plan was ambiguous about this. The smallest workable split:
 | Part | Who | Why |
 |---|---|---|
 | `crawler.py` | **provided** | An observer is a measuring instrument; you would not learn the exercise by re-implementing the ruler. Read it, do not edit it. |
+| `unfurl.py` | **provided** | The chat-app observer: what a pasted link's preview card shows, for exercise 7. |
 | `check.py` | **provided** | The grader. Never imports `solutions/`. |
 | `serve.py` | **you** | Routing and the 404 status: the decision exercise 1 is about. |
 | `pages.py` | **you** | The site's HTML: titles and descriptions, the subject of exercises 2 and 3. |
@@ -60,15 +64,16 @@ with it and two of the three planted bugs would be untestable. The HTML inside
 ```
 cd web-launch-checklist
 python3 check.py          # stop at the first step you have not written
-python3 check.py --all    # run all five
+python3 check.py --all    # run all six checks (exercises 1-3, 5-7)
 ```
 
 Start the reference site (swap `solutions` for `_build/broken` for the broken
-variant), then crawl it by hand to see what a bot sees:
+variant), then observe it by hand to see what a bot and a chat app see:
 
 ```
 (cd solutions && python3 serve.py) &                 # http://127.0.0.1:8000/
-python3 crawler.py http://127.0.0.1:8000/            # the report
+python3 crawler.py http://127.0.0.1:8000/            # the search-bot report
+python3 unfurl.py http://127.0.0.1:8000/             # the chat-app preview card
 ```
 
 `serve.py` and `pages.py` are shipped as frozen stubs: every step reports TODO
@@ -215,11 +220,11 @@ the graded check passes, and the observer's numbers changed in the way you predi
 - **Questions:** Was WebP smaller for every image? Try a screenshot with flat colours and
   text against PNG. What did resizing save, compared with changing the format?
 
-## Mutation table (exercises 1-5)
+## Mutation table (exercises 1-3 and 5-7)
 
 `_build/mutations.py`, run through
-`.claude/skills/graded-module/scripts/mutate.py`, plants one classic mistake per
-exercise. Every one must be CAUGHT by the named step.
+`.claude/skills/graded-module/scripts/mutate.py`, plants the classic mistake for
+each exercise (thirteen in all). Every one must be CAUGHT by the named step.
 
 | Planted bug | File | Caught by | Why it is a classic mistake |
 |---|---|---|---|
@@ -230,6 +235,12 @@ exercise. Every one must be CAUGHT by the named step.
 | `robots.txt` names `/admin` | `pages.py` | step 4 | The file is public: naming a secret advertises it, it does not protect it. |
 | Sitemap entries carry no `<lastmod>` | `pages.py` | step 5 | Without a date the bot cannot tell how fresh a page is. |
 | The sitemap lists a URL that 404s | `pages.py` | step 5 | A sitemap full of dead URLs teaches the bot to distrust the whole file. |
+| `og:image` is a relative URL | `pages.py` | step 6 | A card is rendered away from the page, with no base to resolve a relative path against, so the image vanishes. |
+| No `og:image` tag is emitted | `pages.py` | step 6 | The shared link unfurls as bare text with no picture. |
+| The card title is hard-coded, not the page's `<title>` | `pages.py` | step 6 | Every shared link is mislabelled, and the card disagrees with the page. |
+| No `/og-image.png` route | `serve.py` | step 6 | The tag promises an image the server never serves, so the card shows a broken image. |
+| The image is served as `text/html` | `serve.py` | step 6 | The type says HTML, so the chat app refuses to render it as a picture. |
+| The image is too short for a card | `pages.py` | step 6 | A below-recommended image is upscaled or cropped; the card looks broken. |
 
 ## Design decisions
 
@@ -242,6 +253,11 @@ exercise. Every one must be CAUGHT by the named step.
   path that cannot exist: status 404 is real, status 200 is soft. No heuristics on
   the body, which would flag a page that merely says "not found".
 - **The pages module, not a `site/` directory** (see "What is provided" above).
+- **Open Graph URLs are absolute, and the image is generated.** `og:image` and
+  `og:url` are built from the canonical `SITE_URL`; a chat app rendering the card
+  has no page to resolve a relative path against. The image is a real PNG built by
+  `og_image_png` from `zlib` + `struct`, so a `.py`-only sandbox still has it, and
+  `unfurl.py` measures the bytes the origin under test actually serves.
 
 ## Already in the repo
 
@@ -263,9 +279,9 @@ against it, so the file that publishes the reference has to exist first.
 
 ## Limits
 
-- **Only exercises 1-5 are built.** The rest are specified, not graded; `check.py`
+- **Only exercises 1-3 and 5-7 are built.** The rest are specified, not graded; `check.py`
   reports them as absent rather than pretending they pass. The remaining observers
-  (`unfurl.py`, `reader.py`, `mobile.py`, `visit.py`, `impatient.py`) do not exist yet.
+  (`reader.py`, `mobile.py`, `visit.py`, `impatient.py`) do not exist yet.
 - The crawler is a single-threaded stdlib fetcher. It follows same-origin links only and
   does not execute JavaScript, so a client-rendered site would be measured wrong.
 - Soft-404 detection probes one invented path per host. A site that 404s some paths but

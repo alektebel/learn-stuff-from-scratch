@@ -59,9 +59,10 @@ Update this file in the same commit that finishes or adds an item.
        conflicts, occupancy, roofline). Landed as `cuda-from-scratch/memory-system/`
        (16 checks, 4 planted bugs). → [cuda-from-scratch/ROADMAP.md](cuda-from-scratch/ROADMAP.md)
 4. [x] **web-launch-checklist observers and check.py**, crawler and exercises 1-3 first,
-       then robots.txt and sitemap.xml (exercises 5-6, check steps 4-5). The crawler
-       observer, `check.py`, the reference in `solutions/`, a runnable broken variant and
-       a mutation test (7 planted bugs) all landed.
+       then robots.txt and sitemap.xml (exercises 5-6, check steps 4-5), then Open Graph
+       (exercise 7, check step 6). The crawler and unfurl observers, `check.py`, the
+       reference in `solutions/`, a runnable broken variant and a mutation test (13 planted
+       bugs) all landed.
        → [web-launch-checklist/README.md](web-launch-checklist/README.md)
 5. [ ] **ml-systems framework part 2**: convolutions and a CNN, then a transformer trained on
        the framework. **Blocked in this environment:** the framework imports numpy, which is
@@ -80,8 +81,8 @@ Update this file in the same commit that finishes or adds an item.
        MVCC versions in the WAL — both lands (steps 18-19, audited). The engine's remaining
        limits are in the module README §Limits.
        → [database-from-scratch/README.md](database-from-scratch/README.md)
-10. [ ] **web-launch-checklist exercises 4 and 7-16** and the remaining observers
-        (`unfurl.py`, `reader.py`, `mobile.py`, `visit.py`, `impatient.py`).
+10. [ ] **web-launch-checklist exercises 4 and 8-16** and the remaining observers
+        (`reader.py`, `mobile.py`, `visit.py`, `impatient.py`).
         → [web-launch-checklist/README.md](web-launch-checklist/README.md)
 
 ## Gaps with no plan yet

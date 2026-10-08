@@ -1,4 +1,4 @@
-"""Graded hints for the learner templates (exercises 1-5).
+"""Graded hints for the learner templates (exercises 1-3 and 5-7).
 
 `make_templates.py` reads each `solutions/<file>` and replaces the listed
 functions with a `# TODO` and `raise NotImplementedError`. The rest of the file
@@ -9,6 +9,7 @@ HINTS = {
     "serve.py": {
         "SiteHandler.do_GET": (
             "route the request path: a path in pages() gets status 200 and its HTML; "
+            "GET /og-image.png serves og_image_png() as image/png; "
             "GET /robots.txt serves robots_txt(base) as text/plain; GET /sitemap.xml "
             "serves sitemap_xml over the page paths as application/xml (base = Host header); "
             "anything else gets the 404 page with status 404 (no redirect to /)"
@@ -19,6 +20,12 @@ HINTS = {
         ),
     },
     "pages.py": {
+        "og_tags": (
+            "return the Open Graph and Twitter meta tags for one page: og:type, og:title, "
+            "og:description, og:url (SITE_URL + path), og:image (an ABSOLUTE "
+            "SITE_URL + \"/og-image.png\"), og:image:width, og:image:height and "
+            "twitter:card=summary_large_image; HTML-escape title and description"
+        ),
         "pages": (
             "return {path: html} for every public page; each page needs a <title> "
             "and a <meta name=\"description\">, and the home page must link to all of them"

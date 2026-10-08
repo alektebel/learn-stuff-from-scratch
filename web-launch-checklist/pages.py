@@ -29,9 +29,30 @@ DESIGN DECISION - `lastmod` is a fixed constant, not "now". A build whose sitema
 changes on every request tells the bot the site changed when nothing did, and the
 checker could not be deterministic. When the pages actually change, the constant
 is bumped.
+
+DESIGN DECISION - Open Graph URLs are absolute, and the image is generated, not
+stored. `og:image` and `og:url` are absolute against the canonical `SITE_URL`
+origin because a chat app rendering the card has no page to resolve a relative
+path against; a relative value fails the observer. The image itself is built at
+import time by `og_image_png` from `zlib` + `struct` instead of shipping a binary
+asset: the mutation harness copies only `.py` files, so a checkout image would not
+travel with the sandbox, and the recommended 1200x630 size is stated by a constant
+the checker can grade. The cost: a flat single-colour card, which is enough to
+prove the tag, the route and the dimensions.
 """
 
+import html
+import struct
 import xml.sax.saxutils
+import zlib
+
+# The canonical production origin. `og:image` and `og:url` must be absolute, so
+# every Open Graph URL is built from this and a path.
+SITE_URL = "https://example.com"
+
+# The size a link-preview card wants (the 1.91:1 ratio chat apps crop to).
+OG_IMAGE_WIDTH = 1200
+OG_IMAGE_HEIGHT = 630
 
 NAV = (
     '<nav><a href="/">Home</a> · <a href="/about">About</a> · '
@@ -40,7 +61,45 @@ NAV = (
 )
 
 
-def _doc(title, description, main):
+def og_image_png(width=OG_IMAGE_WIDTH, height=OG_IMAGE_HEIGHT, color=(15, 42, 74)):
+    """Return a real RGB PNG of the recommended card size, built by hand.
+
+    Provided helper, not graded: the exercise is the tag, the route and the size,
+    not PNG encoding. `zlib` and `struct` are in the standard library, so the
+    image is deterministic and a few kilobytes, not the 5 MB a raw screenshot
+    would be. Filter-0 scanlines keep the encoder three lines long.
+    """
+    r, g, b = color
+    row = b"\x00" + bytes((r, g, b)) * width
+    raw = row * height
+
+    def chunk(tag, payload):
+        checksum = zlib.crc32(tag + payload) & 0xFFFFFFFF
+        return (struct.pack(">I", len(payload)) + tag + payload
+                + struct.pack(">I", checksum))
+
+    header = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
+    return (b"\x89PNG\r\n\x1a\n"
+            + chunk(b"IHDR", header)
+            + chunk(b"IDAT", zlib.compress(raw, 9))
+            + chunk(b"IEND", b""))
+
+
+def og_tags(title, description, path):
+    """Return the Open Graph and Twitter meta tags for one page.
+
+    `og:image` and `og:url` are absolute (built from `SITE_URL`): a chat app
+    rendering the card later has no page to resolve a relative URL against, so a
+    relative value fails the observer. `og:title` and `og:description` are
+    HTML-escaped so a quote in a title cannot break out of the `content`
+    attribute. `og:image:width`/`height` repeat the generated image's size so a
+    card can reserve space before the bytes arrive.
+    """
+    # TODO: return the Open Graph and Twitter meta tags for one page: og:type, og:title, og:description, og:url (SITE_URL + path), og:image (an ABSOLUTE SITE_URL + "/og-image.png"), og:image:width, og:image:height and twitter:card=summary_large_image; HTML-escape title and description
+    raise NotImplementedError("og_tags")
+
+
+def _doc(title, description, main, path="/"):
     """Return a complete HTML document. `description` empty means: omit the tag."""
     head = ""
     if description:
@@ -52,6 +111,7 @@ def _doc(title, description, main):
         '<meta charset="utf-8">\n'
         f"<title>{title}</title>\n"
         f"{head}"
+        f"{og_tags(title, description, path)}"
         "</head>\n"
         "<body>\n"
         f"{NAV}\n"

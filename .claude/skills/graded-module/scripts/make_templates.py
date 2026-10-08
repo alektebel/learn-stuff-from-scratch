@@ -19,6 +19,10 @@ import importlib.util
 import sys
 from pathlib import Path
 
+# Importing `_build/hints.py` through importlib would otherwise leave a
+# __pycache__ directory inside the module's _build/; audits require a clean tree.
+sys.dont_write_bytecode = True
+
 
 def qualname(node, parents):
     return ".".join([p.name for p in parents if isinstance(p, ast.ClassDef)] + [node.name])
