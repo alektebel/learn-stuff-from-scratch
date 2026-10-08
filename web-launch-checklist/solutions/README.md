@@ -1,4 +1,4 @@
-# Solutions — web launch checklist, exercises 1-10
+# Solutions — web launch checklist, exercises 1-11
 
 The reference site. `serve.py` routes the pages in `pages.py` and answers every
 unknown path with the 404 page and status 404. It also serves `robots.txt` from
@@ -12,11 +12,14 @@ order form from `pages.order_page` at `/order`, the recorded-order count at
 a lock, so a multi-click on one form is one order. `POST /contact` validates the
 name, email and message and re-renders the form at status 200 with one
 `pages.error_message` next to each bad field; a valid submission gets a short
-confirmation. `GET /boom` deliberately raises: the handler catches it, appends
-the traceback to `SERVER_LOG` and answers 500 with the generic
-`pages.server_error()`, which carries no detail. `crawler.py`, `unfurl.py`,
-`visit.py`, `reader.py` and `impatient.py` are the provided observers (symlinked
-from the module root so the mutation harness can carry them).
+confirmation. Every response carries the strictly-necessary `wlc_session` cookie;
+`POST /consent` with `choice=accept` adds the analytics cookie `wlc_analytics`,
+and `choice=reject` adds no analytics cookie at all. `GET /boom` deliberately
+raises: the handler catches it, appends the traceback to `SERVER_LOG` and answers
+500 with the generic `pages.server_error()`, which carries no detail.
+`crawler.py`, `unfurl.py`, `visit.py`, `reader.py` and `impatient.py` are the
+provided observers (symlinked from the module root so the mutation harness can
+carry them).
 
 ## Expected output
 
@@ -25,7 +28,7 @@ Copy these files next to `check.py` and run:
 ```
 $ python3 check.py --all
 
-Web launch checklist — progress check (exercises 1-10)
+Web launch checklist — progress check (exercises 1-11)
 implement serve.py and pages.py, then run the observers
 
   ✓  1. serve.py  unknown paths return a real 404 page that links home
@@ -46,8 +49,13 @@ implement serve.py and pages.py, then run the observers
       valid input    -> accepted, no field error
       500 page leaks nothing; the log holds the detail
   ✓ 10. pages.py/serve.py invalid input gets a field-level message; a 500 leaks nothing
+      cookies before any choice: wlc_session
+      consent controls: accept=<button> reject=<button>
+      accept -> wlc_session=...; Path=/; HttpOnly; SameSite=Lax wlc_analytics=1; Path=/
+      reject -> analytics cookie absent
+  ✓ 11. pages.py/serve.py no analytics cookie before consent; accept sets it, reject does not
 
-  10/10 passing
+  11/11 passing
 
   All checks pass — the crawler sees a launchable site.
   Run crawler.py against it, then compare with solutions/.
@@ -96,24 +104,58 @@ origin under test.
 ## Seeing the first visit
 
 `visit.py` plays the browser: it fetches the pages, follows the icons they
-declare, and records the cookies set. Both pages declare the same `/favicon.ico`,
-so it is one linked request, and the size read from the PNG bytes agrees with the
-declared `sizes="32x32"`.
+declare, and records the cookies set. Every response sets the strictly-necessary
+`wlc_session` cookie, and before the visitor has chosen anything there is no
+analytics cookie. Both pages declare the same `/favicon.ico`, so it is one linked
+request, and the size read from the PNG bytes agrees with the declared
+`sizes="32x32"`.
 
 ```
 $ python3 visit.py http://127.0.0.1:8000/ /about
 visited 2 page(s) on http://127.0.0.1:8000
-  200  /                           1370 B  text/html; charset=utf-8 page
-  200  /about                      1248 B  text/html; charset=utf-8 page
+  200  /                           1830 B  text/html; charset=utf-8 page
+  200  /about                      1708 B  text/html; charset=utf-8 page
   200  /favicon.ico                  99 B  image/png                linked
   icon: /favicon.ico -> 32x32 png
-  cookies: none
-  total: 2717 bytes in 3 request(s)
+  cookies: {'wlc_session': '488685ef60494fde8395a2026a054f68'}
+  total: 3637 bytes in 3 request(s)
 ```
 
 Remove the `<link rel="icon">` and a page still makes the browser guess
 `/favicon.ico` (`guessed`): that unlinked request is the one exercise 4 is about,
 and against the broken variant it lands on the exercise-1 404 page.
+
+## Seeing the cookie consent
+
+The banner is a `POST` form with two `<button>` controls of equal prominence, so
+a search bot cannot follow an "accept" link and the sitemap surface does not grow.
+A plain `GET` sets only the strictly-necessary `wlc_session` cookie; the
+non-essential `wlc_analytics` cookie appears only on the response to
+`choice=accept`, and never on `choice=reject`.
+
+```
+$ python3 - <<'PY'
+import urllib.request, urllib.parse
+def post(choice):
+    data = urllib.parse.urlencode({"choice": choice}).encode()
+    req = urllib.request.Request("http://127.0.0.1:8000/consent", data=data,
+        method="POST", headers={"Content-Type": "application/x-www-form-urlencoded"})
+    r = urllib.request.urlopen(req)
+    print(choice, "->", r.status, r.headers.get_all("Set-Cookie"))
+
+r = urllib.request.urlopen("http://127.0.0.1:8000/")
+print("GET / ->", r.status, r.headers.get_all("Set-Cookie"))
+post("accept")
+post("reject")
+PY
+GET / -> 200 ['wlc_session=3db41f61...; Path=/; HttpOnly; SameSite=Lax']
+accept -> 200 ['wlc_session=d8166150...; Path=/; HttpOnly; SameSite=Lax', 'wlc_analytics=1; Path=/']
+reject -> 200 ['wlc_session=5d8f3ce9...; Path=/; HttpOnly; SameSite=Lax']
+```
+
+The reject response carries no `wlc_analytics` at all: recording a refusal is not
+permission, so there is nothing to expire for a visitor who never had one.
+`check.py` step 11 reads the same three responses.
 
 ## Seeing the screen reader
 
@@ -248,10 +290,11 @@ domain, the message one names the minimum length. The 500 body names none of
 ## The planted bugs
 
 `_build/mutations.py` plants classic mistakes across the exercises; each is caught
-by the named step (see the module README for the table). **Thirty-five** mutations
+by the named step (see the module README for the table). **Forty-nine** mutations
 are planted in total: seven across check steps 1-5 (the 404, titles,
 descriptions, robots and sitemap), six for Open Graph (check step 6), five for the
 favicon (check step 7), five for alt text (check step 8), five for loading
-states (check step 9), and seven for error messages (check step 10). To reproduce
+states (check step 9), seven for error messages (check step 10) and fourteen for
+cookies (check step 11). To reproduce
 any single bug: mutate `solutions/`, copy `solutions/*.py` and `check.py` into a
 temporary directory, and run `python3 check.py <step>` there.

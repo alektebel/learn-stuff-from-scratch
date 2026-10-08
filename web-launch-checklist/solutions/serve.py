@@ -66,6 +66,17 @@ DESIGN DECISION - an invalid form is a 200 page, a raised exception is a 500 pag
     for wrong input, a 5xx for a broken server. Answering a bad form with the
     generic 500 (or with the framework's default error) is the mistake exercise
     11 removes.
+
+DESIGN DECISION - every response carries the session cookie, only `/consent`
+    can add the analytics one. `_respond` sets `SESSION_COOKIE` (fresh on every
+    response, `HttpOnly; SameSite=Lax`) because it is strictly necessary to
+    remember the visitor's choice and carries no tracking value. The
+    non-essential `ANALYTICS_COOKIE` is set in exactly one place: `POST /consent`
+    with `choice=accept`. A plain `GET` never sets it, which is the whole point
+    of exercise 13. `reject` sets nothing for a fresh visitor, and only asks the
+    browser to expire the cookie when the request actually carried one: the
+    observer is stateless, so emitting an expiry it did not need would look like
+    a cookie being set on reject.
 """
 
 import http.server
@@ -76,9 +87,9 @@ import traceback
 import urllib.parse
 import uuid
 
-from pages import (MIN_MESSAGE, contact_page, error_message, favicon_png,
-                   not_found, og_image_png, order_page, pages, robots_txt,
-                   server_error, sitemap_xml)
+from pages import (ANALYTICS_COOKIE, MIN_MESSAGE, SESSION_COOKIE, contact_page,
+                   error_message, favicon_png, not_found, og_image_png,
+                   order_page, pages, robots_txt, server_error, sitemap_xml)
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8000
@@ -184,6 +195,24 @@ class SiteHandler(http.server.BaseHTTPRequestHandler):
                         "</html>\n"))
                 return
 
+            if route == "/consent":
+                # The only place a non-essential cookie may be set. `accept`
+                # records consent by handing the browser the analytics cookie;
+                # `reject` records that consent was NOT given, so a fresh visitor
+                # gets no cookie for it at all. Only expire an existing one when
+                # the request carried it: the observer is stateless, and a
+                # needless expiry would look like the reject path set a cookie.
+                choice = (fields.get("choice") or [""])[0]
+                if choice == "accept":
+                    cookies = [f"{ANALYTICS_COOKIE}=1; Path=/"]
+                elif choice == "reject":
+                    carried = ANALYTICS_COOKIE in self._request_cookies()
+                    cookies = [f"{ANALYTICS_COOKIE}=; Path=/; Max-Age=0"] if carried else []
+                else:
+                    cookies = []
+                self._respond(200, pages()["/"], cookies=cookies)
+                return
+
             if route != "/order":
                 self._respond(404, not_found())
                 return
@@ -217,14 +246,32 @@ class SiteHandler(http.server.BaseHTTPRequestHandler):
         SERVER_LOG.append(traceback.format_exc())
         self._respond(500, server_error())
 
-    def _respond(self, status, body, content_type="text/html; charset=utf-8"):
+    def _respond(self, status, body, content_type="text/html; charset=utf-8",
+                 cookies=(), location=None):
         if isinstance(body, str):
             body = body.encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", content_type)
+        if location is not None:
+            self.send_header("Location", location)
         self.send_header("Content-Length", str(len(body)))
+        # The strictly necessary session cookie, fresh on every response:
+        # HttpOnly keeps it away from scripts and SameSite=Lax keeps it off
+        # cross-site requests. It is not the analytics cookie, so it is allowed
+        # before any consent. Extra cookies (the analytics one, on accept) are
+        # appended by the caller.
+        self.send_header(
+            "Set-Cookie",
+            f"{SESSION_COOKIE}={uuid.uuid4().hex}; Path=/; HttpOnly; SameSite=Lax")
+        for cookie in cookies:
+            self.send_header("Set-Cookie", cookie)
         self.end_headers()
         self.wfile.write(body)
+
+    def _request_cookies(self):
+        """Return the set of cookie names the request carried."""
+        header = self.headers.get("Cookie", "") or ""
+        return {part.strip().split("=", 1)[0] for part in header.split(";") if "=" in part}
 
     def log_message(self, *args):  # keep the check output readable
         pass

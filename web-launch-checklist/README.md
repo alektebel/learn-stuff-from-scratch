@@ -4,13 +4,14 @@ Sixteen items that "every site should have before launch". The usual list says *
 these exercises make you find out *why*, by putting an observer in front of a site that
 lacks the item and measuring the damage, then fixing it and measuring again.
 
-**Status: exercises 1-10 are built.** `crawler.py`, `unfurl.py`, `visit.py`,
+**Status: exercises 1-11 are built.** `crawler.py`, `unfurl.py`, `visit.py`,
 `reader.py` and `impatient.py` (the observers), `check.py`, the reference in
-`solutions/` and a runnable broken variant in `_build/broken/` are here. The tenth
-check grades the error-messages exercise (11); the mobile exercise (9) still needs
-`mobile.py` and Chromium, and exercises 12-16 are specified only. No conceptual
-answers are written anywhere in this directory, on purpose: each exercise ends
-with questions, and the observer's output is what answers them.
+`solutions/` and a runnable broken variant in `_build/broken/` are here. The
+eleventh check grades the cookies/consent exercise (13); the mobile exercise (9)
+still needs `mobile.py` and Chromium, and exercises 12 and 14-16 are specified
+only. No conceptual answers are written anywhere in this directory, on purpose:
+each exercise ends with questions, and the observer's output is what answers
+them.
 
 ## How it works
 
@@ -33,10 +34,10 @@ The **observers** are provided. Each one sees the site the way some real agent d
 `mobile.py` is specified in the exercises below.
 
 `check.py` runs the observers and grades each exercise, in this repo's usual format.
-Exercises 1-10 are graded now (ten checks); the rest are TODO until their observers
+Exercises 1-11 are graded now (eleven checks); the rest are TODO until their observers
 exist.
 
-Runs on a CPU: Python standard library only for exercises 1-10. Later exercises warm
+Runs on a CPU: Python standard library only for exercises 1-11. Later exercises warm
 up the machine (Pillow with WebP, a Chromium binary) but there is no network.
 
 ## What is provided, what you build
@@ -49,10 +50,10 @@ The original plan was ambiguous about this. The smallest workable split:
 | `unfurl.py` | **provided** | The chat-app observer: what a pasted link's preview card shows, for exercise 7. |
 | `reader.py` | **provided** | The screen-reader observer: the linear text, every image and the two `alt` mistakes, for exercise 8. |
 | `visit.py` | **provided** | The per-visit browser observer: every request on a first load, the icon measurements and the cookies set, for exercise 4 (and 13). |
-| `impatient.py` | **provided** | The slow-API observer: three clicks on an order form, the orders the server recorded, and the mechanism that disables the control, for exercise 10. Its `fetch`/`post_form` HTTP helpers are reused by the error-message check (exercise 11). |
+| `impatient.py` | **provided** | The slow-API observer: three clicks on an order form, the orders the server recorded, and the mechanism that disables the control, for exercise 10. Its `fetch`/`post_form` HTTP helpers are reused by the error-message check (exercise 11) and its `post_form_headers` by the cookie check (exercise 13). |
 | `check.py` | **provided** | The grader. Never imports `solutions/`. |
-| `serve.py` | **you** | Routing, the 404 status, the order API (dedup by idempotency key) and the error path: the decisions exercises 1, 10 and 11 are about. |
-| `pages.py` | **you** | The site's HTML: titles and descriptions, the icon link and the images' alt text, the order form, and the contact form with its error messages and 500 page: the subject of exercises 2, 3, 4, 8, 10 and 11. |
+| `serve.py` | **you** | Routing, the 404 status, the order API (dedup by idempotency key), the error path and the cookie policy: the decisions exercises 1, 10, 11 and 13 are about. |
+| `pages.py` | **you** | The site's HTML: titles and descriptions, the icon link and the images' alt text, the order form, the consent banner, and the contact form with its error messages and 500 page: the subject of exercises 2, 3, 4, 8, 10, 11 and 13. |
 | `_build/broken/` | **provided** | A complete site with the three defects planted; run the crawler against it for the "Break" half. |
 | `solutions/` | **reference** | Do not read it until `check.py` passes, or until you are stuck. |
 
@@ -68,7 +69,7 @@ with it and two of the three planted bugs would be untestable. The HTML inside
 ```
 cd web-launch-checklist
 python3 check.py          # stop at the first step you have not written
-python3 check.py --all    # run all ten checks (exercises 1-10)
+python3 check.py --all    # run all eleven checks (exercises 1-11)
 ```
 
 Start the reference site (swap `solutions` for `_build/broken` for the broken
@@ -236,11 +237,11 @@ the graded check passes, and the observer's numbers changed in the way you predi
 - **Questions:** Was WebP smaller for every image? Try a screenshot with flat colours and
   text against PNG. What did resizing save, compared with changing the format?
 
-## Mutation table (exercises 1-10)
+## Mutation table (exercises 1-11)
 
 `_build/mutations.py`, run through
 `.claude/skills/graded-module/scripts/mutate.py`, plants the classic mistake for
-each exercise (thirty-five in all). Every one must be CAUGHT by the named step.
+each exercise (forty-nine in all). Every one must be CAUGHT by the named step.
 
 | Planted bug | File | Caught by | Why it is a classic mistake |
 |---|---|---|---|
@@ -279,6 +280,20 @@ each exercise (thirty-five in all). Every one must be CAUGHT by the named step.
 | The 500 path never logs the detail | `serve.py` | step 10 | The user sees nothing useful and the team sees nothing at all: the bug is invisible. |
 | A version number on the 500 page | `pages.py` | step 10 | A version tells an attacker which exploits to try. |
 | An environment value on the 500 page | `pages.py` | step 10 | An environment value can be a token or a path: a secret leaked to the user. |
+| The analytics cookie is set on the first GET | `serve.py` | step 11 | Loading analytics before consent is the tracking the exercise removes. |
+| Reject also sets the analytics cookie | `serve.py` | step 11 | Recording a refusal is not permission; rejecting must leave none. |
+| The banner has no reject control | `pages.py` | step 11 | Consent is not valid if the visitor cannot decline as easily as accept. |
+| Accept is a `<button>`, reject a plain `<a>` | `pages.py` | step 11 | A button beside a faint link makes rejecting harder than accepting. |
+| Accept never sets the analytics cookie | `serve.py` | step 11 | Consent that is not recorded cannot be honoured. |
+| Accept's cookie is already expired | `serve.py` | step 11 | An empty or expired cookie is not consent recorded. |
+| A third non-essential cookie on the first GET | `serve.py` | step 11 | A tracker set before any choice is exactly what consent forbids. |
+| Reject is a `type="button"` that never submits | `pages.py` | step 11 | A control that does not submit the form does not record the choice. |
+| The reject control is inside a disabled fieldset | `pages.py` | step 11 | A disabled ancestor makes the control unusable, disabled attribute or not. |
+| Accept's cookie is already expired by date | `serve.py` | step 11 | A past `Expires` is as dead as `Max-Age=0`, so no consent was recorded. |
+| Reject redirects and sets the cookie anyway | `serve.py` | step 11 | A cookie set on the redirect still tracks the visitor who refused. |
+| Reject clears then re-sets the analytics cookie | `serve.py` | step 11 | Browsers keep the last `Set-Cookie`, so a clear followed by a value is consent the visitor never gave. |
+| Reject sets a differently named tracking cookie | `serve.py` | step 11 | Any live non-session cookie on reject is tracking, whatever its name. |
+| Reject is an unquoted `type=button` | `pages.py` | step 11 | An unquoted `type=button` still never submits; quoting is not required in HTML. |
 
 ## Design decisions
 
@@ -308,6 +323,13 @@ each exercise (thirty-five in all). Every one must be CAUGHT by the named step.
   name. An image that is the only content of a link takes its alt as the link's
   accessible name. The body images reuse `favicon_png`/`og_image_png` through the
   `/logo.png` and `/chart.png` routes, so no new image code is needed.
+- **Consent is a POST form, and the analytics cookie is set in one place.**
+  `pages.consent_banner` renders a `<form method="post" action="/consent">` with two
+  `<button>` controls of equal prominence, so a bot cannot follow an accept link and
+  the sitemap surface does not grow. `serve.py` sets the strictly-necessary
+  `SESSION_COOKIE` in `_respond` on every response, and the non-essential
+  `ANALYTICS_COOKIE` only in the `choice=accept` branch of `POST /consent`; a plain
+  `GET` never sets it, and `reject` sets nothing.
 
 ## Already in the repo
 
@@ -329,11 +351,11 @@ against it, so the file that publishes the reference has to exist first.
 
 ## Limits
 
-- **Only the exercises 1-10 checks are built.** The rest are specified, not graded;
+- **Only the exercises 1-11 checks are built.** The rest are specified, not graded;
   `check.py` reports them as absent rather than pretending they pass. The remaining
   observer, `mobile.py`, does not exist yet, so exercise 9 (responsive on mobile)
-  is not graded even though the loading-states exercise (10) and the error-messages
-  exercise (11) are.
+  is not graded even though the loading-states exercise (10), the error-messages
+  exercise (11) and the cookies/consent exercise (13) are.
 - **The error-message check reads the body, not the screenshot.** It submits the
   contact form and asserts the message string the server turns into the field-level
   error is present next to the input, and that the 500 page's body carries none of
@@ -348,6 +370,20 @@ against it, so the file that publishes the reference has to exist first.
   that records under a lock and one that records without one pass alike; the check does
   not exercise a true race. The reference guards `ORDERS`/`SEEN` with a lock anyway,
   because a real double click can be concurrent.
+- **The cookie check uses a stateless observer.** `visit.py`/`impatient.py` keep no cookie
+  jar, so the consent check grades the accept response's own `Set-Cookie` rather than a
+  follow-up request that carries the stored choice; a server that records consent and only
+  sets the cookie on the next request would fail. `post_form_headers` does not follow
+  redirects, so the graded headers are the endpoint's; a cookie line is live only with a real
+  value, no `Max-Age<=0`, and no past `Expires`, and when a name appears twice the last line
+  wins (as a browser applies them). It visits every crawled page and allows only
+  `serve.SESSION_COOKIE`, so "strictly necessary" is the reference's one session cookie, not
+  a general judgment of necessity; and it counts two controls, not their visual weight, so a
+  third same-value button would not be flagged as a dark pattern. The controls may be
+  `<button type="submit">` or `<input type="submit">`; a `type=button`, a `disabled` control,
+  a control in a disabled `fieldset`, or one with no visible label is rejected. A
+  client-side route to a cookie setter (a `<meta http-equiv="refresh">`, JavaScript) is out
+  of scope: the observer follows neither.
 - The crawler is a single-threaded stdlib fetcher. It follows same-origin links only and
   does not execute JavaScript, so a client-rendered site would be measured wrong.
 - Soft-404 detection probes one invented path per host. A site that 404s some paths but

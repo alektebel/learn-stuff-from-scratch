@@ -68,6 +68,17 @@ user can act on, carrying no traceback, exception, path, version or environment
 variable, because all of that is detail for the log. A framework's default (a
 bare error, or the same "invalid input" for every field) is the thing these
 replace.
+
+DESIGN DECISION - consent is a POST form, and the two choices share one element
+type. A `GET /consent?choice=accept` link is crawlable: the search bot would
+follow it, the sitemap would have to list it, and every bot pass would "accept"
+analytics for a visitor who never chose. A `method="post"` form is not a link,
+so the choice stays with a person. Both controls are `<button>` elements of
+equal prominence, because a consent screen that makes accepting one click and
+rejecting two (or hides reject in grey text) is not a free choice. The banner
+lives in `_doc`, so it appears on every page until the server records a choice;
+the strictly necessary session cookie is set by `serve.py` on every response,
+never the analytics one.
 """
 
 import html
@@ -87,6 +98,13 @@ OG_IMAGE_HEIGHT = 630
 # names this same number in the message the user reads, and `serve.py` validates
 # against it: one constant, so the rule and the sentence cannot drift apart.
 MIN_MESSAGE = 10
+
+# The two cookies exercise 13 is about. `SESSION_COOKIE` is strictly necessary:
+# the server sets it on every response so the site can remember the visitor's
+# choice, and it carries no tracking value. `ANALYTICS_COOKIE` is non-essential:
+# it may be set only after the visitor accepts, and never on a plain page load.
+SESSION_COOKIE = "wlc_session"
+ANALYTICS_COOKIE = "wlc_analytics"
 
 NAV = (
     '<nav><a href="/">Home</a> · <a href="/about">About</a> · '
@@ -185,6 +203,26 @@ def order_page(key):
     raise NotImplementedError("order_page")
 
 
+def consent_banner():
+    """Return the cookie-consent banner: two equally easy choices.
+
+    The banner is a `POST` form, not two links. A link such as
+    `/consent?choice=accept` is an `<a href>` and a search bot would follow and
+    "accept" it for a visitor who never gave consent; a form with
+    `method="post"` is not a crawlable link, so the choice can only be made by a
+    person. Both controls are `<button>` elements of equal prominence: rejecting
+    must be exactly as easy as accepting, so neither choice may be a plain link
+    or visually hidden. The single field `choice` carries `accept` or `reject`,
+    and the server records which one arrived.
+
+    GRADED: `check.py` step 11 requires two real `<button type="submit">`
+    controls of the same element type, neither disabled (nor inside a disabled
+    fieldset), each with a visible label.
+    """
+    # TODO: return the cookie-consent banner: a <form method="post" action="/consent"> with two real submit buttons of the SAME element type and equal prominence - <button type="submit" name="choice" value="accept"> and <button type="submit" name="choice" value="reject"> - each with a visible label, neither disabled (nor inside a disabled fieldset), plus a short explanatory line. It is already called from _doc, so it appears on every page; rejecting must be as easy as accepting (no plain link, no hidden reject), and a POST form is not a crawlable link
+    raise NotImplementedError("consent_banner")
+
+
 def _doc(title, description, main, path="/"):
     """Return a complete HTML document. `description` empty means: omit the tag."""
     head = ""
@@ -201,6 +239,7 @@ def _doc(title, description, main, path="/"):
         f"{og_tags(title, description, path)}"
         "</head>\n"
         "<body>\n"
+        f"{consent_banner()}\n"
         f"{NAV}\n"
         f"{main}\n"
         f"{NAV}\n"

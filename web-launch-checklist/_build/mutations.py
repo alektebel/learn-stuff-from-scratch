@@ -23,6 +23,9 @@ check step). One classic mistake per exercise:
     returned for every field, an invalid POST gets the generic error page
     instead of the field-level form, bad input is accepted with no message, or
     the exception detail never reaches the server log.
+11. cookies: the analytics cookie is set on the first GET before consent, set on
+    reject, the banner has no reject control, reject is a different element
+    type from accept, or accept never sets the cookie.
 """
 
 MUTATIONS = [
@@ -291,5 +294,140 @@ MUTATIONS = [
         '        "<h1>Something went wrong</h1>"\n'
         '        + __import__("os").environ.get("WLC_LEAK_PROBE", "") + "\\n"',
         "10",
+    ),
+    (
+        "the analytics cookie is set on the first GET, before any consent",
+        "serve.py",
+        '        self.send_header(\n'
+        '            "Set-Cookie",\n'
+        '            f"{SESSION_COOKIE}={uuid.uuid4().hex}; Path=/; HttpOnly; SameSite=Lax")',
+        '        self.send_header(\n'
+        '            "Set-Cookie",\n'
+        '            f"{SESSION_COOKIE}={uuid.uuid4().hex}; Path=/; HttpOnly; SameSite=Lax")\n'
+        '        self.send_header("Set-Cookie", f"{ANALYTICS_COOKIE}=1; Path=/")',
+        "11",
+    ),
+    (
+        "reject also hands the visitor the analytics cookie",
+        "serve.py",
+        "                    carried = ANALYTICS_COOKIE in self._request_cookies()\n"
+        '                    cookies = [f"{ANALYTICS_COOKIE}=; Path=/; Max-Age=0"] if carried else []',
+        '                    cookies = [f"{ANALYTICS_COOKIE}=1; Path=/"]',
+        "11",
+    ),
+    (
+        "the consent banner offers no reject control",
+        "pages.py",
+        '        \'<button type="submit" name="choice" value="reject">Reject</button>\\n\'',
+        "",
+        "11",
+    ),
+    (
+        "accept and reject are different element types, so rejecting is not as easy",
+        "pages.py",
+        '        \'<button type="submit" name="choice" value="reject">Reject</button>\\n\'',
+        '        \'<a name="choice" value="reject" href="/#cookies">Reject</a>\\n\'',
+        "11",
+    ),
+    (
+        "accept never sets the analytics cookie, so consent is not recorded",
+        "serve.py",
+        '                    cookies = [f"{ANALYTICS_COOKIE}=1; Path=/"]',
+        "                    cookies = []",
+        "11",
+    ),
+    # An empty, already-expired cookie is not a live cookie: step 11 checks the value.
+    (
+        "accept hands out the analytics cookie already expired",
+        "serve.py",
+        '                    cookies = [f"{ANALYTICS_COOKIE}=1; Path=/"]\n',
+        '                    cookies = [f"{ANALYTICS_COOKIE}=; Path=/; Max-Age=0"]\n',
+        "11",
+    ),
+    # A third non-essential cookie on the first GET: step 11 now visits every page and
+    # allows only the strictly necessary session cookie.
+    (
+        "a third non-essential cookie is set on the first GET",
+        "serve.py",
+        '        for cookie in cookies:\n            self.send_header("Set-Cookie", cookie)\n',
+        '        self.send_header("Set-Cookie", "tracker=xyz; Path=/")\n'
+        '        for cookie in cookies:\n            self.send_header("Set-Cookie", cookie)\n',
+        "11",
+    ),
+    # A control that does not submit the form is not a choice: step 11 checks the type.
+    (
+        "reject is a type=button control that never submits the form",
+        "pages.py",
+        '        \'<button type="submit" name="choice" value="reject">Reject</button>\\n\'',
+        '        \'<button type="button" name="choice" value="reject">Reject</button>\\n\'',
+        "11",
+    ),
+    # A disabled ancestor fieldset disables its controls: step 11 honors that.
+    (
+        "the reject control sits inside a disabled fieldset",
+        "pages.py",
+        '        \'<button type="submit" name="choice" value="reject">Reject</button>\\n\'',
+        '        \'<fieldset disabled><button type="submit" name="choice" value="reject">'
+        'Reject</button></fieldset>\\n\'',
+        "11",
+    ),
+    # A past Expires is a dead cookie: step 11 parses it, not just Max-Age=0.
+    (
+        "accept's analytics cookie is already expired by date",
+        "serve.py",
+        '                    cookies = [f"{ANALYTICS_COOKIE}=1; Path=/"]\n',
+        '                    cookies = [f"{ANALYTICS_COOKIE}=1; Path=/; '
+        'Expires=Thu, 01 Jan 1970 00:00:00 GMT"]\n',
+        "11",
+    ),
+    # A reject that redirects while setting the cookie still tracks: step 11 does not
+    # follow the redirect and grades the endpoint's own Set-Cookie.
+    (
+        "reject 302-redirects and sets the analytics cookie on the way",
+        "serve.py",
+        '                elif choice == "reject":\n'
+        '                    carried = ANALYTICS_COOKIE in self._request_cookies()\n'
+        '                    cookies = [f"{ANALYTICS_COOKIE}=; Path=/; Max-Age=0"] '
+        'if carried else []\n',
+        '                elif choice == "reject":\n'
+        '                    cookies = [f"{ANALYTICS_COOKIE}=1; Path=/"]\n'
+        '                    self._respond(302, "", cookies=cookies, location="/")\n'
+        '                    return\n',
+        "11",
+    ),
+    # Browsers apply every Set-Cookie and keep the last: a clear followed by a live
+    # line is still tracking. Step 11 now lets the last line win.
+    (
+        "reject clears then re-sets the analytics cookie",
+        "serve.py",
+        '                elif choice == "reject":\n'
+        '                    carried = ANALYTICS_COOKIE in self._request_cookies()\n'
+        '                    cookies = [f"{ANALYTICS_COOKIE}=; Path=/; Max-Age=0"] '
+        'if carried else []\n',
+        '                elif choice == "reject":\n'
+        '                    cookies = [f"{ANALYTICS_COOKIE}=; Path=/",\n'
+        '                               f"{ANALYTICS_COOKIE}=1; Path=/"]\n',
+        "11",
+    ),
+    # A differently-named tracker on reject is still a non-essential cookie: step 11
+    # now rejects any live non-session cookie, not just the named analytics one.
+    (
+        "reject sets a differently named tracking cookie",
+        "serve.py",
+        '                elif choice == "reject":\n'
+        '                    carried = ANALYTICS_COOKIE in self._request_cookies()\n'
+        '                    cookies = [f"{ANALYTICS_COOKIE}=; Path=/; Max-Age=0"] '
+        'if carried else []\n',
+        '                elif choice == "reject":\n'
+        '                    cookies = ["tracker=1; Path=/"]\n',
+        "11",
+    ),
+    # An unquoted type=button still never submits: step 11 parses unquoted attributes.
+    (
+        "reject is an unquoted type=button control",
+        "pages.py",
+        '        \'<button type="submit" name="choice" value="reject">Reject</button>\\n\'',
+        '        \'<button type=button name="choice" value="reject">Reject</button>\\n\'',
+        "11",
     ),
 ]

@@ -39,6 +39,10 @@ DESIGN DECISION - the HTTP helpers are public, so one check can reuse them.
     (`check.py` step 10) submits the contact form through `post_form` and reads
     the 500 page through `fetch`, so the graded check and the observer agree on
     how a request is made and what an error response looks like.
+    `post_form_headers` is the same request as `post_form` but hands back the
+    response headers, so the cookie check (`check.py` step 11) can read each
+    `Set-Cookie` and tell an accept from a reject. `post_form` keeps its
+    three-tuple shape unchanged because step 10 depends on it.
 
 Standard library only (`urllib.request`, `urllib.parse`, `html.parser`, `re`,
 `argparse`, `json`, `time`). No network beyond the server it is given.
@@ -56,6 +60,19 @@ USER_AGENT = "web-launch-checklist-impatient/1.0"
 
 # The form field the server reads the idempotency key from.
 KEY_FIELD = "idempotency_key"
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Refuse to follow redirects: the caller wants the server's first response.
+
+    Used by `post_form_headers` so the graded `Set-Cookie` is the one the consent
+    endpoint itself sent, not the one on a redirect target. Returning `None` makes
+    urllib surface the 3xx as an `HTTPError`, whose headers carry that response's
+    `Set-Cookie`.
+    """
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
 
 
 class Attempt:
@@ -219,6 +236,34 @@ def post_form(base_url, path, fields):
         headers = getattr(error, "headers", None)
         content_type = headers.get("Content-Type", "") if headers else ""
         return getattr(error, "code", 0), body, content_type
+
+
+def post_form_headers(base_url, path, fields):
+    """POST `fields` (urlencoded) to `path`; return (status, body, headers).
+
+    The same request as `post_form`, but it hands back the raw response headers
+    so a caller can read every `Set-Cookie` the server sent, and it does NOT follow
+    redirects: the graded headers are the ones the endpoint itself returned, so a
+    reject that redirects while setting the analytics cookie is seen, not hidden
+    behind the redirect target. `post_form` keeps its three-tuple
+    `(status, body, content_type)` shape because the error-message check depends on
+    it; this is the cookie check's helper (step 11). On an error the error's headers
+    are returned (or `None`).
+    """
+    data = urllib.parse.urlencode(fields).encode("utf-8")
+    url = base_url.rstrip("/") + path
+    request = urllib.request.Request(
+        url, data=data, method="POST",
+        headers={"User-Agent": USER_AGENT,
+                 "Content-Type": "application/x-www-form-urlencoded"})
+    opener = urllib.request.build_opener(_NoRedirect)
+    try:
+        with opener.open(request, timeout=30) as response:
+            return (response.status, response.read().decode("utf-8", "replace"),
+                    response.headers)
+    except OSError as error:  # HTTPError and URLError both subclass OSError
+        body = error.read().decode("utf-8", "replace") if hasattr(error, "read") else ""
+        return getattr(error, "code", 0), body, getattr(error, "headers", None)
 
 
 def post_order(base_url, key, field_name=KEY_FIELD, product="widget"):

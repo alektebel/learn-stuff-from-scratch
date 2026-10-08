@@ -1,4 +1,4 @@
-"""Graded hints for the learner templates (exercises 1-10).
+"""Graded hints for the learner templates (exercises 1-11).
 
 `make_templates.py` reads each `solutions/<file>` and replaces the listed
 functions with a `# TODO` and `raise NotImplementedError`. The rest of the file
@@ -21,17 +21,24 @@ HINTS = {
             "GET /order serves order_page(uuid.uuid4().hex) (a fresh key per form view); "
             "GET /orders serves {\"count\": len(ORDERS)} as application/json; "
             "anything else gets the 404 page with status 404 (no redirect to /). "
+            "The shared `_respond` already sets the strictly-necessary SESSION_COOKIE "
+            "on every response, so no route needs to set it; and no GET route may "
+            "set the analytics cookie. "
             "Wrap the whole body in try/except and call self._server_error() on any "
             "exception, so a raised route leaves through the one error path"
         ),
         "SiteHandler.do_POST": (
-            "handle POST /contact and POST /order. POST /contact: read the urlencoded "
+            "handle POST /contact, POST /consent and POST /order. POST /contact: read "
+            "the urlencoded "
             "body, keep the name/email/message values, validate them (name non-empty; "
             "email with exactly one @ and a dot after it; message at least MIN_MESSAGE "
             "characters). On failure answer 200 with contact_page(values, errors) where "
             "errors maps each bad field to error_message(field, value) - field-level "
             "messages, not a bare error page. On success answer 200 with a short "
-            "confirmation page. POST /order: read the urlencoded body, take "
+            "confirmation page. POST /consent: read `choice`; on accept pass "
+            "`ANALYTICS_COOKIE=1; Path=/` to _respond, on reject set no analytics cookie "
+            "(expire one only if the request already carried it), then answer 200 with "
+            "the home page. POST /order: read the urlencoded body, take "
             "`idempotency_key`; if the key was seen already answer 200 with the same "
             "confirmation and record nothing; otherwise record (product, key) and "
             "answer 200. Keep ORDERS and SEEN under ORDERS_LOCK, and a missing/empty "
@@ -60,6 +67,16 @@ HINTS = {
         "icon_link": (
             "return the <link rel=\"icon\"> tag: type=\"image/png\", href=\"/favicon.ico\", "
             "and sizes=\"32x32\" matching the icon the server really returns"
+        ),
+        "consent_banner": (
+            "return the cookie-consent banner: a <form method=\"post\" action=\"/consent\"> "
+            "with two real submit buttons of the SAME element type and equal prominence - "
+            "<button type=\"submit\" name=\"choice\" value=\"accept\"> and <button "
+            "type=\"submit\" name=\"choice\" value=\"reject\"> - each with a visible "
+            "label, neither disabled (nor inside a disabled fieldset), plus a short "
+            "explanatory line. It is already called from _doc, so it appears on every "
+            "page; rejecting must be as easy as accepting (no plain link, no hidden "
+            "reject), and a POST form is not a crawlable link"
         ),
         "pages": (
             "return {path: html} for every public page; each page needs a <title> "

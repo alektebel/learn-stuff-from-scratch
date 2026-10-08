@@ -66,6 +66,17 @@ DESIGN DECISION - an invalid form is a 200 page, a raised exception is a 500 pag
     for wrong input, a 5xx for a broken server. Answering a bad form with the
     generic 500 (or with the framework's default error) is the mistake exercise
     11 removes.
+
+DESIGN DECISION - every response carries the session cookie, only `/consent`
+    can add the analytics one. `_respond` sets `SESSION_COOKIE` (fresh on every
+    response, `HttpOnly; SameSite=Lax`) because it is strictly necessary to
+    remember the visitor's choice and carries no tracking value. The
+    non-essential `ANALYTICS_COOKIE` is set in exactly one place: `POST /consent`
+    with `choice=accept`. A plain `GET` never sets it, which is the whole point
+    of exercise 13. `reject` sets nothing for a fresh visitor, and only asks the
+    browser to expire the cookie when the request actually carried one: the
+    observer is stateless, so emitting an expiry it did not need would look like
+    a cookie being set on reject.
 """
 
 import http.server
@@ -76,9 +87,9 @@ import traceback
 import urllib.parse
 import uuid
 
-from pages import (MIN_MESSAGE, contact_page, error_message, favicon_png,
-                   not_found, og_image_png, order_page, pages, robots_txt,
-                   server_error, sitemap_xml)
+from pages import (ANALYTICS_COOKIE, MIN_MESSAGE, SESSION_COOKIE, contact_page,
+                   error_message, favicon_png, not_found, og_image_png,
+                   order_page, pages, robots_txt, server_error, sitemap_xml)
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8000
@@ -105,11 +116,11 @@ class SiteHandler(http.server.BaseHTTPRequestHandler):
     server_version = "web-launch-checklist/1.0"
 
     def do_GET(self):  # noqa: N802 - name fixed by BaseHTTPRequestHandler
-        # TODO: route the request path: GET /contact serves contact_page() as HTML (the form, empty); GET /boom deliberately raises RuntimeError("boom: simulated backend failure"); a path in pages() gets status 200 and its HTML; GET /og-image.png serves og_image_png() as image/png; GET /favicon.ico serves favicon_png() as image/png; GET /logo.png and /chart.png serve a real image/png (reuse favicon_png and og_image_png - no new image code); GET /robots.txt serves robots_txt(base) as text/plain; GET /sitemap.xml serves sitemap_xml over the page paths as application/xml (base = Host header); GET /order serves order_page(uuid.uuid4().hex) (a fresh key per form view); GET /orders serves {"count": len(ORDERS)} as application/json; anything else gets the 404 page with status 404 (no redirect to /). Wrap the whole body in try/except and call self._server_error() on any exception, so a raised route leaves through the one error path
+        # TODO: route the request path: GET /contact serves contact_page() as HTML (the form, empty); GET /boom deliberately raises RuntimeError("boom: simulated backend failure"); a path in pages() gets status 200 and its HTML; GET /og-image.png serves og_image_png() as image/png; GET /favicon.ico serves favicon_png() as image/png; GET /logo.png and /chart.png serve a real image/png (reuse favicon_png and og_image_png - no new image code); GET /robots.txt serves robots_txt(base) as text/plain; GET /sitemap.xml serves sitemap_xml over the page paths as application/xml (base = Host header); GET /order serves order_page(uuid.uuid4().hex) (a fresh key per form view); GET /orders serves {"count": len(ORDERS)} as application/json; anything else gets the 404 page with status 404 (no redirect to /). The shared `_respond` already sets the strictly-necessary SESSION_COOKIE on every response, so no route needs to set it; and no GET route may set the analytics cookie. Wrap the whole body in try/except and call self._server_error() on any exception, so a raised route leaves through the one error path
         raise NotImplementedError("SiteHandler.do_GET")
 
     def do_POST(self):  # noqa: N802 - name fixed by BaseHTTPRequestHandler
-        # TODO: handle POST /contact and POST /order. POST /contact: read the urlencoded body, keep the name/email/message values, validate them (name non-empty; email with exactly one @ and a dot after it; message at least MIN_MESSAGE characters). On failure answer 200 with contact_page(values, errors) where errors maps each bad field to error_message(field, value) - field-level messages, not a bare error page. On success answer 200 with a short confirmation page. POST /order: read the urlencoded body, take `idempotency_key`; if the key was seen already answer 200 with the same confirmation and record nothing; otherwise record (product, key) and answer 200. Keep ORDERS and SEEN under ORDERS_LOCK, and a missing/empty key means no idempotency promise (record every click). Any other POST path is a 404. Wrap the whole body in try/except and call self._server_error() on any exception
+        # TODO: handle POST /contact, POST /consent and POST /order. POST /contact: read the urlencoded body, keep the name/email/message values, validate them (name non-empty; email with exactly one @ and a dot after it; message at least MIN_MESSAGE characters). On failure answer 200 with contact_page(values, errors) where errors maps each bad field to error_message(field, value) - field-level messages, not a bare error page. On success answer 200 with a short confirmation page. POST /consent: read `choice`; on accept pass `ANALYTICS_COOKIE=1; Path=/` to _respond, on reject set no analytics cookie (expire one only if the request already carried it), then answer 200 with the home page. POST /order: read the urlencoded body, take `idempotency_key`; if the key was seen already answer 200 with the same confirmation and record nothing; otherwise record (product, key) and answer 200. Keep ORDERS and SEEN under ORDERS_LOCK, and a missing/empty key means no idempotency promise (record every click). Any other POST path is a 404. Wrap the whole body in try/except and call self._server_error() on any exception
         raise NotImplementedError("SiteHandler.do_POST")
 
     def _server_error(self):
@@ -123,14 +134,32 @@ class SiteHandler(http.server.BaseHTTPRequestHandler):
         # TODO: the one error path: append the full traceback text (traceback.format_exc()) to the module-level SERVER_LOG list, then respond 500 with pages.server_error(). Nothing from the detail may reach the response body
         raise NotImplementedError("SiteHandler._server_error")
 
-    def _respond(self, status, body, content_type="text/html; charset=utf-8"):
+    def _respond(self, status, body, content_type="text/html; charset=utf-8",
+                 cookies=(), location=None):
         if isinstance(body, str):
             body = body.encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", content_type)
+        if location is not None:
+            self.send_header("Location", location)
         self.send_header("Content-Length", str(len(body)))
+        # The strictly necessary session cookie, fresh on every response:
+        # HttpOnly keeps it away from scripts and SameSite=Lax keeps it off
+        # cross-site requests. It is not the analytics cookie, so it is allowed
+        # before any consent. Extra cookies (the analytics one, on accept) are
+        # appended by the caller.
+        self.send_header(
+            "Set-Cookie",
+            f"{SESSION_COOKIE}={uuid.uuid4().hex}; Path=/; HttpOnly; SameSite=Lax")
+        for cookie in cookies:
+            self.send_header("Set-Cookie", cookie)
         self.end_headers()
         self.wfile.write(body)
+
+    def _request_cookies(self):
+        """Return the set of cookie names the request carried."""
+        header = self.headers.get("Cookie", "") or ""
+        return {part.strip().split("=", 1)[0] for part in header.split(";") if "=" in part}
 
     def log_message(self, *args):  # keep the check output readable
         pass

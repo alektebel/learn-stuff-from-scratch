@@ -1,5 +1,5 @@
 """
-Progress checker for the web launch checklist, exercises 1-10.
+Progress checker for the web launch checklist, exercises 1-11.
 
     python3 check.py           # run every check, stop at the first unimplemented step
     python3 check.py 2         # run only step 2
@@ -13,7 +13,8 @@ is simply the next thing to write. Nothing here imports solutions/. It tests YOU
 `visit.py` (a browser's first visit, implicit favicon and all), `reader.py`
 (a screen reader linearising the page) and `impatient.py` (a user who clicks a
 slow order form too many times, and whose HTTP helpers this checker reuses to
-submit the contact form and read the 500 page).
+submit the contact form, read the 500 page, and read the consent response's
+`Set-Cookie` headers).
 """
 
 import shutil
@@ -557,6 +558,216 @@ def check_error_messages():
         print(f"      {GREY}500 page leaks nothing; the log holds the detail{RESET}")
 
 
+# ---------------------------------------------------------------------------
+# Step 11: no analytics cookie before consent; accept sets it, reject does not
+# ---------------------------------------------------------------------------
+
+def _consent_form(html_text):
+    """The consent form on a page, or None: its method, action and choice buttons.
+
+    Parsed structurally so the check can tell a real, equal, working banner from a
+    decorative one: both controls sit in one form that POSTs to /consent; both are
+    real submit buttons (not ``type="button"``, not inside a disabled ``fieldset``);
+    and both carry a visible label.
+    """
+    import re
+
+    for form in re.finditer(r"<form\b([^>]*)>(.*?)</form>", html_text,
+                            re.IGNORECASE | re.DOTALL):
+        attrs, inner = form.group(1), form.group(2)
+        if not re.search(r"\bname\s*=\s*[\"']choice[\"']", inner, re.IGNORECASE):
+            continue
+
+        def attr(name):
+            match = re.search(name + r"\s*=\s*[\"']([^\"']*)[\"']", attrs, re.IGNORECASE)
+            return match.group(1).strip() if match else ""
+
+        controls = {}
+        fieldset_disabled = []
+
+        def attribute(attrs, name):
+            match = re.search(name + r"""\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))""",
+                              attrs, re.IGNORECASE)
+            if not match:
+                return None
+            return next(group for group in match.groups() if group is not None).strip()
+
+        token = re.compile(r"<fieldset\b([^>]*)>|</fieldset\s*>"
+                           r"|<button\b([^>]*)>(.*?)</button>"
+                           r"|<input\b([^>]*)>",
+                           re.IGNORECASE | re.DOTALL)
+        for event in token.finditer(inner):
+            piece = event.group(0).lower()
+            if piece.startswith("</fieldset"):
+                if fieldset_disabled:
+                    fieldset_disabled.pop()
+                continue
+            if piece.startswith("<fieldset"):
+                fieldset_disabled.append(bool(re.search(r"\bdisabled\b",
+                                                        event.group(1) or "",
+                                                        re.IGNORECASE)))
+                continue
+            if event.group(4) is not None:  # <input ...>, a void element
+                tag, element_attrs, text = "input", event.group(4), ""
+            else:  # <button ...>…</button>
+                tag, element_attrs, text = "button", event.group(2) or "", event.group(3) or ""
+            if not re.search(r"\bname\s*=\s*[\"']choice[\"']", element_attrs,
+                             re.IGNORECASE):
+                continue
+
+            element_type = attribute(element_attrs, "type")
+            if tag == "button":
+                element_type = (element_type or "submit").lower()
+                label = " ".join(re.sub(r"<[^>]+>", " ", text).split())
+            else:
+                # An <input> with no type is a text field, not a submit control; its
+                # accessible name is the value attribute (what it submits).
+                element_type = (element_type or "text").lower()
+                label = attribute(element_attrs, "value") or ""
+            control_value = (attribute(element_attrs, "value") or "").lower()
+            if control_value in ("accept", "reject"):
+                controls[control_value] = {
+                    "type": element_type,
+                    "disabled": bool(re.search(r"\bdisabled\b", element_attrs,
+                                               re.IGNORECASE))
+                    or any(fieldset_disabled),
+                    "label": label,
+                }
+        return {"method": attr("method").lower(), "action": attr("action"),
+                "controls": controls}
+    return None
+
+
+def _live_cookie_value(cookies, name):
+    """The last live value of cookie ``name`` across a list of Set-Cookie lines.
+
+    A browser applies every ``Set-Cookie`` line and keeps the last one, so a dead
+    line only wins if it is the last for that name. None when no line leaves the
+    cookie live: absent, or every matching line is empty or already dead
+    (``Max-Age`` at or below zero, or an ``Expires`` moment in the past).
+    """
+    import datetime
+    import email.utils
+    import re
+
+    now = datetime.datetime.now(datetime.timezone.utc)
+    result = None
+    for cookie in cookies:
+        match = re.match(r"\s*" + re.escape(name) + r"\s*=\s*([^;]*)", cookie)
+        if not match:
+            continue
+        value = match.group(1).strip()
+        dead = not value
+        if not dead:
+            max_age = re.search(r"max-age\s*=\s*(-?\d+)", cookie, re.IGNORECASE)
+            if max_age and int(max_age.group(1)) <= 0:
+                dead = True
+        if not dead:
+            expires = re.search(r"expires\s*=\s*([^;]+)", cookie, re.IGNORECASE)
+            if expires:
+                try:
+                    when = email.utils.parsedate_to_datetime(expires.group(1).strip())
+                except (TypeError, ValueError):
+                    when = None
+                if when is not None:
+                    if when.tzinfo is None:
+                        when = when.replace(tzinfo=datetime.timezone.utc)
+                    if when <= now:
+                        dead = True
+        result = None if dead else value
+    return result
+
+
+def check_cookies():
+    from crawler import crawl
+    from urllib.parse import urlsplit
+
+    import serve
+    from impatient import fetch, post_form_headers
+    from visit import visit
+
+    with _RunningSite() as base:
+        # Before the visitor has chosen anything, no non-essential cookie may be
+        # set. Visit EVERY page (analytics can be loaded on any of them), and allow
+        # only the strictly necessary session cookie.
+        before = visit(base, sorted(crawl(base).paths))
+        allowed = {serve.SESSION_COOKIE}
+        extra = sorted(set(before.cookies) - allowed)
+        names = ", ".join(sorted(before.cookies)) or "(none)"
+        assert not extra, (
+            f"a plain GET before any consent set non-essential cookie(s) {extra} "
+            f"(cookies seen: {names}). Only the strictly necessary session cookie "
+            "may be set before the visitor chooses; loading analytics on any page "
+            "view is exactly the tracking this exercise removes.")
+        print(f"      {GREY}cookies before any choice: {names}{RESET}")
+
+        # The banner offers both choices as the SAME kind of working control inside
+        # one form that submits the choice. Rejecting must be as easy as accepting.
+        _status, home, _content_type = fetch(base, "/")
+        banner = _consent_form(home)
+        assert banner is not None, (
+            "the home page has no consent form: a <form> with two name=\"choice\" "
+            "controls. The banner must let the visitor accept or reject analytics.")
+        assert banner["method"] == "post", (
+            f"the consent form uses method {banner['method']!r}, not post. The choice "
+            "has to reach the server, which records the consent.")
+        assert urlsplit(banner["action"]).path == "/consent", (
+            f"the consent form posts to {banner['action']!r}, not /consent.")
+        for choice in ("accept", "reject"):
+            control = banner["controls"].get(choice)
+            assert control, (
+                f"the consent banner has no {choice} control. Rejecting must be "
+                "offered with the same one click as accepting, not hidden behind a "
+                "settings page or omitted entirely.")
+            assert not control["disabled"], (
+                f"the {choice} control is disabled: a control the visitor cannot use "
+                "is not a choice.")
+            assert control["type"] == "submit", (
+                f"the {choice} control is type={control['type']!r}, not a submit "
+                "button. A button that does not submit the form does not record the "
+                "choice; both choices must work with one click and no JavaScript.")
+            assert control["label"], (
+                f"the {choice} control has no visible label. Both choices must be "
+                "named so the visitor knows what each does.")
+        print(f"      {GREY}consent form: post /consent, "
+              f"accept={banner['controls']['accept']['label']!r} "
+              f"reject={banner['controls']['reject']['label']!r}{RESET}")
+
+        # Accept hands the browser a LIVE analytics cookie. The observer has no
+        # cookie jar, so a follow-up visit() cannot remember the choice; what is
+        # graded is the accept response's own Set-Cookie, and it must be live. See
+        # the README's limits for what a stateless observer cannot check.
+        _status, _body, headers = post_form_headers(
+            base, "/consent", {"choice": "accept"})
+        accept_cookies = list(headers.get_all("Set-Cookie") or []) if headers else []
+        value = _live_cookie_value(accept_cookies, serve.ANALYTICS_COOKIE)
+        assert value, (
+            f"POST /consent choice=accept did not set a live analytics cookie "
+            f"(Set-Cookie: {accept_cookies}). Accepting must record consent by "
+            "issuing the non-essential cookie with a real value, not an empty or "
+            "already-expired one.")
+        print(f"      {GREY}accept -> {serve.ANALYTICS_COOKIE}={value}{RESET}")
+
+        # Reject must leave no LIVE non-essential cookie — not just the analytics
+        # one. An explicit clear (an empty or already-dead value) of a cookie the
+        # visitor never had is harmless; any live non-session cookie is not, and a
+        # browser applies the last Set-Cookie line.
+        _status, _body, headers = post_form_headers(
+            base, "/consent", {"choice": "reject"})
+        reject_cookies = list(headers.get_all("Set-Cookie") or []) if headers else []
+        names = {cookie.split("=", 1)[0].strip()
+                 for cookie in reject_cookies if "=" in cookie}
+        live_extras = sorted(name for name in names
+                             if name and name != serve.SESSION_COOKIE
+                             and _live_cookie_value(reject_cookies, name) is not None)
+        assert not live_extras, (
+            "POST /consent choice=reject still handed the visitor live non-essential "
+            f"cookie(s) {live_extras} (Set-Cookie: {reject_cookies}). Recording a "
+            "refusal is not consent: rejecting must leave no analytics or tracking "
+            "cookie, whatever its name.")
+        print(f"      {GREY}reject -> analytics cookie absent{RESET}")
+
+
 CHECKS: List[Tuple[str, str, Callable[[], None]]] = [
     ("serve.py", "unknown paths return a real 404 page that links home", check_custom_404),
     ("pages.py", "every page has a unique <title> within the length limit", check_titles),
@@ -568,6 +779,7 @@ CHECKS: List[Tuple[str, str, Callable[[], None]]] = [
     ("pages.py", "images carry alt text, decorative ones are silent", check_alt_text),
     ("pages.py/serve.py", "a double submit records one order and the control disables on submit", check_loading_state),
     ("pages.py/serve.py", "invalid input gets a field-level message; a 500 leaks nothing", check_error_messages),
+    ("pages.py/serve.py", "no analytics cookie before consent; accept sets it, reject does not", check_cookies),
 ]
 
 
@@ -598,7 +810,7 @@ def main(argv: List[str]) -> int:
     wanted = [int(a) for a in argv if a.isdigit()]
     if len(wanted) > 1:
         wanted = list(range(min(wanted), max(wanted) + 1))
-    print(f"\n{BOLD}Web launch checklist — progress check (exercises 1-10){RESET}")
+    print(f"\n{BOLD}Web launch checklist — progress check (exercises 1-11){RESET}")
     print(f"{GREY}implement serve.py and pages.py, then run the observers{RESET}\n")
     passed = failed = todo = 0
     first_gap = None
