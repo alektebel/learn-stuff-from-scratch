@@ -4,11 +4,12 @@ Sixteen items that "every site should have before launch". The usual list says *
 these exercises make you find out *why*, by putting an observer in front of a site that
 lacks the item and measuring the damage, then fixing it and measuring again.
 
-**Status: exercises 1-11 are built.** `crawler.py`, `unfurl.py`, `visit.py`,
+**Status: exercises 1-12 are built.** `crawler.py`, `unfurl.py`, `visit.py`,
 `reader.py` and `impatient.py` (the observers), `check.py`, the reference in
 `solutions/` and a runnable broken variant in `_build/broken/` are here. The
-eleventh check grades the cookies/consent exercise (13); the mobile exercise (9)
-still needs `mobile.py` and Chromium, and exercises 12 and 14-16 are specified
+eleventh check grades the cookies/consent exercise (13), and the twelfth grades
+the analytics exercise (14) against `analytics.py`; the mobile exercise (9)
+still needs `mobile.py` and Chromium, and exercises 12 and 15-16 are specified
 only. No conceptual answers are written anywhere in this directory, on purpose:
 each exercise ends with questions, and the observer's output is what answers
 them.
@@ -34,10 +35,10 @@ The **observers** are provided. Each one sees the site the way some real agent d
 `mobile.py` is specified in the exercises below.
 
 `check.py` runs the observers and grades each exercise, in this repo's usual format.
-Exercises 1-11 are graded now (eleven checks); the rest are TODO until their observers
+Exercises 1-12 are graded now (twelve checks); the rest are TODO until their observers
 exist.
 
-Runs on a CPU: Python standard library only for exercises 1-11. Later exercises warm
+Runs on a CPU: Python standard library only for exercises 1-12. Later exercises warm
 up the machine (Pillow with WebP, a Chromium binary) but there is no network.
 
 ## What is provided, what you build
@@ -54,6 +55,7 @@ The original plan was ambiguous about this. The smallest workable split:
 | `check.py` | **provided** | The grader. Never imports `solutions/`. |
 | `serve.py` | **you** | Routing, the 404 status, the order API (dedup by idempotency key), the error path and the cookie policy: the decisions exercises 1, 10, 11 and 13 are about. |
 | `pages.py` | **you** | The site's HTML: titles and descriptions, the icon link and the images' alt text, the order form, the consent banner, and the contact form with its error messages and 500 page: the subject of exercises 2, 3, 4, 8, 10, 11 and 13. |
+| `analytics.py` | **you** | The page-view counter: filter out bots, prefetches, reloads, assets and unconsented requests, and store nothing personal: the subject of exercise 14. |
 | `_build/broken/` | **provided** | A complete site with the three defects planted; run the crawler against it for the "Break" half. |
 | `solutions/` | **reference** | Do not read it until `check.py` passes, or until you are stuck. |
 
@@ -69,7 +71,7 @@ with it and two of the three planted bugs would be untestable. The HTML inside
 ```
 cd web-launch-checklist
 python3 check.py          # stop at the first step you have not written
-python3 check.py --all    # run all eleven checks (exercises 1-11)
+python3 check.py --all    # run all twelve checks (exercises 1-12)
 ```
 
 Start the reference site (swap `solutions` for `_build/broken` for the broken
@@ -237,11 +239,11 @@ the graded check passes, and the observer's numbers changed in the way you predi
 - **Questions:** Was WebP smaller for every image? Try a screenshot with flat colours and
   text against PNG. What did resizing save, compared with changing the format?
 
-## Mutation table (exercises 1-11)
+## Mutation table (exercises 1-12)
 
 `_build/mutations.py`, run through
 `.claude/skills/graded-module/scripts/mutate.py`, plants the classic mistake for
-each exercise (forty-nine in all). Every one must be CAUGHT by the named step.
+each exercise (fifty-nine in all). Every one must be CAUGHT by the named step.
 
 | Planted bug | File | Caught by | Why it is a classic mistake |
 |---|---|---|---|
@@ -294,6 +296,16 @@ each exercise (forty-nine in all). Every one must be CAUGHT by the named step.
 | Reject clears then re-sets the analytics cookie | `serve.py` | step 11 | Browsers keep the last `Set-Cookie`, so a clear followed by a value is consent the visitor never gave. |
 | Reject sets a differently named tracking cookie | `serve.py` | step 11 | Any live non-session cookie on reject is tracking, whatever its name. |
 | Reject is an unquoted `type=button` | `pages.py` | step 11 | An unquoted `type=button` still never submits; quoting is not required in HTML. |
+| `is_bot` never filters a crawler | `analytics.py` | step 12 | The crawler's visits are counted as human page views, inflating every number. |
+| `count_views` counts every GET | `analytics.py` | step 12 | With the filters gone, the naive length is the answer: bots, assets and reloads all count. |
+| `count_views` ignores consent | `analytics.py` | step 12 | Counting people who never agreed turns analytics into tracking. |
+| `is_prefetch` never fires | `analytics.py` | step 12 | Speculative fetches are counted before the user ever arrives. |
+| `is_reload` never fires | `analytics.py` | step 12 | A refresh doubles the count of one real visit. |
+| The result keeps the user-agent | `analytics.py` | step 12 | A view count that stores the user-agent is personal data, not an aggregate. |
+| The asset test ignores the query string | `analytics.py` | step 12 | `/site.css?v=2` is still a stylesheet, not a page view. |
+| `is_prefetch` needs one exact token | `analytics.py` | step 12 | A `Purpose` header can carry several tokens; any of them means speculative. |
+| The result keeps a timestamp | `analytics.py` | step 12 | A timestamp per view is request metadata, not an aggregate count. |
+| A blank user-agent counts as a human | `analytics.py` | step 12 | An explicit blank user-agent is a bot, unlike a missing one. |
 
 ## Design decisions
 
@@ -330,6 +342,13 @@ each exercise (forty-nine in all). Every one must be CAUGHT by the named step.
   `SESSION_COOKIE` in `_respond` on every response, and the non-essential
   `ANALYTICS_COOKIE` only in the `choice=accept` branch of `POST /consent`; a plain
   `GET` never sets it, and `reject` sets nothing.
+- **The page-view counter filters the log; it does not trust its length.**
+  `analytics.count_views` drops bots, prefetches, reloads, assets, non-GET requests and
+  unconsented visitors, and returns `{"views": {path: count}, "total": n}` with no
+  user-agent, IP or cookie, so what is stored is aggregate counts only. A missing
+  user-agent is not a bot (plenty of privacy-preserving clients send none); an explicit
+  blank one is. `check.py` step 12 grades it against a hand-built log with known ground
+  truth and against the provided crawler's user-agent.
 
 ## Already in the repo
 
@@ -351,11 +370,20 @@ against it, so the file that publishes the reference has to exist first.
 
 ## Limits
 
-- **Only the exercises 1-11 checks are built.** The rest are specified, not graded;
+- **Only the exercises 1-12 checks are built.** The rest are specified, not graded;
   `check.py` reports them as absent rather than pretending they pass. The remaining
   observer, `mobile.py`, does not exist yet, so exercise 9 (responsive on mobile)
   is not graded even though the loading-states exercise (10), the error-messages
-  exercise (11) and the cookies/consent exercise (13) are.
+  exercise (11), the cookies/consent exercise (13) and the analytics exercise (14) are.
+- **The analytics check grades a synthetic log, not live traffic.** `check.py` step 12
+  builds a hand-made request log with known ground truth and runs `analytics.count_views`
+  over it; it does not wire the counter into the server's request path, so a site that
+  never calls it would still pass. The reload signal is the deterministic header stand-in
+  (`Cache-Control: no-cache`/`max-age=0`, `Pragma: no-cache`), because a stdlib observer
+  cannot see a real refresh server-side. A forged user-agent defeats the bot filter: a
+  crawler that sends a browser string is counted as a human, and robots.txt or rate limiting
+  is the server-side defence, not this counter's. What the counter stores is aggregate counts
+  only — per-path integers and a total, never a user-agent, IP, cookie or timestamp.
 - **The error-message check reads the body, not the screenshot.** It submits the
   contact form and asserts the message string the server turns into the field-level
   error is present next to the input, and that the 500 page's body carries none of

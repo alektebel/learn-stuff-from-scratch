@@ -26,6 +26,9 @@ check step). One classic mistake per exercise:
 11. cookies: the analytics cookie is set on the first GET before consent, set on
     reject, the banner has no reject control, reject is a different element
     type from accept, or accept never sets the cookie.
+12. analytics: is_bot never filters a crawler, count_views counts every GET,
+    consent is ignored, a prefetch or a reload is never recognised, or the
+    stored result keeps the user-agent (personal data).
 """
 
 MUTATIONS = [
@@ -429,5 +432,117 @@ MUTATIONS = [
         '        \'<button type="submit" name="choice" value="reject">Reject</button>\\n\'',
         '        \'<button type=button name="choice" value="reject">Reject</button>\\n\'',
         "11",
+    ),
+    # Step 12 (analytics): the counter must filter the log, not trust its length.
+    (
+        "is_bot never filters a request",
+        "analytics.py",
+        "    if user_agent is None:\n"
+        "        return False\n"
+        "    agent = user_agent.strip().lower()\n"
+        "    if not agent:\n"
+        "        return True\n"
+        "    return any(marker in agent for marker in BOT_MARKERS)",
+        "    return False",
+        "12",
+    ),
+    (
+        "count_views counts every GET, with all filters removed",
+        "analytics.py",
+        "        path = record.get(\"path\") or \"\"\n"
+        "        # Strip the query string and fragment first: `/site.css?v=2` is still an\n"
+        "        # asset, not a page.\n"
+        "        if path.split(\"?\", 1)[0].split(\"#\", 1)[0].lower().endswith(ASSET_EXTENSIONS):\n"
+        "            continue\n"
+        "        if is_bot(record.get(\"user_agent\")):\n"
+        "            continue\n"
+        "        headers = record.get(\"headers\") or {}\n"
+        "        if is_prefetch(headers) or is_reload(headers):\n"
+        "            continue\n"
+        "        if not consented(record.get(\"cookies\")):\n"
+        "            continue\n"
+        "        views[path] += 1",
+        "        path = record.get(\"path\") or \"\"\n"
+        "        views[path] += 1",
+        "12",
+    ),
+    (
+        "count_views ignores consent and counts everyone",
+        "analytics.py",
+        "        if not consented(record.get(\"cookies\")):\n"
+        "            continue\n",
+        "",
+        "12",
+    ),
+    (
+        "is_prefetch never recognises a speculative request",
+        "analytics.py",
+        "    for name in (\"Purpose\", \"X-Purpose\", \"X-Moz\"):\n"
+        "        value = _header(headers, name).lower()\n"
+        "        if any(token.strip() in _PREFETCH_VALUES\n"
+        "               for token in value.replace(\";\", \",\").split(\",\")):\n"
+        "            return True\n"
+        "    return False",
+        "    return False",
+        "12",
+    ),
+    (
+        "is_reload never recognises a reload",
+        "analytics.py",
+        "    return \"no-cache\" in cache or \"max-age=0\" in cache or \"no-cache\" in pragma",
+        "    return False",
+        "12",
+    ),
+    (
+        "count_views stores the user-agent with each view (personal data)",
+        "analytics.py",
+        "    ordered = {path: views[path] for path in sorted(views)}\n"
+        "    return {\"views\": ordered, \"total\": sum(ordered.values())}",
+        "    agents = {}\n"
+        "    for record in records:\n"
+        "        if (record.get(\"method\") or \"\").upper() == \"GET\":\n"
+        "            agents.setdefault(record.get(\"path\") or \"\", []).append(\n"
+        "                record.get(\"user_agent\"))\n"
+        "    ordered = {path: {\"count\": views[path], \"user_agents\": agents.get(path, [])}\n"
+        "               for path in sorted(views)}\n"
+        "    return {\"views\": ordered, \"total\": sum(v[\"count\"] for v in ordered.values())}",
+        "12",
+    ),
+    # A query string does not turn an asset into a page: step 12 logs /site.css?v=2.
+    (
+        "the asset test ignores the query string, so /site.css?v=2 is a view",
+        "analytics.py",
+        '        if path.split("?", 1)[0].split("#", 1)[0].lower()'
+        '.endswith(ASSET_EXTENSIONS):\n            continue\n',
+        '        if path.lower().endswith(ASSET_EXTENSIONS):\n            continue\n',
+        "12",
+    ),
+    # A Purpose header can carry several tokens: step 12 logs "prefetch, preview".
+    (
+        "prefetch is only recognised when the header is one exact token",
+        "analytics.py",
+        '        if any(token.strip() in _PREFETCH_VALUES\n'
+        '               for token in value.replace(";", ",").split(",")):\n'
+        '            return True\n',
+        '        if value.strip() in _PREFETCH_VALUES:\n'
+        '            return True\n',
+        "12",
+    ),
+    # The result holds paths and counts only: step 12 rejects any extra key.
+    (
+        "count_views stores a request timestamp alongside the counts",
+        "analytics.py",
+        '    return {"views": ordered, "total": sum(ordered.values())}',
+        '    return {"views": ordered, "total": sum(ordered.values()), '
+        '"timestamp": 0}',
+        "12",
+    ),
+    # A blank user-agent is a bot; step 12 logs one alongside a missing one.
+    (
+        "is_bot treats an explicit empty user-agent as a human",
+        "analytics.py",
+        '    if not agent:\n        return True\n',
+        '    if not agent:\n        return False\n',
+        "12",
     ),
 ]

@@ -1,4 +1,4 @@
-# Solutions — web launch checklist, exercises 1-11
+# Solutions — web launch checklist, exercises 1-12
 
 The reference site. `serve.py` routes the pages in `pages.py` and answers every
 unknown path with the 404 page and status 404. It also serves `robots.txt` from
@@ -17,9 +17,11 @@ confirmation. Every response carries the strictly-necessary `wlc_session` cookie
 and `choice=reject` adds no analytics cookie at all. `GET /boom` deliberately
 raises: the handler catches it, appends the traceback to `SERVER_LOG` and answers
 500 with the generic `pages.server_error()`, which carries no detail.
-`crawler.py`, `unfurl.py`, `visit.py`, `reader.py` and `impatient.py` are the
-provided observers (symlinked from the module root so the mutation harness can
-carry them).
+`analytics.py` is the stand-alone page-view counter: it filters a request log
+down to deliberate, consented human views and stores only paths and integer
+counts. `crawler.py`, `unfurl.py`, `visit.py`, `reader.py` and `impatient.py` are
+the provided observers (symlinked from the module root so the mutation harness
+can carry them).
 
 ## Expected output
 
@@ -28,7 +30,7 @@ Copy these files next to `check.py` and run:
 ```
 $ python3 check.py --all
 
-Web launch checklist — progress check (exercises 1-11)
+Web launch checklist — progress check (exercises 1-12)
 implement serve.py and pages.py, then run the observers
 
   ✓  1. serve.py  unknown paths return a real 404 page that links home
@@ -50,12 +52,14 @@ implement serve.py and pages.py, then run the observers
       500 page leaks nothing; the log holds the detail
   ✓ 10. pages.py/serve.py invalid input gets a field-level message; a 500 leaks nothing
       cookies before any choice: wlc_session
-      consent controls: accept=<button> reject=<button>
-      accept -> wlc_session=...; Path=/; HttpOnly; SameSite=Lax wlc_analytics=1; Path=/
+      consent form: post /consent, accept='Accept' reject='Reject'
+      accept -> wlc_analytics=1
       reject -> analytics cookie absent
   ✓ 11. pages.py/serve.py no analytics cookie before consent; accept sets it, reject does not
+      naive 12 -> fixed 4 views ({'/': 2, '/about': 1, '/pricing': 1})
+  ✓ 12. analytics.py page views count humans who consented, not bots, reloads or prefetches
 
-  11/11 passing
+  12/12 passing
 
   All checks pass — the crawler sees a launchable site.
   Run crawler.py against it, then compare with solutions/.
@@ -287,14 +291,62 @@ domain, the message one names the minimum length. The 500 body names none of
 `Traceback`, `RuntimeError`, `boom`, `.py` or a Python version; the last line of
 `SERVER_LOG` names the exception. `check.py` step 10 asserts exactly that.
 
+## Seeing the page views
+
+`analytics.py` is not wired into the server; it takes a request log and returns the
+views a launch can trust. `demo()` builds a small synthetic log and prints the fixed
+counts beside the naive "count every request" counts, so the damage the five filters
+undo is visible at once.
+
+```
+$ python3 analytics.py
+naive (count every request):
+    /                    5
+    /about               3
+    /assets/site.css     1
+    /pricing             1
+    TOTAL                10
+fixed (count human, consented views):
+    /                    2
+    /about               1
+    /pricing             1
+    TOTAL                4
+excluded requests:
+    bot                  1
+    prefetch             1
+    reload               1
+    no consent           1
+    asset                1
+```
+
+The same module sees the provided crawler for what it is: its user-agent
+(`web-launch-checklist-crawler/1.0`) carries the `crawl` marker, so a log of its
+requests yields no views at all, consent cookie or not.
+
+```
+$ python3 - <<'PY'
+import analytics, crawler
+print("is_bot:", analytics.is_bot(crawler.USER_AGENT))
+log = [{"path": "/", "method": "GET", "user_agent": crawler.USER_AGENT,
+        "headers": {}, "cookies": "wlc_analytics=1"}]
+print("views:", analytics.count_views(log))
+PY
+is_bot: True
+views: {'views': {}, 'total': 0}
+```
+
+`check.py` step 12 grades the same three things against a hand-built log with known
+ground truth: the exact per-path counts and total, the crawler's zero, and that the
+stored result is paths and integers only.
+
 ## The planted bugs
 
 `_build/mutations.py` plants classic mistakes across the exercises; each is caught
-by the named step (see the module README for the table). **Forty-nine** mutations
+by the named step (see the module README for the table). **Fifty-nine** mutations
 are planted in total: seven across check steps 1-5 (the 404, titles,
 descriptions, robots and sitemap), six for Open Graph (check step 6), five for the
 favicon (check step 7), five for alt text (check step 8), five for loading
-states (check step 9), seven for error messages (check step 10) and fourteen for
-cookies (check step 11). To reproduce
+states (check step 9), seven for error messages (check step 10), fourteen for
+cookies (check step 11) and ten for analytics (check step 12). To reproduce
 any single bug: mutate `solutions/`, copy `solutions/*.py` and `check.py` into a
 temporary directory, and run `python3 check.py <step>` there.

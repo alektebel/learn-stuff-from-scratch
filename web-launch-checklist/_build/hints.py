@@ -1,4 +1,4 @@
-"""Graded hints for the learner templates (exercises 1-11).
+"""Graded hints for the learner templates (exercises 1-12).
 
 `make_templates.py` reads each `solutions/<file>` and replaces the listed
 functions with a `# TODO` and `raise NotImplementedError`. The rest of the file
@@ -123,6 +123,30 @@ HINTS = {
         "sitemap_xml": (
             "return XML listing every path in page_paths as <url><loc>base+path</loc>"
             "<lastmod>...</lastmod></url> with a fixed date, including pages nothing links to"
+        ),
+    },
+    "analytics.py": {
+        "is_bot": (
+            "return True when the user-agent is an explicit blank string or contains any "
+            "marker from BOT_MARKERS, case-insensitively; a missing user-agent (None) is "
+            "not a bot"
+        ),
+        "is_prefetch": (
+            "return True when the Purpose, X-Purpose or X-Moz header is a prefetch or "
+            "preview value"
+        ),
+        "is_reload": (
+            "return True when Cache-Control contains no-cache or max-age=0, or Pragma "
+            "contains no-cache"
+        ),
+        "consented": (
+            "return True when the cookie header carries a non-empty ANALYTICS_COOKIE value"
+        ),
+        "count_views": (
+            "keep only GET records whose path is not an asset, whose user-agent is not a "
+            "bot, that are neither prefetch nor reload, and that carry consent; tally per "
+            "path and return {\"views\": {sorted path: int}, \"total\": int} - stored paths "
+            "and integers only, no user-agent, IP or cookie"
         ),
     },
 }

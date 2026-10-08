@@ -1,5 +1,5 @@
 """
-Progress checker for the web launch checklist, exercises 1-11.
+Progress checker for the web launch checklist, exercises 1-12.
 
     python3 check.py           # run every check, stop at the first unimplemented step
     python3 check.py 2         # run only step 2
@@ -768,6 +768,147 @@ def check_cookies():
         print(f"      {GREY}reject -> analytics cookie absent{RESET}")
 
 
+# ---------------------------------------------------------------------------
+# Step 12: page views count humans who consented, not bots, reloads or prefetches
+# ---------------------------------------------------------------------------
+
+def _leaf_strings(node):
+    """Every string VALUE inside a JSON-like result; dict keys are not values."""
+    if isinstance(node, dict):
+        for value in node.values():
+            yield from _leaf_strings(value)
+    elif isinstance(node, (list, tuple)):
+        for value in node:
+            yield from _leaf_strings(value)
+    elif isinstance(node, str):
+        yield node
+
+
+def check_analytics():
+    import json
+
+    import crawler
+    from pages import ANALYTICS_COOKIE
+
+    import analytics
+
+    human_ua = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Firefox/128.0")
+    consent = f"{ANALYTICS_COOKIE}=1"
+
+    def record(path="/", method="GET", user_agent=human_ua, headers=None,
+               cookies=consent):
+        return {"path": path, "method": method, "user_agent": user_agent,
+                "headers": headers or {}, "cookies": cookies}
+
+    # 1. A hand-built log with known ground truth: two humans read "/", one reads
+    #    "/about", one reads "/pricing"; every other request is one of the five
+    #    things that is not a view. The naive count is strictly larger, so the
+    #    filtering is doing real work.
+    log = [
+        record("/"),                                              # view
+        record("/"),                                              # view
+        record("/", cookies=""),                                  # no consent
+        record("/about"),                                         # view
+        record("/about", user_agent=crawler.USER_AGENT),          # bot
+        record("/", headers={"Purpose": "prefetch"}),             # prefetch
+        record("/", headers={"Purpose": "prefetch, preview"}),    # prefetch, two tokens
+        record("/about", headers={"Cache-Control": "no-cache"}),  # reload
+        record("/assets/site.css"),                               # asset
+        record("/assets/site.css?v=2"),                           # asset with a query
+        record("/pricing"),                                       # view
+        record("/", method="POST"),                               # not a GET
+    ]
+    result = analytics.count_views(log)
+    expected = {"/": 2, "/about": 1, "/pricing": 1}
+    assert result["views"] == expected, (
+        f"count_views returned {result['views']!r}, not {expected!r}. One bot, one "
+        "prefetch, one reload, one asset, one non-GET and one unconsented request "
+        "must each be dropped, and only the deliberate human views kept.")
+    assert result["total"] == sum(expected.values()), (
+        f"the total is {result['total']}, not {sum(expected.values())}. It must be "
+        "the sum of the per-path views, not the number of requests.")
+    assert len(log) > result["total"], (
+        f"the naive count ({len(log)}) is not larger than the fixed total "
+        f"({result['total']}): the filtering is not removing anything, so it is "
+        "not doing the job.")
+
+    # 2. The provided crawler identifies itself, and a log of crawler requests
+    #    yields no views at all: the crawler's visits are not counted.
+    assert analytics.is_bot(crawler.USER_AGENT) is True, (
+        f"is_bot({crawler.USER_AGENT!r}) is not True: the provided search-bot "
+        "user-agent must be recognised and filtered.")
+    crawler_log = [record("/", user_agent=crawler.USER_AGENT),
+                   record("/about", user_agent=crawler.USER_AGENT)]
+    assert analytics.count_views(crawler_log)["total"] == 0, (
+        "a log whose only requests carry the crawler's user-agent counted "
+        f"{analytics.count_views(crawler_log)['total']} views, not 0: the "
+        "crawler's visits must not be counted as human page views.")
+
+    # 3. Consent is respected: the same human request is skipped without the
+    #    consent cookie and counted with it.
+    assert analytics.count_views([record("/", cookies="")])["total"] == 0, (
+        "a human request without the analytics cookie was counted: consent must "
+        "be present before a view is recorded.")
+    assert analytics.count_views([record("/")])["total"] == 1, (
+        "a human request carrying the analytics cookie was not counted: consent "
+        "is what makes the view countable.")
+
+    # 4. Prefetch, reload and asset requests from a consenting human are not views.
+    assert analytics.count_views(
+        [record("/", headers={"Purpose": "prefetch"})])["total"] == 0, (
+        "a prefetch was counted as a page view: the browser fetched it before the "
+        "user arrived.")
+    assert analytics.count_views(
+        [record("/", headers={"Cache-Control": "max-age=0"})])["total"] == 0, (
+        "a reload was counted as a page view: hitting refresh must not inflate the "
+        "count.")
+    assert analytics.count_views([record("/styles/site.css")])["total"] == 0, (
+        "a static asset was counted as a page view: only HTML pages are views.")
+
+    # 5. No personal data: the result holds paths and integer counts only.
+    assert set(result) == {"views", "total"}, (
+        f"the result has extra key(s) {sorted(set(result) - {'views', 'total'})}: a "
+        "page-view count stores only the per-path views and their total, no "
+        "timestamp or other request metadata.")
+    assert all(isinstance(value, int) and not isinstance(value, bool)
+               for value in result["views"].values()), (
+        f"a view count is not an integer: {result['views']!r}. Only aggregate "
+        "counts may be stored.")
+    stored_strings = list(_leaf_strings(result))
+    assert not stored_strings, (
+        f"the result stores string value(s) {stored_strings!r}. A page-view count "
+        "must hold no user-agent, IP, cookie or other personal data - only paths "
+        "(as keys) and integer counts.")
+    assert set(result["views"]) <= {request["path"] for request in log}, (
+        f"the result has a key that is not a request path: {result['views']!r}.")
+    assert (human_ua not in json.dumps(result)
+            and crawler.USER_AGENT not in json.dumps(result)), (
+        "the serialised result contains a user-agent string: personal data leaked "
+        "into the stored counts.")
+
+    # 6. Consent does not override the bot filter, and a missing user-agent is
+    #    not a bot.
+    assert analytics.count_views(
+        [record("/", user_agent=crawler.USER_AGENT,
+                cookies=consent)])["total"] == 0, (
+        "a crawler carrying the consent cookie was counted: consent does not turn "
+        "a bot into a human.")
+    missing_ua = [{"path": "/privacy", "method": "GET", "headers": {},
+                   "cookies": consent}]
+    assert analytics.count_views(missing_ua)["total"] == 1, (
+        "a consenting request with no user-agent header was not counted: a "
+        "missing user-agent is not the same as a bot and must not be dropped.")
+    blank_ua = [{"path": "/privacy", "method": "GET", "user_agent": "",
+                 "headers": {}, "cookies": consent}]
+    assert analytics.count_views(blank_ua)["total"] == 0, (
+        "a request with an explicit empty user-agent was counted: a blank "
+        "user-agent is a client that chose to say nothing, and is a bot, unlike "
+        "a missing one.")
+    print(f"      {GREY}naive {len(log)} -> fixed {result['total']} views "
+          f"({result['views']}){RESET}")
+
+
 CHECKS: List[Tuple[str, str, Callable[[], None]]] = [
     ("serve.py", "unknown paths return a real 404 page that links home", check_custom_404),
     ("pages.py", "every page has a unique <title> within the length limit", check_titles),
@@ -780,6 +921,7 @@ CHECKS: List[Tuple[str, str, Callable[[], None]]] = [
     ("pages.py/serve.py", "a double submit records one order and the control disables on submit", check_loading_state),
     ("pages.py/serve.py", "invalid input gets a field-level message; a 500 leaks nothing", check_error_messages),
     ("pages.py/serve.py", "no analytics cookie before consent; accept sets it, reject does not", check_cookies),
+    ("analytics.py", "page views count humans who consented, not bots, reloads or prefetches", check_analytics),
 ]
 
 
@@ -810,7 +952,7 @@ def main(argv: List[str]) -> int:
     wanted = [int(a) for a in argv if a.isdigit()]
     if len(wanted) > 1:
         wanted = list(range(min(wanted), max(wanted) + 1))
-    print(f"\n{BOLD}Web launch checklist — progress check (exercises 1-11){RESET}")
+    print(f"\n{BOLD}Web launch checklist — progress check (exercises 1-12){RESET}")
     print(f"{GREY}implement serve.py and pages.py, then run the observers{RESET}\n")
     passed = failed = todo = 0
     first_gap = None
