@@ -13,7 +13,8 @@ DESIGN DECISION - route by an explicit map, not by "does the file exist".
     a page that was never written and a page that was deleted. The map makes the
     site's public surface explicit, so the crawler and the server agree on what
     exists. The cost: static assets (CSS, images) need their own branch, which is
-    why `/og-image.png` is routed here rather than found on disk.
+    why `/og-image.png` and `/favicon.ico` are routed here rather than found on
+    disk.
 
 DESIGN DECISION - the 404 status comes from the server, the 404 body from the
     site. `pages.not_found()` returns a helpful page that links home; the handler
@@ -32,7 +33,7 @@ DESIGN DECISION - `_respond` accepts bytes or text. Page bodies are strings, but
 import http.server
 import urllib.parse
 
-from pages import not_found, og_image_png, pages, robots_txt, sitemap_xml
+from pages import favicon_png, not_found, og_image_png, pages, robots_txt, sitemap_xml
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8000
@@ -47,6 +48,8 @@ class SiteHandler(http.server.BaseHTTPRequestHandler):
         base = "http://" + self.headers.get("Host", "")
         if route == "/og-image.png":
             self._respond(200, og_image_png(), "image/png")
+        elif route == "/favicon.ico":
+            self._respond(200, favicon_png(), "image/png")
         elif route == "/robots.txt":
             self._respond(200, robots_txt(base), "text/plain; charset=utf-8")
         elif route == "/sitemap.xml":

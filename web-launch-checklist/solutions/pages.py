@@ -39,6 +39,16 @@ asset: the mutation harness copies only `.py` files, so a checkout image would n
 travel with the sandbox, and the recommended 1200x630 size is stated by a constant
 the checker can grade. The cost: a flat single-colour card, which is enough to
 prove the tag, the route and the dimensions.
+
+DESIGN DECISION - the favicon is linked at the size it is served, and built, not
+stored. Every page carries `<link rel="icon" type="image/png" sizes="32x32"
+href="/favicon.ico">`; the `sizes` attribute is a promise the browser can check,
+and a page that declares 16x16 while the server returns 32x32 is caught. The
+icon itself is a real 32x32 PNG built by `favicon_png` from `zlib` + `struct` for
+the same reason as the Open Graph image: a `.py`-only sandbox still carries it,
+and the checker measures the bytes against the declared size. `/favicon.ico` is
+also the URL a browser guesses when a page declares no icon, so the linked request
+and the implicit one hit the same route.
 """
 
 import html
@@ -61,13 +71,13 @@ NAV = (
 )
 
 
-def og_image_png(width=OG_IMAGE_WIDTH, height=OG_IMAGE_HEIGHT, color=(15, 42, 74)):
-    """Return a real RGB PNG of the recommended card size, built by hand.
+def _png_bytes(width, height, color):
+    """Return a real RGB PNG of `width` x `height` filled with `color`, by hand.
 
-    Provided helper, not graded: the exercise is the tag, the route and the size,
-    not PNG encoding. `zlib` and `struct` are in the standard library, so the
-    image is deterministic and a few kilobytes, not the 5 MB a raw screenshot
-    would be. Filter-0 scanlines keep the encoder three lines long.
+    `zlib` and `struct` are in the standard library, so the image is deterministic
+    and a few kilobytes, not the megabytes a raw screenshot would be. Filter-0
+    scanlines keep the encoder three lines long. Shared by the Open Graph card and
+    the favicon, which differ only in size and colour.
     """
     r, g, b = color
     row = b"\x00" + bytes((r, g, b)) * width
@@ -83,6 +93,37 @@ def og_image_png(width=OG_IMAGE_WIDTH, height=OG_IMAGE_HEIGHT, color=(15, 42, 74
             + chunk(b"IHDR", header)
             + chunk(b"IDAT", zlib.compress(raw, 9))
             + chunk(b"IEND", b""))
+
+
+def og_image_png(width=OG_IMAGE_WIDTH, height=OG_IMAGE_HEIGHT, color=(15, 42, 74)):
+    """Return a real RGB PNG of the recommended card size, built by hand.
+
+    Provided helper, not graded: the exercise is the tag, the route and the size,
+    not PNG encoding. See `_png_bytes`.
+    """
+    return _png_bytes(width, height, color)
+
+
+def favicon_png(width=32, height=32, color=(220, 60, 60)):
+    """Return a real RGB PNG favicon, built by hand.
+
+    Provided helper, not graded: the exercise is the tag, the route and the
+    declared size. The default is the 32x32 a browser's high-density tab wants;
+    `visit.py` reads the true size out of the IHDR bytes rather than trusting the
+    `<link>`.
+    """
+    return _png_bytes(width, height, color)
+
+
+def icon_link():
+    """Return the page's `<link rel="icon">` tag.
+
+    `href="/favicon.ico"` names the same URL a browser guesses when no link is
+    present, so the declared request and the implicit one are one route.
+    `sizes="32x32"` must state the icon's real size: a wrong value makes the
+    browser skip the icon or fetch a second one.
+    """
+    return '<link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">'
 
 
 def og_tags(title, description, path):
@@ -120,6 +161,7 @@ def _doc(title, description, main, path="/"):
         "<head>\n"
         '<meta charset="utf-8">\n'
         f"<title>{title}</title>\n"
+        f"{icon_link()}\n"
         f"{head}"
         f"{og_tags(title, description, path)}"
         "</head>\n"

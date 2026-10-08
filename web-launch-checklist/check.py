@@ -1,5 +1,5 @@
 """
-Progress checker for the web launch checklist, exercises 1-3 and 5-7.
+Progress checker for the web launch checklist, exercises 1-7.
 
     python3 check.py           # run every check, stop at the first unimplemented step
     python3 check.py 2         # run only step 2
@@ -9,7 +9,8 @@ Progress checker for the web launch checklist, exercises 1-3 and 5-7.
 A check that raises NotImplementedError is reported as TODO (not a failure): that
 is simply the next thing to write. Nothing here imports solutions/. It tests YOUR
 `serve.py` and `pages.py` by starting a server and observing it with the provided
-`crawler.py` (a search bot) and `unfurl.py` (a chat app building a preview).
+`crawler.py` (a search bot), `unfurl.py` (a chat app building a preview) and
+`visit.py` (a browser's first visit, implicit favicon and all).
 """
 
 import shutil
@@ -264,6 +265,60 @@ def check_open_graph():
             "the same absolute image URL.")
 
 
+# ---------------------------------------------------------------------------
+# Step 7: a favicon the browser can fetch
+# ---------------------------------------------------------------------------
+
+def check_favicon():
+    import re
+
+    from visit import ICON_SIZES, measure_icon, visit
+
+    wanted = " or ".join(f"{w}x{h}" for w, h in ICON_SIZES)
+    with _RunningSite() as base:
+        result = visit(base, ["/", "/about"])
+        icons = [r for r in result.requests if r.path.rstrip("/") == "/favicon.ico"]
+        assert icons, (
+            "a browser's first visit produced no request for /favicon.ico. The exercise "
+            "asks for the icon at that path: the browser guesses it for every page that "
+            "declares no link, and the link must point at it. Every page must also carry "
+            "a `<link rel=\"icon\" ...>`.")
+        icon = icons[0]
+        assert icon.status == 200, (
+            f"the icon request {icon.path!r} returned status {icon.status}, not 200. The "
+            "tab shows a broken-image glyph, and every one of those requests pays for a "
+            "full custom 404 page.")
+        assert icon.content_type.startswith("image/"), (
+            f"the icon was served as {icon.content_type!r}, not an image type. Browsers "
+            "trust the content type and refuse to render it as an icon.")
+        width, height, fmt = measure_icon(icon.body)
+        print(f"      {GREY}icon {icon.path} (linked={icon.from_link}): "
+              f"{width}x{height} {fmt}{RESET}")
+        assert (width, height) in ICON_SIZES, (
+            f"the icon measures {width}x{height}, not {wanted}. A browser only uses a "
+            "favicon at one of the sizes it asks for; anything else is scaled to a blur "
+            "or ignored.")
+
+        for path in result.pages:
+            page = next((r for r in result.requests
+                         if r.path == path and not r.from_link), None)
+            assert page is not None, f"the visit recorded no response for {path}"
+            html_text = page.body.decode("utf-8", "replace")
+            tags = re.findall(r"<link\b[^>]*>", html_text, re.IGNORECASE)
+            icon_tags = [t for t in tags
+                         if re.search(r'rel\s*=\s*"[^"]*\bicon\b', t, re.IGNORECASE)]
+            assert icon_tags, (
+                f"{path} has no `<link rel=\"icon\">`. Without the link the browser "
+                "falls back to guessing /favicon.ico; the page never says which icon it "
+                "uses.")
+            sizes = re.search(r'sizes\s*=\s*"([^"]*)"', icon_tags[0], re.IGNORECASE)
+            declared = sizes.group(1).split() if sizes else []
+            assert f"{width}x{height}" in declared, (
+                f"{path} declares favicon sizes {declared or '(none)'}, but the icon the "
+                f"server actually returns is {width}x{height}. A size that does not match "
+                "the bytes makes the browser skip the icon or fetch a second one.")
+
+
 CHECKS: List[Tuple[str, str, Callable[[], None]]] = [
     ("serve.py", "unknown paths return a real 404 page that links home", check_custom_404),
     ("pages.py", "every page has a unique <title> within the length limit", check_titles),
@@ -271,6 +326,7 @@ CHECKS: List[Tuple[str, str, Callable[[], None]]] = [
     ("serve.py/pages.py", "robots.txt allows the public site and names no secret", check_robots),
     ("pages.py", "sitemap.xml is valid, complete and fetches 200", check_sitemap),
     ("pages.py/serve.py", "the unfurled card shows the page title, description and an absolute, real image", check_open_graph),
+    ("pages.py/serve.py", "every page points at a real favicon the browser can fetch", check_favicon),
 ]
 
 
@@ -301,7 +357,7 @@ def main(argv: List[str]) -> int:
     wanted = [int(a) for a in argv if a.isdigit()]
     if len(wanted) > 1:
         wanted = list(range(min(wanted), max(wanted) + 1))
-    print(f"\n{BOLD}Web launch checklist — progress check (exercises 1-3, 5-7){RESET}")
+    print(f"\n{BOLD}Web launch checklist — progress check (exercises 1-7){RESET}")
     print(f"{GREY}implement serve.py and pages.py, then run the observers{RESET}\n")
     passed = failed = todo = 0
     first_gap = None

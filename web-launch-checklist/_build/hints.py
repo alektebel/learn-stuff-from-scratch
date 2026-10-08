@@ -1,4 +1,4 @@
-"""Graded hints for the learner templates (exercises 1-3 and 5-7).
+"""Graded hints for the learner templates (exercises 1-7).
 
 `make_templates.py` reads each `solutions/<file>` and replaces the listed
 functions with a `# TODO` and `raise NotImplementedError`. The rest of the file
@@ -10,6 +10,7 @@ HINTS = {
         "SiteHandler.do_GET": (
             "route the request path: a path in pages() gets status 200 and its HTML; "
             "GET /og-image.png serves og_image_png() as image/png; "
+            "GET /favicon.ico serves favicon_png() as image/png; "
             "GET /robots.txt serves robots_txt(base) as text/plain; GET /sitemap.xml "
             "serves sitemap_xml over the page paths as application/xml (base = Host header); "
             "anything else gets the 404 page with status 404 (no redirect to /)"
@@ -25,6 +26,10 @@ HINTS = {
             "og:description, og:url (SITE_URL + path), og:image (an ABSOLUTE "
             "SITE_URL + \"/og-image.png\"), og:image:width, og:image:height and "
             "twitter:card=summary_large_image; HTML-escape title and description"
+        ),
+        "icon_link": (
+            "return the <link rel=\"icon\"> tag: type=\"image/png\", href=\"/favicon.ico\", "
+            "and sizes=\"32x32\" matching the icon the server really returns"
         ),
         "pages": (
             "return {path: html} for every public page; each page needs a <title> "

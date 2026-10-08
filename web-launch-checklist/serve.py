@@ -13,7 +13,8 @@ DESIGN DECISION - route by an explicit map, not by "does the file exist".
     a page that was never written and a page that was deleted. The map makes the
     site's public surface explicit, so the crawler and the server agree on what
     exists. The cost: static assets (CSS, images) need their own branch, which is
-    why `/og-image.png` is routed here rather than found on disk.
+    why `/og-image.png` and `/favicon.ico` are routed here rather than found on
+    disk.
 
 DESIGN DECISION - the 404 status comes from the server, the 404 body from the
     site. `pages.not_found()` returns a helpful page that links home; the handler
@@ -32,7 +33,7 @@ DESIGN DECISION - `_respond` accepts bytes or text. Page bodies are strings, but
 import http.server
 import urllib.parse
 
-from pages import not_found, og_image_png, pages, robots_txt, sitemap_xml
+from pages import favicon_png, not_found, og_image_png, pages, robots_txt, sitemap_xml
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8000
@@ -42,7 +43,7 @@ class SiteHandler(http.server.BaseHTTPRequestHandler):
     server_version = "web-launch-checklist/1.0"
 
     def do_GET(self):  # noqa: N802 - name fixed by BaseHTTPRequestHandler
-        # TODO: route the request path: a path in pages() gets status 200 and its HTML; GET /og-image.png serves og_image_png() as image/png; GET /robots.txt serves robots_txt(base) as text/plain; GET /sitemap.xml serves sitemap_xml over the page paths as application/xml (base = Host header); anything else gets the 404 page with status 404 (no redirect to /)
+        # TODO: route the request path: a path in pages() gets status 200 and its HTML; GET /og-image.png serves og_image_png() as image/png; GET /favicon.ico serves favicon_png() as image/png; GET /robots.txt serves robots_txt(base) as text/plain; GET /sitemap.xml serves sitemap_xml over the page paths as application/xml (base = Host header); anything else gets the 404 page with status 404 (no redirect to /)
         raise NotImplementedError("SiteHandler.do_GET")
 
     def _respond(self, status, body, content_type="text/html; charset=utf-8"):

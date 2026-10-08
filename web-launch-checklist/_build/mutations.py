@@ -11,6 +11,8 @@ check step). One classic mistake per exercise:
 6. Open Graph: a relative og:image, a missing image, a card title that does not
    match the page, no /og-image.png route, the image served as HTML, or an
    image below the recommended height.
+7. favicon: no <link rel="icon">, a declared size that lies, a 1x1 icon, no
+   /favicon.ico route, or the icon served as text/html.
 """
 
 MUTATIONS = [
@@ -90,8 +92,12 @@ MUTATIONS = [
         "serve.py",
         '        if route == "/og-image.png":\n'
         '            self._respond(200, og_image_png(), "image/png")\n'
+        '        elif route == "/favicon.ico":\n'
+        '            self._respond(200, favicon_png(), "image/png")\n'
         '        elif route == "/robots.txt":',
-        '        if route == "/robots.txt":',
+        '        if route == "/favicon.ico":\n'
+        '            self._respond(200, favicon_png(), "image/png")\n'
+        '        elif route == "/robots.txt":',
         "6",
     ),
     (
@@ -107,5 +113,41 @@ MUTATIONS = [
         "OG_IMAGE_HEIGHT = 630",
         "OG_IMAGE_HEIGHT = 100",
         "6",
+    ),
+    (
+        "no page emits a <link rel=\"icon\"> tag",
+        "pages.py",
+        '        f"{icon_link()}\\n"\n',
+        "",
+        "7",
+    ),
+    (
+        "the declared favicon size (16x16) lies about the 32x32 icon",
+        "pages.py",
+        '<link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">',
+        '<link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">',
+        "7",
+    ),
+    (
+        "the favicon is a 1x1 pixel",
+        "pages.py",
+        "def favicon_png(width=32, height=32, color=(220, 60, 60)):",
+        "def favicon_png(width=1, height=1, color=(220, 60, 60)):",
+        "7",
+    ),
+    (
+        "there is no route for /favicon.ico, so the icon 404s",
+        "serve.py",
+        '        elif route == "/favicon.ico":\n'
+        '            self._respond(200, favicon_png(), "image/png")\n',
+        "",
+        "7",
+    ),
+    (
+        "the favicon is served as text/html instead of image/png",
+        "serve.py",
+        '            self._respond(200, favicon_png(), "image/png")',
+        '            self._respond(200, favicon_png(), "text/html; charset=utf-8")',
+        "7",
     ),
 ]
