@@ -23,6 +23,10 @@ import subprocess
 import sys
 import tempfile
 
+# Importing mutations.py through importlib would otherwise leave a __pycache__
+# directory inside the module's _build/; audits require the working tree clean.
+sys.dont_write_bytecode = True
+
 
 def main(argv):
     if len(argv) != 2:
