@@ -49,7 +49,7 @@ A synthetic "company docs" corpus generated deterministically, with ground truth
 | # | Project | Built here as | Needs | Already in the repo |
 |---|---|---|---|---|
 | 1 | Hybrid search (BM25 + dense) | inverted index + BM25; LSA and trained embeddings; HNSW; fusion by reciprocal rank and by weighted scores | CPU | [context-caching/semantic_cache.py](../context-caching/semantic_cache.py) (embeddings + cosine) |
-| 2 | Metadata-filtered RAG | metadata in SQLite; pre-filter vs post-filter vs filter-aware graph search | CPU | [enterprise-ai-projects/02](../enterprise-ai-projects/02-multitenant-rag.md): tenant isolation as a filter that must not be bypassable; [database-from-scratch](../database-from-scratch/) secondary indexes |
+| 2 | Metadata-filtered RAG | metadata in SQLite; pre-filter vs post-filter vs filter-aware index search (the HNSW graph-disconnection variant is a later stage) | CPU | [enterprise-ai-projects/02](../enterprise-ai-projects/02-multitenant-rag.md): tenant isolation as a filter that must not be bypassable; [database-from-scratch](../database-from-scratch/) secondary indexes |
 | 3 | Reranking | retrieve 100, rerank to 5 with a reranker trained here | CPU | [ml-systems/framework](../ml-systems/framework/) to train it |
 | 4 | Contextual chunking | chunk with the document's title and section path attached; the LLM-written context variant later | CPU, then LLM | — |
 | 5 | SQL + vector | a router that sends structured questions to SQLite and the rest to retrieval; text-to-SQL later | CPU, then LLM | [rl-posttraining-llm](../rl-posttraining-llm/) (text-to-SQL environment and rewards) |
