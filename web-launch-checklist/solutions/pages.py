@@ -18,7 +18,20 @@ DESIGN DECISION - one `_doc` helper, `NAV` shared. Every page carries the same
 navigation, so the crawler can discover the whole site from the home page alone.
 If a page were only reachable from `sitemap.xml` the link graph would miss it; the
 sitemap is a later exercise and must not be what makes a page findable.
+
+DESIGN DECISION - robots.txt allows everything and names no secret. A `Disallow`
+line is public: well-behaved bots obey it, everyone else reads it as an index of
+what you would rather they not see. `/admin` is "protected" by an access check on
+the path, never by asking crawlers to look away. The only URL we publish is the
+sitemap, which is meant to be read.
+
+DESIGN DECISION - `lastmod` is a fixed constant, not "now". A build whose sitemap
+changes on every request tells the bot the site changed when nothing did, and the
+checker could not be deterministic. When the pages actually change, the constant
+is bumped.
 """
+
+import xml.sax.saxutils
 
 NAV = (
     '<nav><a href="/">Home</a> · <a href="/about">About</a> · '
@@ -92,3 +105,45 @@ def not_found():
         "the <a href=\"/docs\">docs</a>, or <a href=\"/contact\">tell us</a> what you "
         "were looking for.</p>",
     )
+
+
+# Fixed date for every <lastmod>; bump it when the pages change. See the
+# "fixed constant, not now" design decision in the module docstring.
+LASTMOD = "2026-01-01"
+
+
+def robots_txt(base_url):
+    """Return the /robots.txt body: allow the public site, name no secret path.
+
+    `User-agent: *` plus `Allow: /` says "crawl everything", and the trailing
+    `Sitemap:` line points the bot at /sitemap.xml. There is deliberately no
+    `Disallow:` for `/admin` or `/tmp`: naming a path in a public file is how
+    you advertise it, not how you protect it. Access control belongs on the path
+    itself. The body stays parseable by `crawler.parse_robots`.
+    """
+    base = base_url.rstrip("/")
+    return (
+        "User-agent: *\n"
+        "Allow: /\n"
+        f"Sitemap: {base}/sitemap.xml\n"
+    )
+
+
+def sitemap_xml(page_paths, base_url):
+    """Return a valid XML sitemap listing every path in `page_paths`.
+
+    Each path becomes `<url><loc><base_url><path></loc><lastmod>...</lastmod></url>`,
+    including pages the navigation never links to. `page_paths` may arrive in any
+    order; the output is sorted so it is deterministic. `lastmod` is the fixed
+    `LASTMOD`; URLs are XML-escaped (`&`, `<`, `>` must not appear raw).
+    """
+    base = base_url.rstrip("/")
+    lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ]
+    for path in sorted(page_paths):
+        loc = xml.sax.saxutils.escape(base + path)
+        lines.append(f"  <url><loc>{loc}</loc><lastmod>{LASTMOD}</lastmod></url>")
+    lines.append("</urlset>")
+    return "\n".join(lines) + "\n"

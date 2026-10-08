@@ -28,7 +28,7 @@ DESIGN DECISION - ThreadingHTTPServer, port 0 in tests.
 import http.server
 import urllib.parse
 
-from pages import not_found, pages
+from pages import not_found, pages, robots_txt, sitemap_xml
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8000
@@ -40,16 +40,23 @@ class SiteHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):  # noqa: N802 - name fixed by BaseHTTPRequestHandler
         path = urllib.parse.urlparse(self.path).path
         route = path.rstrip("/") or "/"
-        site = pages()
-        if route in site:
-            self._respond(200, site[route])
+        base = "http://" + self.headers.get("Host", "")
+        if route == "/robots.txt":
+            self._respond(200, robots_txt(base), "text/plain; charset=utf-8")
+        elif route == "/sitemap.xml":
+            xml = sitemap_xml(sorted(pages().keys()), base)
+            self._respond(200, xml, "application/xml; charset=utf-8")
         else:
-            self._respond(404, not_found())
+            site = pages()
+            if route in site:
+                self._respond(200, site[route])
+            else:
+                self._respond(404, not_found())
 
-    def _respond(self, status, html):
+    def _respond(self, status, html, content_type="text/html; charset=utf-8"):
         body = html.encode("utf-8")
         self.send_response(status)
-        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)

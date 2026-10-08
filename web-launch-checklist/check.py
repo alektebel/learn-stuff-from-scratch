@@ -1,5 +1,5 @@
 """
-Progress checker for the web launch checklist, exercises 1-3.
+Progress checker for the web launch checklist, exercises 1-5.
 
     python3 check.py           # run every check, stop at the first unimplemented step
     python3 check.py 2         # run only step 2
@@ -124,10 +124,96 @@ def check_descriptions():
             "at that length, so the end of the description is never read.")
 
 
+# ---------------------------------------------------------------------------
+# Step 4: robots.txt allows the public site and names no secret
+# ---------------------------------------------------------------------------
+
+def check_robots():
+    from crawler import allowed, crawl, parse_robots
+
+    with _RunningSite() as base:
+        site = crawl(base)
+        status, body = site.robots
+        assert status == 200, (
+            f"/robots.txt returned status {status}, not 200. A bot reads it to learn the "
+            "rules; a missing file means the site never said what it wanted crawled.")
+        groups = parse_robots(body)
+        blocked = [path for path in site.paths if not allowed(groups, path)]
+        assert not blocked, (
+            f"robots.txt disallows public pages: {blocked}. Production must allow crawling "
+            "the public site (`User-agent: *` with `Allow: /`), not push bots away from it.")
+        assert "/admin" not in body.lower(), (
+            "robots.txt names a secret path (/admin). A Disallow line is an advertisement: "
+            "well-behaved bots skip the path and everyone else reads the file as an index. "
+            "Access control belongs on /admin itself, not in a public file.")
+        assert any(line.strip().lower().startswith("sitemap:") and "/sitemap.xml" in line
+                   for line in body.splitlines()), (
+            "robots.txt has no `Sitemap:` line pointing at /sitemap.xml. The sitemap is "
+            "found efficiently only because robots.txt names it.")
+
+
+# ---------------------------------------------------------------------------
+# Step 5: sitemap.xml is valid, complete and fetches 200
+# ---------------------------------------------------------------------------
+
+def check_sitemap():
+    import xml.etree.ElementTree as ET
+    from urllib.parse import urlparse
+
+    from crawler import allowed, crawl, fetch, parse_robots
+    from pages import sitemap_xml
+
+    with _RunningSite() as base:
+        site = crawl(base)
+        assert site.sitemap, (
+            "/sitemap.xml yielded no URLs: it is absent, not status 200, or not well-formed "
+            "XML. An unparseable sitemap is worse than none at all - the bot reads it and "
+            "finds nothing.")
+        listed = list(site.sitemap)
+        missing = [base + path for path in site.paths if base + path not in listed]
+        assert not missing, (
+            f"pages the sitemap does not list: {missing}. The sitemap is the site's full "
+            "public surface, including any page the navigation never links to.")
+        for loc in listed:
+            page = fetch(base, urlparse(loc).path)
+            assert page.status == 200, (
+                f"the sitemap lists {loc}, which returned status {page.status}. A sitemap "
+                "full of 404s teaches the bot to distrust every URL in it.")
+
+        # Cross-check against the served robots.txt: a sitemap must not advertise a URL
+        # the site tells bots to skip. This catches a page that is unlinked (so the crawl
+        # never sees it) but disallowed.
+        robots_status, robots_body = site.robots
+        robots_groups = parse_robots(robots_body) if robots_status == 200 else {}
+        disallowed = [loc for loc in listed
+                      if not allowed(robots_groups, urlparse(loc).path or "/")]
+        assert not disallowed, (
+            f"the sitemap lists URLs that robots.txt disallows: {disallowed}. The sitemap "
+            "and robots.txt must agree; do not submit to the bot a URL you told it to skip.")
+
+        raw = fetch(base, "/sitemap.xml")
+        root = ET.fromstring(raw.html)
+        for url in [e for e in root.iter() if e.tag.endswith("url")]:
+            lastmod = [e.text for e in url if e.tag.endswith("lastmod")]
+            assert lastmod and lastmod[0] and lastmod[0].strip(), (
+                "a <url> in the sitemap has no non-empty <lastmod>. Without a date the bot "
+                "cannot tell how fresh the page is.")
+
+        generated = sitemap_xml(["/", "/orphan"], base)
+        orphan_root = ET.fromstring(generated)
+        locs = {e.text for e in orphan_root.iter() if e.tag.endswith("loc")}
+        for wanted in (base + "/", base + "/orphan"):
+            assert wanted in locs, (
+                f"sitemap_xml([\"/\", \"/orphan\"]) does not list {wanted}. The generator "
+                "must include every path it is given, linked from the navigation or not.")
+
+
 CHECKS: List[Tuple[str, str, Callable[[], None]]] = [
     ("serve.py", "unknown paths return a real 404 page that links home", check_custom_404),
     ("pages.py", "every page has a unique <title> within the length limit", check_titles),
     ("pages.py", "every page has a <meta description> within snippet length", check_descriptions),
+    ("serve.py/pages.py", "robots.txt allows the public site and names no secret", check_robots),
+    ("pages.py", "sitemap.xml is valid, complete and fetches 200", check_sitemap),
 ]
 
 
@@ -158,7 +244,7 @@ def main(argv: List[str]) -> int:
     wanted = [int(a) for a in argv if a.isdigit()]
     if len(wanted) > 1:
         wanted = list(range(min(wanted), max(wanted) + 1))
-    print(f"\n{BOLD}Web launch checklist — progress check (exercises 1-3){RESET}")
+    print(f"\n{BOLD}Web launch checklist — progress check (exercises 1-5){RESET}")
     print(f"{GREY}implement serve.py and pages.py, then run the observers{RESET}\n")
     passed = failed = todo = 0
     first_gap = None

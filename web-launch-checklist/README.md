@@ -4,11 +4,11 @@ Sixteen items that "every site should have before launch". The usual list says *
 these exercises make you find out *why*, by putting an observer in front of a site that
 lacks the item and measuring the damage, then fixing it and measuring again.
 
-**Status: exercises 1-3 are built.** `crawler.py` (the observer), `check.py`, the
+**Status: exercises 1-5 are built.** `crawler.py` (the observer), `check.py`, the
 reference in `solutions/` and a runnable broken variant in `_build/broken/` are
-here. Exercises 4-16 and the other observers are still specified only. No conceptual
-answers are written anywhere in this directory, on purpose: each exercise ends with
-questions, and the observer's output is what answers them.
+here. Exercise 4 and exercises 7-16, and the other observers, are still specified
+only. No conceptual answers are written anywhere in this directory, on purpose:
+each exercise ends with questions, and the observer's output is what answers them.
 
 ## How it works
 
@@ -30,9 +30,9 @@ The **observers** are provided. Each one sees the site the way some real agent d
 Only `crawler.py` exists today; the rest are specified in the exercises below.
 
 `check.py` runs the observers and grades each exercise, in this repo's usual format.
-Exercises 1-3 are graded now; the rest are TODO until their observers exist.
+Exercises 1-5 are graded now; the rest are TODO until their observers exist.
 
-Runs on a CPU: Python standard library only for exercises 1-3. Later exercises warm
+Runs on a CPU: Python standard library only for exercises 1-5. Later exercises warm
 up the machine (Pillow with WebP, a Chromium binary) but there is no network.
 
 ## What is provided, what you build
@@ -60,7 +60,7 @@ with it and two of the three planted bugs would be untestable. The HTML inside
 ```
 cd web-launch-checklist
 python3 check.py          # stop at the first step you have not written
-python3 check.py --all    # run all three
+python3 check.py --all    # run all five
 ```
 
 Start the reference site (swap `solutions` for `_build/broken` for the broken
@@ -111,10 +111,12 @@ the graded check passes, and the observer's numbers changed in the way you predi
 ### 5. robots.txt
 - **Break, twice.** (a) Deploy the staging `robots.txt` that disallows everything. (b) Hide
   `/admin` by listing it in `robots.txt`.
-- **Fix:** write the parser the crawler uses (longest-match `Allow`/`Disallow`, user-agent
-  groups), then a `robots.txt` that does what you mean.
-- **Check:** the parser agrees with the observer on a table of tricky rules; production
-  allows crawling; nothing secret appears in the file.
+- **Fix:** serve a `robots.txt` that does what you mean. The longest-match
+  `Allow`/`Disallow` parser is the provided observer (`crawler.parse_robots` /
+  `crawler.allowed`); read it, do not rewrite it — the exercise is the site's file,
+  not the ruler.
+- **Check:** every public page is allowed over HTTP, a `Sitemap:` line points at
+  `/sitemap.xml`, and no secret path (`/admin`) is named in the file.
 - **Questions:** In (b), who reads `robots.txt` besides well-behaved bots? What actually
   protects `/admin`? (Compare with `web-scraping/`, which implements the crawler's side.)
 
@@ -213,7 +215,7 @@ the graded check passes, and the observer's numbers changed in the way you predi
 - **Questions:** Was WebP smaller for every image? Try a screenshot with flat colours and
   text against PNG. What did resizing save, compared with changing the format?
 
-## Mutation table (exercises 1-3)
+## Mutation table (exercises 1-5)
 
 `_build/mutations.py`, run through
 `.claude/skills/graded-module/scripts/mutate.py`, plants one classic mistake per
@@ -224,6 +226,10 @@ exercise. Every one must be CAUGHT by the named step.
 | Unknown path answered with status 200 | `serve.py` | step 1 | The soft 404: a bot indexes a deleted URL forever. |
 | Every page uses the home page's `<title>` | `pages.py` | step 2 | Copy-paste the layout, forget the title: ten identical tabs. |
 | The description tag is never emitted | `pages.py` | step 3 | The snippet silently falls back to an arbitrary sentence. |
+| `robots.txt` disallows the whole public site | `pages.py` | step 4 | A staging file ships to production and schools every bot away. |
+| `robots.txt` names `/admin` | `pages.py` | step 4 | The file is public: naming a secret advertises it, it does not protect it. |
+| Sitemap entries carry no `<lastmod>` | `pages.py` | step 5 | Without a date the bot cannot tell how fresh a page is. |
+| The sitemap lists a URL that 404s | `pages.py` | step 5 | A sitemap full of dead URLs teaches the bot to distrust the whole file. |
 
 ## Design decisions
 
@@ -247,13 +253,17 @@ exercise. Every one must be CAUGHT by the named step.
 
 ## Order
 
-1 → 2 → 3 → 6 → 5 → 7 → 4 (crawler and unfurl first: cheapest observers, fastest feedback),
+1 → 2 → 3 → 5 → 6 → 7 → 4 (crawler and unfurl first: cheapest observers, fastest feedback),
 then 8 → 9 → 16 (what users see), then 10 → 11 → 15 (what users do), then 13 → 14 → 12
 (law and measurement).
 
+Exercises 5 and 6 are built in that order (robots before sitemap), which swaps them
+relative to the first draft: the sitemap is referenced from `robots.txt` and validated
+against it, so the file that publishes the reference has to exist first.
+
 ## Limits
 
-- **Only exercises 1-3 are built.** The rest are specified, not graded; `check.py`
+- **Only exercises 1-5 are built.** The rest are specified, not graded; `check.py`
   reports them as absent rather than pretending they pass. The remaining observers
   (`unfurl.py`, `reader.py`, `mobile.py`, `visit.py`, `impatient.py`) do not exist yet.
 - The crawler is a single-threaded stdlib fetcher. It follows same-origin links only and
