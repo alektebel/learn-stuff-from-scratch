@@ -3,11 +3,14 @@
 Ten retrieval-augmented generation projects, from hybrid search to agentic RAG, built as one
 pipeline whose every stage has to earn its place on a shared evaluation set.
 
-**Status: step 0 built.** The shared evaluation set lives in
+**Status: step 0 and projects 1-3 built.** The shared evaluation set lives in
 [`eval-set/`](eval-set/README.md): a deterministic synthetic corpus, five query families
-with judgments, the retrieval/abstention metrics and a trivial baseline. The ten retrievers
-below are still planned; a project gets code only when it is chosen, through the
-`graded-module` skill.
+with judgments, the retrieval/abstention metrics and a trivial baseline. Project 1 lives
+in [`bm25/`](bm25/README.md), [`lsa/`](lsa/README.md), [`hnsw/`](hnsw/README.md) and
+[`fusion/`](fusion/README.md); project 2 in
+[`metadata-filtered/`](metadata-filtered/README.md); project 3 in
+[`reranking/`](reranking/README.md). Projects 4-10 are still planned; a project gets code
+only when it is chosen, through the `graded-module` skill.
 
 ## Why this directory is first among the RAG-shaped plans
 
