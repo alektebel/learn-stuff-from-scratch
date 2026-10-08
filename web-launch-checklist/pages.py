@@ -150,6 +150,26 @@ def og_tags(title, description, path):
     raise NotImplementedError("og_tags")
 
 
+def order_page(key):
+    """Return the `/order` form: immediate feedback, a disabling control, a key.
+
+    The page is built whole, not through `_doc`: it is not part of the crawlable
+    site (no navigation link points at it), and keeping it out of `_doc`/`NAV`
+    means the learner templates do not leak its answer into the shared chrome.
+    The form carries three things exercise 10 grades:
+
+    - an `onsubmit` that disables the submit control the instant the user clicks,
+      so a slow API cannot be clicked twice by accident. A standard-library
+      observer cannot watch the paint; it reads this mechanism;
+    - a hidden `idempotency_key` minted once per form view. A multi-click sends
+      the same key, so the server can collapse the repeats into one order;
+    - a visible status line ("Placing your order…") so the user sees that
+      something is happening while the request is in flight.
+    """
+    # TODO: return the /order form as HTML: method="post" action="/order", an onsubmit that disables the submit control the instant it is clicked, a hidden idempotency_key input carrying the given key, a submit button, and a visible "Placing your order…" status line. Build the page here, not through _doc, so it does not leak into the shared chrome
+    raise NotImplementedError("order_page")
+
+
 def _doc(title, description, main, path="/"):
     """Return a complete HTML document. `description` empty means: omit the tag."""
     head = ""

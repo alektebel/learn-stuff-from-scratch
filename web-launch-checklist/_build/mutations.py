@@ -16,6 +16,9 @@ check step). One classic mistake per exercise:
 8. alt text: the decorative image loses alt="", the informative alt is a file
    name, the image-only link's alt is empty, an alt attribute is dropped, or
    every image is removed.
+9. loading states: the server records every repeat, the form ships no
+   idempotency key, the control is never disabled, the server dedups on the
+   body instead of the key, or the order count route is missing.
 """
 
 MUTATIONS = [
@@ -185,5 +188,45 @@ MUTATIONS = [
         '            \'<img src="/chart.png" alt="">\'',
         "",
         "8",
+    ),
+    (
+        "the order server records every repeat instead of deduping on the key",
+        "serve.py",
+        "            new = not key or identity not in SEEN",
+        "            new = True",
+        "9",
+    ),
+    (
+        "the form ships no idempotency key, so repeats cannot be collapsed",
+        "pages.py",
+        '        f\'<input type="hidden" name="idempotency_key" value="{key}">\\n\'\n',
+        "",
+        "9",
+    ),
+    (
+        "the submit control is never disabled, so the click stays live",
+        "pages.py",
+        '        \'<form method="post" action="/order" '
+        'onsubmit="this.querySelector(\\\'button\\\').disabled = true">\\n\'',
+        "        '<form method=\"post\" action=\"/order\">\\n'",
+        "9",
+    ),
+    (
+        "the server dedups on the body's other fields instead of the key",
+        "serve.py",
+        "        identity = key",
+        "        identity = hash(str(sorted(\n"
+        "            (name, value) for name, values in fields.items()\n"
+        "            if name != \"idempotency_key\" for value in values)))",
+        "9",
+    ),
+    (
+        "there is no /orders route, so the observer cannot count orders",
+        "serve.py",
+        '        elif route == "/orders":\n'
+        '            self._respond(200, json.dumps({"count": len(ORDERS)}),\n'
+        '                          "application/json; charset=utf-8")\n',
+        "",
+        "9",
     ),
 ]

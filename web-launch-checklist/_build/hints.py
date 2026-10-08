@@ -1,4 +1,4 @@
-"""Graded hints for the learner templates (exercises 1-8).
+"""Graded hints for the learner templates (exercises 1-9).
 
 `make_templates.py` reads each `solutions/<file>` and replaces the listed
 functions with a `# TODO` and `raise NotImplementedError`. The rest of the file
@@ -15,7 +15,16 @@ HINTS = {
             "og_image_png - no new image code); "
             "GET /robots.txt serves robots_txt(base) as text/plain; GET /sitemap.xml "
             "serves sitemap_xml over the page paths as application/xml (base = Host header); "
+            "GET /order serves order_page(uuid.uuid4().hex) (a fresh key per form view); "
+            "GET /orders serves {\"count\": len(ORDERS)} as application/json; "
             "anything else gets the 404 page with status 404 (no redirect to /)"
+        ),
+        "SiteHandler.do_POST": (
+            "handle POST /order: read the urlencoded body, take `idempotency_key`; "
+            "if the key was seen already answer 200 with the same confirmation and "
+            "record nothing; otherwise record (product, key) and answer 200. Keep "
+            "ORDERS and SEEN under ORDERS_LOCK, and a missing/empty key means no "
+            "idempotency promise (record every click). Any other POST path is a 404"
         ),
         "make_server": (
             "return an http.server that routes the paths in pages() to status 200, "
@@ -42,6 +51,13 @@ HINTS = {
         ),
         "not_found": (
             "return the 404 page as HTML; it must link back to the home page, not redirect to it"
+        ),
+        "order_page": (
+            "return the /order form as HTML: method=\"post\" action=\"/order\", an "
+            "onsubmit that disables the submit control the instant it is clicked, a "
+            "hidden idempotency_key input carrying the given key, a submit button, "
+            "and a visible \"Placing your order…\" status line. Build the page here, "
+            "not through _doc, so it does not leak into the shared chrome"
         ),
         "robots_txt": (
             "return the /robots.txt body: `User-agent: *` and `Allow: /` (never list a "

@@ -159,6 +159,44 @@ def og_tags(title, description, path):
     )
 
 
+def order_page(key):
+    """Return the `/order` form: immediate feedback, a disabling control, a key.
+
+    The page is built whole, not through `_doc`: it is not part of the crawlable
+    site (no navigation link points at it), and keeping it out of `_doc`/`NAV`
+    means the learner templates do not leak its answer into the shared chrome.
+    The form carries three things exercise 10 grades:
+
+    - an `onsubmit` that disables the submit control the instant the user clicks,
+      so a slow API cannot be clicked twice by accident. A standard-library
+      observer cannot watch the paint; it reads this mechanism;
+    - a hidden `idempotency_key` minted once per form view. A multi-click sends
+      the same key, so the server can collapse the repeats into one order;
+    - a visible status line ("Placing your order…") so the user sees that
+      something is happening while the request is in flight.
+    """
+    return (
+        "<!DOCTYPE html>\n"
+        '<html lang="en">\n'
+        "<head>\n"
+        '<meta charset="utf-8">\n'
+        "<title>Place an order — Acme Tools</title>\n"
+        "</head>\n"
+        "<body>\n"
+        f"{NAV}\n"
+        "<h1>Order a widget</h1>\n"
+        '<form method="post" action="/order" onsubmit="this.querySelector(\'button\').disabled = true">\n'
+        f'<input type="hidden" name="idempotency_key" value="{key}">\n'
+        '<input type="hidden" name="product" value="widget">\n'
+        '<button type="submit">Place order</button>\n'
+        "</form>\n"
+        '<p role="status">Placing your order…</p>\n'
+        f"{NAV}\n"
+        "</body>\n"
+        "</html>\n"
+    )
+
+
 def _doc(title, description, main, path="/"):
     """Return a complete HTML document. `description` empty means: omit the tag."""
     head = ""

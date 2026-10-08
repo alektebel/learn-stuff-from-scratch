@@ -1,5 +1,5 @@
 """
-Progress checker for the web launch checklist, exercises 1-8.
+Progress checker for the web launch checklist, exercises 1-9.
 
     python3 check.py           # run every check, stop at the first unimplemented step
     python3 check.py 2         # run only step 2
@@ -10,8 +10,9 @@ A check that raises NotImplementedError is reported as TODO (not a failure): tha
 is simply the next thing to write. Nothing here imports solutions/. It tests YOUR
 `serve.py` and `pages.py` by starting a server and observing it with the provided
 `crawler.py` (a search bot), `unfurl.py` (a chat app building a preview),
-`visit.py` (a browser's first visit, implicit favicon and all) and `reader.py`
-(a screen reader linearising the page).
+`visit.py` (a browser's first visit, implicit favicon and all), `reader.py`
+(a screen reader linearising the page) and `impatient.py` (a user who clicks a
+slow order form too many times).
 """
 
 import shutil
@@ -374,6 +375,70 @@ def check_alt_text():
             "reader announcing only \"link\".")
 
 
+# ---------------------------------------------------------------------------
+# Step 9: one order however many clicks, and the control disables on submit
+# ---------------------------------------------------------------------------
+
+def check_loading_state():
+    from impatient import get_order_count, impatient, post_order
+
+    with _RunningSite() as base:
+        try:
+            report = impatient(base, clicks=3)
+        except ValueError as exc:
+            raise AssertionError(
+                f"the order API is not observable: {exc}. GET /orders must report the "
+                "recorded count.") from exc
+
+        assert report.attempts and report.attempts[0].key, (
+            "the order form ships no idempotency_key. The clicks then carry an empty "
+            "key and the server has nothing to dedup on: either every click records, "
+            "or an empty-key shortcut merges every user's order into one. The key must "
+            "be generated per form view and submitted as a hidden field.")
+
+        # A standard-library observer cannot watch the browser paint: there is no
+        # rendering engine here. What it can read is the mechanism that produces
+        # the immediate state, so `disable_on_submit` stands in for it.
+        assert report.disable_on_submit, (
+            "the order form does not disable its submit control when submitted. A "
+            "standard-library observer cannot see the browser paint, so this is a "
+            "STRUCTURAL check: the form needs an `onsubmit` handler (or a script) "
+            "that disables the button the instant it is clicked. Without it, a slow "
+            "API leaves the button live and the user clicks again, which is exactly "
+            "what puts a second order on the account.")
+
+        recorded = report.orders_after - report.orders_before
+        assert recorded == 1, (
+            f"three clicks on submit recorded {recorded} order(s), not 1. The three "
+            "clicks are one form view sharing one idempotency key: the server must "
+            "dedup by that key and answer the repeats with the same confirmation, "
+            "without recording again. Deduping by the request body, or only when a "
+            "key is present, still lets the repeats through.")
+
+        statuses = [attempt.status for attempt in report.attempts]
+        assert all(status == 200 for status in statuses), (
+            f"the repeated submissions returned {statuses}, not all 200. A repeat "
+            "must be tolerated, not rejected: the client is retrying, not attacking, "
+            "and an error would make the user think the first order failed.")
+
+        # The key, not the body, is the identity. Two DIFFERENT keys with the SAME
+        # body are two orders: if they collapse, the server is deduping on content.
+        before = get_order_count(base)
+        post_order(base, "key-A")
+        post_order(base, "key-B")
+        after = get_order_count(base)
+        assert after - before == 2, (
+            f"two requests with different idempotency keys and the same body "
+            f"recorded {after - before} order(s), not 2. The key is the identity: "
+            "deduping on a hash of the body would treat two distinct submissions as "
+            "one, silently dropping the second order.")
+
+        for attempt in report.attempts:
+            shown = attempt.key[:8] if attempt.key else "(none)"
+            print(f"      {GREY}order attempt key={shown} -> {attempt.status} "
+                  f"in {attempt.seconds * 1000:.1f} ms{RESET}")
+
+
 CHECKS: List[Tuple[str, str, Callable[[], None]]] = [
     ("serve.py", "unknown paths return a real 404 page that links home", check_custom_404),
     ("pages.py", "every page has a unique <title> within the length limit", check_titles),
@@ -383,6 +448,7 @@ CHECKS: List[Tuple[str, str, Callable[[], None]]] = [
     ("pages.py/serve.py", "the unfurled card shows the page title, description and an absolute, real image", check_open_graph),
     ("pages.py/serve.py", "every page points at a real favicon the browser can fetch", check_favicon),
     ("pages.py", "images carry alt text, decorative ones are silent", check_alt_text),
+    ("pages.py/serve.py", "a double submit records one order and the control disables on submit", check_loading_state),
 ]
 
 
@@ -413,7 +479,7 @@ def main(argv: List[str]) -> int:
     wanted = [int(a) for a in argv if a.isdigit()]
     if len(wanted) > 1:
         wanted = list(range(min(wanted), max(wanted) + 1))
-    print(f"\n{BOLD}Web launch checklist — progress check (exercises 1-8){RESET}")
+    print(f"\n{BOLD}Web launch checklist — progress check (exercises 1-9){RESET}")
     print(f"{GREY}implement serve.py and pages.py, then run the observers{RESET}\n")
     passed = failed = todo = 0
     first_gap = None

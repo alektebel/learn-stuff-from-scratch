@@ -1,13 +1,16 @@
-# Solutions — web launch checklist, exercises 1-8
+# Solutions — web launch checklist, exercises 1-9
 
 The reference site. `serve.py` routes the pages in `pages.py` and answers every
 unknown path with the 404 page and status 404. It also serves `robots.txt` from
 `pages.robots_txt`, `sitemap.xml` from `pages.sitemap_xml`, the Open Graph image
 from `pages.og_image_png` at `/og-image.png` as `image/png`, the favicon from
-`pages.favicon_png` at `/favicon.ico` as `image/png`, and the two body images at
-`/logo.png` and `/chart.png` as `image/png` (reusing the same two helpers).
-`crawler.py`, `unfurl.py`, `visit.py` and `reader.py` are the provided observers
-(symlinked from the module root so the mutation harness can carry them).
+`pages.favicon_png` at `/favicon.ico` as `image/png`, the two body images at
+`/logo.png` and `/chart.png` as `image/png` (reusing the same two helpers), the
+order form from `pages.order_page` at `/order`, and the recorded-order count at
+`/orders`. `POST /order` records `(product, idempotency_key)` once per key, under
+a lock, so a multi-click on one form is one order. `crawler.py`, `unfurl.py`,
+`visit.py`, `reader.py` and `impatient.py` are the provided observers (symlinked
+from the module root so the mutation harness can carry them).
 
 ## Expected output
 
@@ -16,7 +19,7 @@ Copy these files next to `check.py` and run:
 ```
 $ python3 check.py --all
 
-Web launch checklist — progress check (exercises 1-8)
+Web launch checklist — progress check (exercises 1-9)
 implement serve.py and pages.py, then run the observers
 
   ✓  1. serve.py  unknown paths return a real 404 page that links home
@@ -28,8 +31,12 @@ implement serve.py and pages.py, then run the observers
       icon /favicon.ico (linked=True): 32x32 png
   ✓  7. pages.py/serve.py every page points at a real favicon the browser can fetch
   ✓  8. pages.py  images carry alt text, decorative ones are silent
+      order attempt key=912aaf11 -> 200 in 0.5 ms
+      order attempt key=912aaf11 -> 200 in 0.5 ms
+      order attempt key=912aaf11 -> 200 in 0.5 ms
+  ✓  9. pages.py/serve.py a double submit records one order and the control disables on submit
 
-  8/8 passing
+  9/9 passing
 
   All checks pass — the crawler sees a launchable site.
   Run crawler.py against it, then compare with solutions/.
@@ -139,12 +146,40 @@ HTML (status 200, `text/html`), not an image. Step 8 fails for
 the same reason its "break" half describes: the broken pages carry no images at
 all, so none of the alt rules can pass.
 
+## Seeing the impatient user
+
+`impatient.py` loads `/order`, reads the form's hidden `idempotency_key` and its
+`onsubmit`, then submits the form three times with that one key. The three clicks
+are one form view, so the server records one order; the count is read from
+`/orders` before and after, not trusted from the response. `ORDER_DELAY` is `0.0`
+here so the run is instant; set it to `3.0` in `serve.py` to see the three-second
+API the exercise is about.
+
+```
+$ python3 impatient.py http://127.0.0.1:8000/
+submitted the order form 3 time(s) on http://127.0.0.1:8000
+  click 1: key=97362c36 status=200 0.3 ms
+  click 2: key=97362c36 status=200 0.5 ms
+  click 3: key=97362c36 status=200 0.4 ms
+  disables the control on submit: True
+  submit control label: 'Place order'
+  orders before: 0  after: 1  recorded: 1
+```
+
+A standard-library observer cannot watch the browser paint, so `disable_on_submit`
+is read structurally from the form's `onsubmit` (or an inline script): it is the
+stand-in for "the user sees feedback within 100 ms". With `ORDER_DELAY = 3.0` the
+same run reports each click at about `3.00 s` and still one recorded order — the
+UX half (feedback, a disabled control) and the correctness half (the idempotency
+key) are separate, and the check grades both.
+
 ## The planted bugs
 
 `_build/mutations.py` plants classic mistakes across the exercises; each is caught
-by the named step (see the module README for the table). **Twenty-three** mutations
+by the named step (see the module README for the table). **Twenty-eight** mutations
 are planted in total: seven across check steps 1-5 (the 404, titles,
 descriptions, robots and sitemap), six for Open Graph (check step 6), five for the
-favicon (check step 7), and five for alt text (check step 8). To reproduce any
-single bug: mutate `solutions/`, copy `solutions/*.py` and `check.py` into a
-temporary directory, and run `python3 check.py <step>` there.
+favicon (check step 7), five for alt text (check step 8), and five for loading
+states (check step 9). To reproduce any single bug: mutate `solutions/`, copy
+`solutions/*.py` and `check.py` into a temporary directory, and run
+`python3 check.py <step>` there.
