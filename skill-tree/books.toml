@@ -1,0 +1,52 @@
+# Books the skill tree draws on. `access` says how to get it; anything marked
+# "verify" was written from memory and must be checked before it is cited as fact.
+# Never copy exercise statements or text from these books into the repo: cite by
+# chapter/exercise number and restate the task in your own words.
+
+[book.mml]
+title = "Mathematics for Machine Learning"
+authors = "Deisenroth, Faisal, Ong"
+year = 2020
+access = "free PDF from the authors, mml-book.github.io (verify)"
+
+[book.bishop]
+title = "Pattern Recognition and Machine Learning"
+authors = "Bishop"
+year = 2006
+access = "free PDF released by Microsoft Research (verify)"
+
+[book.axler]
+title = "Linear Algebra Done Right, 4th edition"
+authors = "Axler"
+year = 2024
+access = "open access, linear.axler.net (verify)"
+
+[book.trefethen]
+title = "Numerical Linear Algebra"
+authors = "Trefethen, Bau"
+year = 1997
+access = "not free (SIAM)"
+
+[book.blitzstein]
+title = "Introduction to Probability, 2nd edition"
+authors = "Blitzstein, Hwang"
+year = 2019
+access = "free PDF, probabilitybook.net (verify)"
+
+[book.boyd]
+title = "Convex Optimization"
+authors = "Boyd, Vandenberghe"
+year = 2004
+access = "free PDF, stanford.edu/~boyd/cvxbook (verify)"
+
+[book.murphy1]
+title = "Probabilistic Machine Learning: An Introduction"
+authors = "Murphy"
+year = 2022
+access = "free, probml.github.io/pml-book/book1.html"
+
+[book.murphy2]
+title = "Probabilistic Machine Learning: Advanced Topics"
+authors = "Murphy"
+year = 2023
+access = "free, probml.github.io/pml-book/book2.html"
