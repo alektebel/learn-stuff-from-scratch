@@ -103,15 +103,17 @@ Update this file in the same commit that finishes or adds an item.
 
 ## Gaps with no plan yet
 
-- [ ] Microservices, authentication protocols (sessions, JWT, OAuth), leader-follower
-      replication with failover (from the 25 system-design concepts). Authentication is
-      done: `system-design/auth/` (sessions, HS256 JWTs, OAuth 2.0 authorization code +
-      PKCE; 14 graded checks, 11 mutations all caught). Leader-follower replication is
-      done: `system-design/replication/` (up-to-date rule, quorum commit, sync vs async,
-      failover, epoch fencing; 10 graded checks, 8 mutations all caught). Microservices
-      remain.
+- [x] Microservices, authentication protocols (sessions, JWT, OAuth), leader-follower
+      replication with failover (from the 25 system-design concepts) — all three parts
+      landed. `system-design/auth/` (sessions, HS256 JWTs, OAuth 2.0 authorization code +
+      PKCE; 14 graded checks, 11 mutations caught), `system-design/replication/`
+      (up-to-date rule, quorum commit, sync vs async, failover, epoch fencing; 10 graded
+      checks, 8 mutations caught), `system-design/microservices/` (discovery with TTL
+      heartbeats and draining, gateway routing / load balancing / safe retries, contract
+      compatibility; 13 graded checks, 9 mutations caught).
       → [system-design/auth/README.md](system-design/auth/README.md),
-        [system-design/replication/README.md](system-design/replication/README.md)
+        [system-design/replication/README.md](system-design/replication/README.md),
+        [system-design/microservices/README.md](system-design/microservices/README.md)
 - [ ] CS249r gaps: data selection, network fabrics, responsible and sustainable AI.
 - [ ] A checker for `lean-proofs/` (`lake build`, no `sorry`).
 

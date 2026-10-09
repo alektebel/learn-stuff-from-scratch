@@ -47,6 +47,10 @@ Some tracks also have a runnable, mutation-tested module (templates + `check.py`
   turned into code: the Raft up-to-date rule, quorum commit, sync vs async replication
   and the data loss failover costs, most-up-to-date election, and epoch fencing. 10
   graded checks via `python3 replication/check.py`.
+- [`microservices/`](microservices/README.md) — service discovery (TTL heartbeats,
+  graceful draining), an API gateway (longest-prefix routing, round-robin, safe
+  retries), and contract compatibility. 13 graded checks via
+  `python3 microservices/check.py`.
 
 ---
 
