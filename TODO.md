@@ -14,8 +14,10 @@ Update this file in the same commit that finishes or adds an item.
       measurements.
 - [ ] **Horizon and goal for harness-lab phase 7** (memory): how many weeks, and whether the
       aim is breadth or a result on correction/forgetting. Decides what is cut.
-- [ ] **MCP server:** what it exposes, from scratch or SDK, stdio or HTTP, and where it lives.
-      Related: [enterprise-ai-projects/10](enterprise-ai-projects/10-mcp-legacy-erp.md).
+- [x] **MCP server scope:** decided — from scratch, streamable HTTP, exposing ERP read tools
+      plus guarded writes, living in [mcp-from-scratch/](mcp-from-scratch/) (spec + resources +
+      runnable tests; the server core is a LEARN task). Related:
+      [enterprise-ai-projects/10](enterprise-ai-projects/10-mcp-legacy-erp.md).
 - [ ] **Inputs only the owner can provide:** the text of the 149 unread X posts and short links
       ([RESOURCES.md](RESOURCES.md), "Unsorted"); titles for the 60 unverified arXiv IDs;
       the current CV; the updated `harness-lab-prompt.md` (never reached the repo).
@@ -76,8 +78,10 @@ Update this file in the same commit that finishes or adds an item.
 7. [ ] **inference-lab CPU-real projects**: #4 prefix-caching proxy and #13 AI gateway are
        built and audited; #3 KV monitor remains.
        → [inference-lab/README.md](inference-lab/README.md)
-8. [ ] **agent-evals next**: red-team v2 (tool layer, loops) and trajectory grading, both
-       after harness-lab phase 1. → [agent-evals/README.md](agent-evals/README.md)
+8. [ ] **agent-evals next**: #7, #13 and #14 now have a LEARN contract (SPEC + RESOURCES +
+       stubbed interface + runnable tests, green with the core unwritten); red-team v2 (tool
+       layer, loops) and trajectory grading remain, both after harness-lab phase 1.
+       → [agent-evals/README.md](agent-evals/README.md)
 9. [x] **database-from-scratch extension**: MVCC on top of the B+tree and durability for
        MVCC versions in the WAL — both lands (steps 18-19, audited). The engine's remaining
        limits are in the module README §Limits.

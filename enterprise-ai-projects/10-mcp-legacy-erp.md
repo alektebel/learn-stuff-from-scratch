@@ -1,5 +1,9 @@
 # 10 — Custom MCP server for legacy ERPs
 
+> The LEARN contract for this project — guidelines, a cited reading list and a runnable
+> test suite against a fake ERP — lives in [`mcp-from-scratch/`](../mcp-from-scratch/).
+> This guide is the reasoning behind it.
+
 ## What it is
 
 A Model Context Protocol server exposing a legacy ERP as tools an agent can call — reading

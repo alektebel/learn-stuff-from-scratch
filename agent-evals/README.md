@@ -16,10 +16,10 @@ implements). The column below is a **proposal to confirm** project by project.
 | 8 | Agent red-team fuzzer | **v1 done** ([redteam/](redteam/)) | harness-lab sandbox, verifier | v2 needs tools + loop (phase 1-2) | BUILD (eval infra) |
 | 1 | Trajectory grading engine | not started | phase 1 trace format | harness-lab phase 1 | LEARN |
 | 11 | Counterfactual replay debugger | not started | = harness-lab `openhands` variant (phase 3) + scripted backend (phase 1) | phase 1 | LEARN, inside harness-lab |
-| 7 | Statistical significance engine | partly exists | `harness-lab/eval/stats.py`; add bootstrap **over tasks** | none | LEARN |
-| 13 | Context-window eviction tester | partly exists | harness-lab tasks t15/t16/t17/t19, phase 4 | phase 1 | LEARN |
+| 7 | Statistical significance engine | **spec + tests** ([stats_engine/](stats_engine/)) | `harness-lab/eval/stats.py`; add bootstrap **over tasks** | none | LEARN |
+| 13 | Context-window eviction tester | **spec + tests** ([eviction/](eviction/)) | harness-lab tasks t15/t16/t17/t19, phase 4 | phase 1 | LEARN |
 | 4 | CI/CD regression gate | not started | runner + stats; gate on low-variance metrics | a baseline to regress from | BUILD |
-| 14 | Dataset contamination checker | not started | SWE-bench subset (phase 6) | none | LEARN |
+| 14 | Dataset contamination checker | **spec + tests** ([contamination/](contamination/)) | SWE-bench subset (phase 6) | none | LEARN |
 | 3 | Calibrated LLM-as-a-judge | not started | — | source of 500 human labels; single annotator cannot measure agreement | LEARN |
 | 12 | Synthetic edge-case generator | not started | task format of harness-lab | model + budget | LEARN |
 | 5 | RAG adversarial harness | not started | needs a RAG system under test; none exists in the repo | a RAG target | LEARN |
@@ -28,6 +28,15 @@ implements). The column below is a **proposal to confirm** project by project.
 | 10 | Cost-quality Pareto dashboard | not started | run records (tokens, cost) | real runs with cost | BUILD |
 | 6 | Automated DPO flywheel | not started | llm-from-scratch post-training | simulated feedback, GPU for LoRA | mixed |
 | 15 | Public methodology teardown | — | everything above | results worth publishing | writing, yours |
+
+Three projects now carry a LEARN contract instead of a table row: [**#7**](stats_engine/),
+[**#13**](eviction/) and [**#14**](contamination/). Each is `<name>/SPEC.md` (the guidelines:
+what it is, the interface, acceptance items, limit cases, out of scope), `<name>/RESOURCES.md`
+(what to read, cited and restated) and `<name>/<module>.py` with the interface as
+`NotImplementedError` stubs, plus `tests/test_<module>.py`. The suite is green with the core
+unwritten — infrastructure tests pass, core tests `xfail` — and implementing the stubs turns
+the `xfail`s into passes. Run one with `cd agent-evals && python3.12 -m pytest -q
+tests/test_<module>.py`.
 
 ## Second list (LLM reliability), merged
 

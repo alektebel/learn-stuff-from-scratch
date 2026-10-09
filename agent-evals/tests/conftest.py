@@ -1,7 +1,14 @@
 import pytest
-from eval.sandbox import docker_available
 
-_DOCKER = docker_available()
+try:
+    from eval.sandbox import docker_available
+
+    _DOCKER = docker_available()
+except ImportError:
+    # harness-lab is a sibling package installed alongside agent-evals. When it is
+    # not installed, the Docker-marked tests are skipped too, so the non-Docker
+    # suites still run on their own.
+    _DOCKER = False
 
 
 def pytest_collection_modifyitems(config, items):

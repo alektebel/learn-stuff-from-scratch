@@ -17,4 +17,5 @@ include = ["redteam*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 markers = ["docker: needs a running Docker daemon and the sandbox image"]
