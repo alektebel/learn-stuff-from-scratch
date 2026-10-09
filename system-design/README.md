@@ -35,6 +35,15 @@ into 8 categories:
 Each doc covers architecture, protocols, trade-offs, failure modes, and
 step-by-step implementation milestones for building the system from scratch.
 
+### Graded submodules
+
+Some tracks also have a runnable, mutation-tested module (templates + `check.py` +
+`solutions/`), separate from the design docs:
+
+- [`auth/`](auth/README.md) — track 8 (JWT) turned into code: server-side sessions,
+  HS256 JWTs (`alg=none` and RS256/HS256 confusion rejected), and the OAuth 2.0
+  authorization code flow with PKCE. 14 graded checks via `python3 auth/check.py`.
+
 ---
 
 ## Learning Path
