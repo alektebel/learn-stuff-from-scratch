@@ -77,6 +77,18 @@ DESIGN DECISION - every response carries the session cookie, only `/consent`
     browser to expire the cookie when the request actually carried one: the
     observer is stateless, so emitting an expiry it did not need would look like
     a cookie being set on reject.
+
+DESIGN DECISION - a contact message is stored and retrievable by receipt, and
+    spam is filtered by a honeypot then a rate limit (exercise 15). `POST
+    /contact` with valid input mints a receipt id, stores the message under it and
+    answers with a confirmation page quoting the reference; `GET /messages/<id>`
+    reads that one message back and `GET /messages` reports the count, so a
+    silently broken form (the break exercise 15 fixes) is visible. Two cheap
+    spam filters sit in front: a hidden honeypot field no person fills (the page
+    emits it, `pages.CONTACT_HONEYPOT`) and a per-IP rate limit. The honeypot
+    discards quietly - answering an error would tell the bot which field gave it
+    away - and the rate limit refuses the excess with 429. Cost: the message
+    store is in memory, so a restart forgets it; it is a toy, not a mail queue.
 """
 
 import http.server
@@ -87,9 +99,10 @@ import traceback
 import urllib.parse
 import uuid
 
-from pages import (ANALYTICS_COOKIE, MIN_MESSAGE, SESSION_COOKIE, contact_page,
-                   error_message, favicon_png, not_found, og_image_png,
-                   order_page, pages, robots_txt, server_error, sitemap_xml)
+from pages import (ANALYTICS_COOKIE, CONTACT_HONEYPOT, MIN_MESSAGE, SESSION_COOKIE,
+                   contact_page, contact_sent, error_message, favicon_png, not_found,
+                   og_image_png, order_page, pages, robots_txt, server_error,
+                   sitemap_xml)
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8000
@@ -110,6 +123,38 @@ ORDERS_LOCK = threading.Lock()
 # log file. `check.py` can then prove the detail left the response without
 # vanishing: it is in the log, not in the page.
 SERVER_LOG = []
+
+# Contact messages (exercise 15), keyed by the receipt id handed to the user.
+# Insertion order is the arrival order. The dict IS the toy's "send or store":
+# the confirmation page quotes the key, `GET /messages/<id>` reads the message
+# back, and `GET /messages` reports how many arrived.
+MESSAGES = {}
+
+# When each client last posted to /contact, for the rate limit. A trivial script
+# cannot flood the form: past CONTACT_RATE_LIMIT posts in CONTACT_RATE_WINDOW_S
+# the excess is refused with 429. Every attempt counts, honeypot trips included.
+CONTACT_HITS = {}
+CONTACT_RATE_LIMIT = 20
+CONTACT_RATE_WINDOW_S = 60.0
+
+# One lock for the contact state, shared across the server's request threads.
+MESSAGES_LOCK = threading.Lock()
+
+
+def _rate_limited(ip):
+    """True when `ip` has posted to /contact too often in the window.
+
+    Records this attempt as well, so a burst of spam cannot outrun the limit by
+    arriving faster than it is counted.
+    """
+    now = time.monotonic()
+    with MESSAGES_LOCK:
+        hits = [when for when in CONTACT_HITS.get(ip, [])
+                if now - when < CONTACT_RATE_WINDOW_S]
+        limited = len(hits) >= CONTACT_RATE_LIMIT
+        hits.append(now)
+        CONTACT_HITS[ip] = hits
+        return limited
 
 
 class SiteHandler(http.server.BaseHTTPRequestHandler):
@@ -146,6 +191,21 @@ class SiteHandler(http.server.BaseHTTPRequestHandler):
             elif route == "/orders":
                 self._respond(200, json.dumps({"count": len(ORDERS)}),
                               "application/json; charset=utf-8")
+            elif route == "/messages":
+                # How many contact messages arrived (exercise 15). A count only:
+                # the messages themselves are read back one at a time by their
+                # receipt id, never listed to just anyone.
+                self._respond(200, json.dumps({"count": len(MESSAGES)}),
+                              "application/json; charset=utf-8")
+            elif route.startswith("/messages/"):
+                receipt = route[len("/messages/"):]
+                with MESSAGES_LOCK:
+                    stored = MESSAGES.get(receipt)
+                if stored is None:
+                    self._respond(404, not_found())
+                else:
+                    self._respond(200, json.dumps(stored),
+                                  "application/json; charset=utf-8")
             else:
                 site = pages()
                 if route in site:
@@ -168,6 +228,34 @@ class SiteHandler(http.server.BaseHTTPRequestHandler):
                 # message next to the field is `pages.contact_page`'s.
                 values = {name: (fields.get(name) or [""])[0]
                           for name in ("name", "email", "message")}
+                honeypot = (fields.get(CONTACT_HONEYPOT) or [""])[0]
+
+                # Rate limit first: a trivial script cannot flood the form, and
+                # every attempt counts, so spam that trips the honeypot below is
+                # throttled too. The excess is refused with 429, never stored.
+                if _rate_limited(self.client_address[0]):
+                    self._respond(429, (
+                        "<!DOCTYPE html>\n"
+                        '<html lang="en">\n'
+                        "<head>\n"
+                        '<meta charset="utf-8">\n'
+                        "<title>Too many messages — Acme Tools</title>\n"
+                        "</head>\n"
+                        "<body>\n"
+                        "<h1>Too many messages</h1>\n"
+                        "<p>Please wait a minute before sending another.</p>\n"
+                        '<p><a href="/contact">Back to the form</a></p>\n'
+                        "</body>\n"
+                        "</html>\n"))
+                    return
+
+                # Honeypot: a person never sees the field, so a value means an
+                # automated form-filler. Store nothing and hand out no receipt;
+                # a bot that reads the response learns nothing to exploit.
+                if honeypot.strip():
+                    self._respond(200, contact_page())
+                    return
+
                 errors = {}
                 if not values["name"].strip():
                     errors["name"] = error_message("name", values["name"])
@@ -182,17 +270,17 @@ class SiteHandler(http.server.BaseHTTPRequestHandler):
                     # kept and one message next to each bad field.
                     self._respond(200, contact_page(values, errors))
                 else:
-                    self._respond(200, (
-                        "<!DOCTYPE html>\n"
-                        '<html lang="en">\n'
-                        "<head><meta charset=\"utf-8\">"
-                        "<title>Message sent — Acme Tools</title></head>\n"
-                        "<body>\n"
-                        "<h1>Thanks — your message is on its way</h1>\n"
-                        "<p>We will reply to the address you gave us.</p>\n"
-                        "<p><a href=\"/\">Back to the home page</a></p>\n"
-                        "</body>\n"
-                        "</html>\n"))
+                    # A real message: store it under a fresh receipt id and
+                    # confirm receipt with that reference. The confirmation is
+                    # what tells the user the form is not posting into the void.
+                    receipt = uuid.uuid4().hex
+                    with MESSAGES_LOCK:
+                        MESSAGES[receipt] = {
+                            "name": values["name"].strip(),
+                            "email": values["email"].strip(),
+                            "message": values["message"].strip(),
+                        }
+                    self._respond(200, contact_sent(receipt))
                 return
 
             if route == "/consent":

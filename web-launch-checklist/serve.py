@@ -77,6 +77,18 @@ DESIGN DECISION - every response carries the session cookie, only `/consent`
     browser to expire the cookie when the request actually carried one: the
     observer is stateless, so emitting an expiry it did not need would look like
     a cookie being set on reject.
+
+DESIGN DECISION - a contact message is stored and retrievable by receipt, and
+    spam is filtered by a honeypot then a rate limit (exercise 15). `POST
+    /contact` with valid input mints a receipt id, stores the message under it and
+    answers with a confirmation page quoting the reference; `GET /messages/<id>`
+    reads that one message back and `GET /messages` reports the count, so a
+    silently broken form (the break exercise 15 fixes) is visible. Two cheap
+    spam filters sit in front: a hidden honeypot field no person fills (the page
+    emits it, `pages.CONTACT_HONEYPOT`) and a per-IP rate limit. The honeypot
+    discards quietly - answering an error would tell the bot which field gave it
+    away - and the rate limit refuses the excess with 429. Cost: the message
+    store is in memory, so a restart forgets it; it is a toy, not a mail queue.
 """
 
 import http.server
@@ -87,9 +99,10 @@ import traceback
 import urllib.parse
 import uuid
 
-from pages import (ANALYTICS_COOKIE, MIN_MESSAGE, SESSION_COOKIE, contact_page,
-                   error_message, favicon_png, not_found, og_image_png,
-                   order_page, pages, robots_txt, server_error, sitemap_xml)
+from pages import (ANALYTICS_COOKIE, CONTACT_HONEYPOT, MIN_MESSAGE, SESSION_COOKIE,
+                   contact_page, contact_sent, error_message, favicon_png, not_found,
+                   og_image_png, order_page, pages, robots_txt, server_error,
+                   sitemap_xml)
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8000
@@ -111,16 +124,42 @@ ORDERS_LOCK = threading.Lock()
 # vanishing: it is in the log, not in the page.
 SERVER_LOG = []
 
+# Contact messages (exercise 15), keyed by the receipt id handed to the user.
+# Insertion order is the arrival order. The dict IS the toy's "send or store":
+# the confirmation page quotes the key, `GET /messages/<id>` reads the message
+# back, and `GET /messages` reports how many arrived.
+MESSAGES = {}
+
+# When each client last posted to /contact, for the rate limit. A trivial script
+# cannot flood the form: past CONTACT_RATE_LIMIT posts in CONTACT_RATE_WINDOW_S
+# the excess is refused with 429. Every attempt counts, honeypot trips included.
+CONTACT_HITS = {}
+CONTACT_RATE_LIMIT = 20
+CONTACT_RATE_WINDOW_S = 60.0
+
+# One lock for the contact state, shared across the server's request threads.
+MESSAGES_LOCK = threading.Lock()
+
+
+def _rate_limited(ip):
+    """True when `ip` has posted to /contact too often in the window.
+
+    Records this attempt as well, so a burst of spam cannot outrun the limit by
+    arriving faster than it is counted.
+    """
+    # TODO: return True when this IP has posted to /contact CONTACT_RATE_LIMIT or more times within the last CONTACT_RATE_WINDOW_S seconds, and record this attempt as well (so a fast burst cannot outrun the limit); it is called at the top of POST /contact and the caller answers 429 when it is true
+    raise NotImplementedError("_rate_limited")
+
 
 class SiteHandler(http.server.BaseHTTPRequestHandler):
     server_version = "web-launch-checklist/1.0"
 
     def do_GET(self):  # noqa: N802 - name fixed by BaseHTTPRequestHandler
-        # TODO: route the request path: GET /contact serves contact_page() as HTML (the form, empty); GET /boom deliberately raises RuntimeError("boom: simulated backend failure"); a path in pages() gets status 200 and its HTML; GET /og-image.png serves og_image_png() as image/png; GET /favicon.ico serves favicon_png() as image/png; GET /logo.png and /chart.png serve a real image/png (reuse favicon_png and og_image_png - no new image code); GET /robots.txt serves robots_txt(base) as text/plain; GET /sitemap.xml serves sitemap_xml over the page paths as application/xml (base = Host header); GET /order serves order_page(uuid.uuid4().hex) (a fresh key per form view); GET /orders serves {"count": len(ORDERS)} as application/json; anything else gets the 404 page with status 404 (no redirect to /). The shared `_respond` already sets the strictly-necessary SESSION_COOKIE on every response, so no route needs to set it; and no GET route may set the analytics cookie. Wrap the whole body in try/except and call self._server_error() on any exception, so a raised route leaves through the one error path
+        # TODO: route the request path: GET /contact serves contact_page() as HTML (the form, empty); GET /boom deliberately raises RuntimeError("boom: simulated backend failure"); a path in pages() gets status 200 and its HTML; GET /og-image.png serves og_image_png() as image/png; GET /favicon.ico serves favicon_png() as image/png; GET /logo.png and /chart.png serve a real image/png (reuse favicon_png and og_image_png - no new image code); GET /robots.txt serves robots_txt(base) as text/plain; GET /sitemap.xml serves sitemap_xml over the page paths as application/xml (base = Host header); GET /order serves order_page(uuid.uuid4().hex) (a fresh key per form view); GET /orders serves {"count": len(ORDERS)} as application/json; GET /messages serves {"count": len(MESSAGES)} as application/json; GET /messages/<id> serves the stored message as application/json, or the 404 page when the id is unknown; anything else gets the 404 page with status 404 (no redirect to /). The shared `_respond` already sets the strictly-necessary SESSION_COOKIE on every response, so no route needs to set it; and no GET route may set the analytics cookie. Wrap the whole body in try/except and call self._server_error() on any exception, so a raised route leaves through the one error path
         raise NotImplementedError("SiteHandler.do_GET")
 
     def do_POST(self):  # noqa: N802 - name fixed by BaseHTTPRequestHandler
-        # TODO: handle POST /contact, POST /consent and POST /order. POST /contact: read the urlencoded body, keep the name/email/message values, validate them (name non-empty; email with exactly one @ and a dot after it; message at least MIN_MESSAGE characters). On failure answer 200 with contact_page(values, errors) where errors maps each bad field to error_message(field, value) - field-level messages, not a bare error page. On success answer 200 with a short confirmation page. POST /consent: read `choice`; on accept pass `ANALYTICS_COOKIE=1; Path=/` to _respond, on reject set no analytics cookie (expire one only if the request already carried it), then answer 200 with the home page. POST /order: read the urlencoded body, take `idempotency_key`; if the key was seen already answer 200 with the same confirmation and record nothing; otherwise record (product, key) and answer 200. Keep ORDERS and SEEN under ORDERS_LOCK, and a missing/empty key means no idempotency promise (record every click). Any other POST path is a 404. Wrap the whole body in try/except and call self._server_error() on any exception
+        # TODO: handle POST /contact, POST /consent and POST /order. POST /contact: read the urlencoded body, keep the name/email/message values, validate them (name non-empty; email with exactly one @ and a dot after it; message at least MIN_MESSAGE characters). On failure answer 200 with contact_page(values, errors) where errors maps each bad field to error_message(field, value) - field-level messages, not a bare error page. On success mint a receipt id, store the message in MESSAGES under it and answer 200 with contact_sent(receipt). Two spam filters run first: discard a submission whose honeypot field (fields[CONTACT_HONEYPOT]) is non-empty (store nothing, answer 200), and refuse with status 429 when _rate_limited(the client's IP) is true. POST /consent: read `choice`; on accept pass `ANALYTICS_COOKIE=1; Path=/` to _respond, on reject set no analytics cookie (expire one only if the request already carried it), then answer 200 with the home page. POST /order: read the urlencoded body, take `idempotency_key`; if the key was seen already answer 200 with the same confirmation and record nothing; otherwise record (product, key) and answer 200. Keep ORDERS and SEEN under ORDERS_LOCK, and a missing/empty key means no idempotency promise (record every click). Any other POST path is a 404. Wrap the whole body in try/except and call self._server_error() on any exception
         raise NotImplementedError("SiteHandler.do_POST")
 
     def _server_error(self):

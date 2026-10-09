@@ -69,6 +69,15 @@ variable, because all of that is detail for the log. A framework's default (a
 bare error, or the same "invalid input" for every field) is the thing these
 replace.
 
+DESIGN DECISION - the contact form carries one hidden honeypot field. A form
+that posts nowhere and a `mailto:` that does not exist are the break exercise 15
+fixes; the cheapest way to cut the spam that follows is a field no person fills.
+It is a real text input (`type="hidden"` would be skipped by the bots it is meant
+to catch), hidden with `display:none`, kept out of the tab order and marked
+`aria-hidden`, so only an automated form-filler completes it. The cost: a bot
+that reads the CSS can notice it, which is why it is a first filter, not the
+only one - `serve.py` adds a rate limit behind it.
+
 DESIGN DECISION - consent is a POST form, and the two choices share one element
 type. A `GET /consent?choice=accept` link is crawlable: the search bot would
 follow it, the sitemap would have to list it, and every bot pass would "accept"
@@ -105,6 +114,13 @@ MIN_MESSAGE = 10
 # it may be set only after the visitor accepts, and never on a plain page load.
 SESSION_COOKIE = "wlc_session"
 ANALYTICS_COOKIE = "wlc_analytics"
+
+# The honeypot field exercise 15 adds to the contact form. `serve.py` reads the
+# field of this name and discards any submission that carries a value: a person
+# never sees it (it is hidden and out of the tab order), so only an automated
+# form-filler fills it. One constant, so the field the page emits and the field
+# the server checks cannot drift apart.
+CONTACT_HONEYPOT = "website"
 
 NAV = (
     '<nav><a href="/">Home</a> · <a href="/about">About</a> · '
@@ -272,8 +288,22 @@ def contact_page(values=None, errors=None):
     with the messages attached and status 200. The opposite - a bare framework
     error, or a silent red border - tells the user nothing about what to change.
     """
-    # TODO: return the /contact form as HTML: method="post" action="/contact" with a name, an email and a message field and a submit button; prefill every input from `values` and, for each field named in `errors`, render that field's message right after its input, e.g. <p class="error" id="error-email">...</p>. Keep it out of _doc/NAV; re-render the same page for an invalid submission
+    # TODO: return the /contact form as HTML: method="post" action="/contact" with a name, an email and a message field and a submit button; prefill every input from `values` and, for each field named in `errors`, render that field's message right after its input, e.g. <p class="error" id="error-email">...</p>. Include the honeypot: a real text input named CONTACT_HONEYPOT (NOT type=hidden, so a bot will fill it) hidden from people with display:none, tabindex="-1" and aria-hidden="true". Keep it out of _doc/NAV; re-render the same page for an invalid submission
     raise NotImplementedError("contact_page")
+
+
+def contact_sent(receipt_id):
+    """Return the receipt page shown after a valid submission.
+
+    The page confirms receipt and carries the message's reference as a
+    machine-readable `data-receipt` attribute, so the user - and the check - can
+    tell that the message was stored and quote a reference if it is ever lost.
+    Built here, not through `_doc`, for the same reason as `order_page`: it is
+    not part of the crawlable site (no navigation link points at it), and keeping
+    it out of `_doc`/`NAV` keeps the answer out of the learner templates.
+    """
+    # TODO: return the receipt page shown after a valid submission: an HTML page that confirms receipt and carries the given receipt id as data-receipt="<id>" so the user (and the check) can quote a reference. Build it here, not through _doc, so it does not leak into the shared chrome
+    raise NotImplementedError("contact_sent")
 
 
 def server_error():

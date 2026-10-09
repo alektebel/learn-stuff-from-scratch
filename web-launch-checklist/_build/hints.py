@@ -20,6 +20,9 @@ HINTS = {
             "serves sitemap_xml over the page paths as application/xml (base = Host header); "
             "GET /order serves order_page(uuid.uuid4().hex) (a fresh key per form view); "
             "GET /orders serves {\"count\": len(ORDERS)} as application/json; "
+            "GET /messages serves {\"count\": len(MESSAGES)} as application/json; "
+            "GET /messages/<id> serves the stored message as application/json, or the "
+            "404 page when the id is unknown; "
             "anything else gets the 404 page with status 404 (no redirect to /). "
             "The shared `_respond` already sets the strictly-necessary SESSION_COOKIE "
             "on every response, so no route needs to set it; and no GET route may "
@@ -34,8 +37,12 @@ HINTS = {
             "email with exactly one @ and a dot after it; message at least MIN_MESSAGE "
             "characters). On failure answer 200 with contact_page(values, errors) where "
             "errors maps each bad field to error_message(field, value) - field-level "
-            "messages, not a bare error page. On success answer 200 with a short "
-            "confirmation page. POST /consent: read `choice`; on accept pass "
+            "messages, not a bare error page. On success mint a receipt id, store the "
+            "message in MESSAGES under it and answer 200 with contact_sent(receipt). "
+            "Two spam filters run first: discard a submission whose honeypot field "
+            "(fields[CONTACT_HONEYPOT]) is non-empty (store nothing, answer 200), and "
+            "refuse with status 429 when _rate_limited(the client's IP) is true. "
+            "POST /consent: read `choice`; on accept pass "
             "`ANALYTICS_COOKIE=1; Path=/` to _respond, on reject set no analytics cookie "
             "(expire one only if the request already carried it), then answer 200 with "
             "the home page. POST /order: read the urlencoded body, take "
@@ -45,6 +52,13 @@ HINTS = {
             "key means no idempotency promise (record every click). Any other POST "
             "path is a 404. Wrap the whole body in try/except and call "
             "self._server_error() on any exception"
+        ),
+        "_rate_limited": (
+            "return True when this IP has posted to /contact CONTACT_RATE_LIMIT or "
+            "more times within the last CONTACT_RATE_WINDOW_S seconds, and record "
+            "this attempt as well (so a fast burst cannot outrun the limit); it is "
+            "called at the top of POST /contact and the caller answers 429 when it "
+            "is true"
         ),
         "SiteHandler._server_error": (
             "the one error path: append the full traceback text "
@@ -100,8 +114,17 @@ HINTS = {
             "name, an email and a message field and a submit button; prefill every input "
             "from `values` and, for each field named in `errors`, render that field's "
             "message right after its input, e.g. "
-            "<p class=\"error\" id=\"error-email\">...</p>. Keep it out of _doc/NAV; "
-            "re-render the same page for an invalid submission"
+            "<p class=\"error\" id=\"error-email\">...</p>. Include the honeypot: a "
+            "real text input named CONTACT_HONEYPOT (NOT type=hidden, so a bot will "
+            "fill it) hidden from people with display:none, tabindex=\"-1\" and "
+            "aria-hidden=\"true\". Keep it out of _doc/NAV; re-render the same page for "
+            "an invalid submission"
+        ),
+        "contact_sent": (
+            "return the receipt page shown after a valid submission: an HTML page that "
+            "confirms receipt and carries the given receipt id as "
+            "data-receipt=\"<id>\" so the user (and the check) can quote a reference. "
+            "Build it here, not through _doc, so it does not leak into the shared chrome"
         ),
         "error_message": (
             "return a specific, actionable sentence for one invalid field: say what is "

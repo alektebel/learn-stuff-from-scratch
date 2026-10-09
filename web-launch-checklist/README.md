@@ -4,15 +4,16 @@ Sixteen items that "every site should have before launch". The usual list says *
 these exercises make you find out *why*, by putting an observer in front of a site that
 lacks the item and measuring the damage, then fixing it and measuring again.
 
-**Status: exercises 1-12 are built.** `crawler.py`, `unfurl.py`, `visit.py`,
+**Status: exercises 1-13 are built.** `crawler.py`, `unfurl.py`, `visit.py`,
 `reader.py` and `impatient.py` (the observers), `check.py`, the reference in
 `solutions/` and a runnable broken variant in `_build/broken/` are here. The
-eleventh check grades the cookies/consent exercise (13), and the twelfth grades
-the analytics exercise (14) against `analytics.py`; the mobile exercise (9)
-still needs `mobile.py` and Chromium, and exercises 12 and 15-16 are specified
-only. No conceptual answers are written anywhere in this directory, on purpose:
-each exercise ends with questions, and the observer's output is what answers
-them.
+eleventh check grades the cookies/consent exercise (13), the twelfth grades
+the analytics exercise (14), and the thirteenth grades the contact-methods
+exercise (15: stored, retrievable, honeypot, rate limit, confirmation); the
+mobile exercise (9) still needs `mobile.py` and Chromium, and exercise 16 is
+specified only. No conceptual answers are written anywhere in this directory,
+on purpose: each exercise ends with questions, and the observer's output is
+what answers them.
 
 ## How it works
 
@@ -35,10 +36,10 @@ The **observers** are provided. Each one sees the site the way some real agent d
 `mobile.py` is specified in the exercises below.
 
 `check.py` runs the observers and grades each exercise, in this repo's usual format.
-Exercises 1-12 are graded now (twelve checks); the rest are TODO until their observers
+Exercises 1-13 are graded now (thirteen checks); the rest are TODO until their observers
 exist.
 
-Runs on a CPU: Python standard library only for exercises 1-12. Later exercises warm
+Runs on a CPU: Python standard library only for the graded checks. Later exercises warm
 up the machine (Pillow with WebP, a Chromium binary) but there is no network.
 
 ## What is provided, what you build
@@ -51,10 +52,10 @@ The original plan was ambiguous about this. The smallest workable split:
 | `unfurl.py` | **provided** | The chat-app observer: what a pasted link's preview card shows, for exercise 7. |
 | `reader.py` | **provided** | The screen-reader observer: the linear text, every image and the two `alt` mistakes, for exercise 8. |
 | `visit.py` | **provided** | The per-visit browser observer: every request on a first load, the icon measurements and the cookies set, for exercise 4 (and 13). |
-| `impatient.py` | **provided** | The slow-API observer: three clicks on an order form, the orders the server recorded, and the mechanism that disables the control, for exercise 10. Its `fetch`/`post_form` HTTP helpers are reused by the error-message check (exercise 11) and its `post_form_headers` by the cookie check (exercise 13). |
+| `impatient.py` | **provided** | The slow-API observer: three clicks on an order form, the orders the server recorded, and the mechanism that disables the control, for exercise 10. Its `fetch`/`post_form` HTTP helpers are reused by the error-message check (exercise 11), the cookie check (exercise 13) and the contact check (exercise 15), and its `post_form_headers` by the cookie check. |
 | `check.py` | **provided** | The grader. Never imports `solutions/`. |
-| `serve.py` | **you** | Routing, the 404 status, the order API (dedup by idempotency key), the error path and the cookie policy: the decisions exercises 1, 10, 11 and 13 are about. |
-| `pages.py` | **you** | The site's HTML: titles and descriptions, the icon link and the images' alt text, the order form, the consent banner, and the contact form with its error messages and 500 page: the subject of exercises 2, 3, 4, 8, 10, 11 and 13. |
+| `serve.py` | **you** | Routing, the 404 status, the order API (dedup by idempotency key), the error path, the cookie policy and the contact store with its honeypot and rate limit: the decisions exercises 1, 10, 11, 13 and 15 are about. |
+| `pages.py` | **you** | The site's HTML: titles and descriptions, the icon link and the images' alt text, the order form, the consent banner, and the contact form with its error messages, honeypot and receipt page: the subject of exercises 2, 3, 4, 8, 10, 11, 13 and 15. |
 | `analytics.py` | **you** | The page-view counter: filter out bots, prefetches, reloads, assets and unconsented requests, and store nothing personal: the subject of exercise 14. |
 | `_build/broken/` | **provided** | A complete site with the three defects planted; run the crawler against it for the "Break" half. |
 | `solutions/` | **reference** | Do not read it until `check.py` passes, or until you are stuck. |
@@ -71,7 +72,7 @@ with it and two of the three planted bugs would be untestable. The HTML inside
 ```
 cd web-launch-checklist
 python3 check.py          # stop at the first step you have not written
-python3 check.py --all    # run all twelve checks (exercises 1-12)
+python3 check.py --all    # run all thirteen checks (exercises 1-13)
 ```
 
 Start the reference site (swap `solutions` for `_build/broken` for the broken
@@ -239,11 +240,11 @@ the graded check passes, and the observer's numbers changed in the way you predi
 - **Questions:** Was WebP smaller for every image? Try a screenshot with flat colours and
   text against PNG. What did resizing save, compared with changing the format?
 
-## Mutation table (exercises 1-12)
+## Mutation table (exercises 1-13)
 
 `_build/mutations.py`, run through
 `.claude/skills/graded-module/scripts/mutate.py`, plants the classic mistake for
-each exercise (fifty-nine in all). Every one must be CAUGHT by the named step.
+each exercise (sixty-five in all). Every one must be CAUGHT by the named step.
 
 | Planted bug | File | Caught by | Why it is a classic mistake |
 |---|---|---|---|
@@ -306,6 +307,12 @@ each exercise (fifty-nine in all). Every one must be CAUGHT by the named step.
 | `is_prefetch` needs one exact token | `analytics.py` | step 12 | A `Purpose` header can carry several tokens; any of them means speculative. |
 | The result keeps a timestamp | `analytics.py` | step 12 | A timestamp per view is request metadata, not an aggregate count. |
 | A blank user-agent counts as a human | `analytics.py` | step 12 | An explicit blank user-agent is a bot, unlike a missing one. |
+| A valid contact message is never stored | `serve.py` | step 13 | The form shows a receipt but the message is gone: the silently broken contact form. |
+| The honeypot is ignored | `serve.py` | step 13 | A bot that fills the hidden field is delivered like a person. |
+| There is no rate limit | `serve.py` | step 13 | A trivial script floods the form; the honeypot is then the only gate. |
+| The honeypot field is missing from the form | `pages.py` | step 13 | A form-filling bot has nothing to trip over. |
+| The honeypot is a `type="hidden"` input | `pages.py` | step 13 | Bots skip hidden inputs, so the trap never catches one. |
+| The confirmation carries no `data-receipt` | `pages.py` | step 13 | The user cannot tell the message was stored, nor quote a reference if it is lost. |
 
 ## Design decisions
 
@@ -349,6 +356,14 @@ each exercise (fifty-nine in all). Every one must be CAUGHT by the named step.
   user-agent is not a bot (plenty of privacy-preserving clients send none); an explicit
   blank one is. `check.py` step 12 grades it against a hand-built log with known ground
   truth and against the provided crawler's user-agent.
+- **A contact message is stored and retrievable, and spam is filtered twice.**
+  `POST /contact` mints a receipt id, stores the message under it and answers with a
+  confirmation carrying `data-receipt`, so a form that posts into the void is visible;
+  `GET /messages/<id>` reads the message back and `GET /messages` counts them. A hidden
+  honeypot field (a real text input, not `type="hidden"`, hidden with `display:none` and
+  `aria-hidden`) discards a form-filler's submission, and a per-IP rate limit refuses the
+  excess with 429. `check.py` step 13 grades all four: storage, retrieval, the honeypot and
+  the rate limit.
 
 ## Already in the repo
 
@@ -370,11 +385,18 @@ against it, so the file that publishes the reference has to exist first.
 
 ## Limits
 
-- **Only the exercises 1-12 checks are built.** The rest are specified, not graded;
+- **Only the exercises 1-13 checks are built.** The rest are specified, not graded;
   `check.py` reports them as absent rather than pretending they pass. The remaining
   observer, `mobile.py`, does not exist yet, so exercise 9 (responsive on mobile)
   is not graded even though the loading-states exercise (10), the error-messages
-  exercise (11), the cookies/consent exercise (13) and the analytics exercise (14) are.
+  exercise (11), the cookies/consent exercise (13), the analytics exercise (14) and
+  the contact-methods exercise (15) are.
+- **The contact check posts from one address.** The rate limit is per client IP, and the
+  checker is the only client, so the burst is counted against `127.0.0.1`; a proxy that
+  forwards a forged `X-Forwarded-For` is neither trusted nor exercised. The message store
+  is in memory, so a restart forgets every message: it proves the path, not durability.
+  The honeypot catches only a bot that fills every field; a bot that reads the CSS and
+  skips it is a limit of the technique, not of the check.
 - **The analytics check grades a synthetic log, not live traffic.** `check.py` step 12
   builds a hand-made request log with known ground truth and runs `analytics.count_views`
   over it; it does not wire the counter into the server's request path, so a site that

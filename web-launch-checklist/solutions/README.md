@@ -1,4 +1,4 @@
-# Solutions — web launch checklist, exercises 1-12
+# Solutions — web launch checklist, exercises 1-13
 
 The reference site. `serve.py` routes the pages in `pages.py` and answers every
 unknown path with the 404 page and status 404. It also serves `robots.txt` from
@@ -7,12 +7,16 @@ from `pages.og_image_png` at `/og-image.png` as `image/png`, the favicon from
 `pages.favicon_png` at `/favicon.ico` as `image/png`, the two body images at
 `/logo.png` and `/chart.png` as `image/png` (reusing the same two helpers), the
 order form from `pages.order_page` at `/order`, the recorded-order count at
-`/orders`, and the contact form from `pages.contact_page` at `/contact`.
+`/orders`, the contact form from `pages.contact_page` at `/contact`, the stored
+message count at `/messages` and one message at `/messages/<id>`.
 `POST /order` records `(product, idempotency_key)` once per key, under
 a lock, so a multi-click on one form is one order. `POST /contact` validates the
 name, email and message and re-renders the form at status 200 with one
-`pages.error_message` next to each bad field; a valid submission gets a short
-confirmation. Every response carries the strictly-necessary `wlc_session` cookie;
+`pages.error_message` next to each bad field; a valid submission is stored under
+a fresh receipt id and confirmed with `pages.contact_sent(receipt)`, whose page
+carries `data-receipt`. Two spam filters run first: a submission that fills the
+hidden honeypot field is discarded, and a per-IP rate limit refuses the excess
+with 429. Every response carries the strictly-necessary `wlc_session` cookie;
 `POST /consent` with `choice=accept` adds the analytics cookie `wlc_analytics`,
 and `choice=reject` adds no analytics cookie at all. `GET /boom` deliberately
 raises: the handler catches it, appends the traceback to `SERVER_LOG` and answers
@@ -30,7 +34,7 @@ Copy these files next to `check.py` and run:
 ```
 $ python3 check.py --all
 
-Web launch checklist — progress check (exercises 1-12)
+Web launch checklist — progress check (exercises 1-13)
 implement serve.py and pages.py, then run the observers
 
   ✓  1. serve.py  unknown paths return a real 404 page that links home
@@ -58,8 +62,13 @@ implement serve.py and pages.py, then run the observers
   ✓ 11. pages.py/serve.py no analytics cookie before consent; accept sets it, reject does not
       naive 12 -> fixed 4 views ({'/': 2, '/about': 1, '/pricing': 1})
   ✓ 12. analytics.py page views count humans who consented, not bots, reloads or prefetches
+      human message stored and retrieved (a1b2c3d4)
+      honeypot submission discarded
+      second human message stored
+      burst of 30 -> 14 stored, 16 refused with 429 (limit 20)
+  ✓ 13. pages.py/serve.py a contact message is stored, retrievable and confirmed; honeypot and rate limit cut spam
 
-  12/12 passing
+  13/13 passing
 
   All checks pass — the crawler sees a launchable site.
   Run crawler.py against it, then compare with solutions/.
@@ -342,11 +351,12 @@ stored result is paths and integers only.
 ## The planted bugs
 
 `_build/mutations.py` plants classic mistakes across the exercises; each is caught
-by the named step (see the module README for the table). **Fifty-nine** mutations
+by the named step (see the module README for the table). **Sixty-five** mutations
 are planted in total: seven across check steps 1-5 (the 404, titles,
 descriptions, robots and sitemap), six for Open Graph (check step 6), five for the
 favicon (check step 7), five for alt text (check step 8), five for loading
 states (check step 9), seven for error messages (check step 10), fourteen for
-cookies (check step 11) and ten for analytics (check step 12). To reproduce
+cookies (check step 11), ten for analytics (check step 12) and six for contact
+(check step 13). To reproduce
 any single bug: mutate `solutions/`, copy `solutions/*.py` and `check.py` into a
 temporary directory, and run `python3 check.py <step>` there.

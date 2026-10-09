@@ -1,5 +1,5 @@
 """
-Progress checker for the web launch checklist, exercises 1-12.
+Progress checker for the web launch checklist, exercises 1-13.
 
     python3 check.py           # run every check, stop at the first unimplemented step
     python3 check.py 2         # run only step 2
@@ -909,6 +909,131 @@ def check_analytics():
           f"({result['views']}){RESET}")
 
 
+# ---------------------------------------------------------------------------
+# Step 13: real contact methods (stored, retrievable, spam-filtered, confirmed)
+# ---------------------------------------------------------------------------
+
+def check_contact():
+    import json
+    import re
+    import uuid
+
+    import serve
+    from impatient import fetch, post_form
+    from pages import CONTACT_HONEYPOT
+
+    def message_count(base):
+        status, body, _content_type = fetch(base, "/messages")
+        assert status == 200, (
+            f"GET /messages returned {status}, not 200. A submitted message must be "
+            "retrievable: expose the number of stored messages as JSON {\"count\": n}.")
+        try:
+            return json.loads(body)["count"]
+        except (ValueError, KeyError, TypeError) as exc:
+            raise AssertionError(
+                f"GET /messages did not answer JSON with a count: {body[:120]!r}. "
+                "The checker confirms storage through this route.") from exc
+
+    def receipt_of(body):
+        match = re.search(r'data-receipt="([^"]+)"', body)
+        return match.group(1) if match else None
+
+    with _RunningSite() as base:
+        # The form itself must carry a honeypot a bot can trip on, hidden from
+        # people: a real text field (not type=hidden), display:none and silent to
+        # a screen reader, so a person never sees it and a form-filler fills it.
+        _status, form_html, _content_type = fetch(base, "/contact")
+        field = re.search(
+            r'<input\b[^>]*\bname="' + re.escape(CONTACT_HONEYPOT) + r'"[^>]*>', form_html)
+        assert field, (
+            f"the contact form has no honeypot field named {CONTACT_HONEYPOT!r}: a "
+            "form-filling bot has nothing to trip over.")
+        assert 'type="hidden"' not in field.group(0).lower(), (
+            "the honeypot is a type=hidden input, which a bot skips: it must be a "
+            "text field a bot may fill and a person never sees.")
+        assert "display:none" in form_html.lower(), (
+            "the honeypot field is not hidden from people (no display:none): a field "
+            "a person can see and fill is not a trap, it is a second message box.")
+        assert "aria-hidden" in form_html.lower(), (
+            "the honeypot is not marked aria-hidden: a screen reader would announce "
+            "a field that is meant to be invisible.")
+
+        before = message_count(base)
+
+        # A real submission is stored, confirmed and retrievable by its reference.
+        token = "human-" + uuid.uuid4().hex
+        status, body, _content_type = post_form(base, "/contact", {
+            "name": "Ada", "email": "ada@example.com",
+            "message": f"Please review our launch checklist. {token}"})
+        assert status == 200, (
+            f"a valid contact submission returned {status}, not 200: the form did "
+            "not accept a real message.")
+        receipt = receipt_of(body)
+        assert receipt, (
+            "the confirmation page carries no data-receipt attribute: the user "
+            "cannot tell the message was stored, nor quote a reference if it is lost.")
+        after = message_count(base)
+        assert after == before + 1, (
+            f"a valid submission changed the stored count by {after - before}, not 1: "
+            "the form does not store the message, it only shows a thank-you page.")
+        status, body, _content_type = fetch(base, "/messages/" + receipt)
+        assert status == 200, (
+            f"GET /messages/{receipt} returned {status}, not 200: the confirmation's "
+            "reference does not retrieve the stored message.")
+        assert token in body, (
+            f"the retrieved message does not contain the submitted text {token!r}: "
+            "something other than what the user typed was stored.")
+        print(f"      human message stored and retrieved ({receipt[:8]})")
+
+        # A bot that fills the hidden field is discarded, not delivered.
+        after_human = message_count(base)
+        _status, _body, _content_type = post_form(base, "/contact", {
+            "name": "Bot", "email": "bot@example.com",
+            "message": "Buy cheap widgets now, visit our site.",
+            CONTACT_HONEYPOT: "http://spam.example"})
+        assert message_count(base) == after_human, (
+            "a submission that filled the hidden honeypot field was stored: the trap "
+            "must discard it, not deliver it to the team.")
+        print("      honeypot submission discarded")
+
+        # The trap rejects bots, not people: a second real message still lands.
+        after_spam = message_count(base)
+        status, body, _content_type = post_form(base, "/contact", {
+            "name": "Grace", "email": "grace@example.com",
+            "message": "A second real message from a person, please."})
+        assert status == 200 and receipt_of(body), (
+            "a second valid submission was not confirmed: the spam filters are "
+            "rejecting real people too.")
+        assert message_count(base) == after_spam + 1, (
+            "a second valid submission was not stored: the spam filters are rejecting "
+            "real people too.")
+        print("      second human message stored")
+
+        # A burst is rate-limited: a trivial script cannot flood the form.
+        limit = getattr(serve, "CONTACT_RATE_LIMIT", 0)
+        assert isinstance(limit, int) and limit >= 10, (
+            f"serve.CONTACT_RATE_LIMIT is {limit!r}: a limit so low that ordinary use "
+            "trips it punishes real visitors. Expose a positive limit of at least 10.")
+        burst = limit + 10
+        burst_before = message_count(base)
+        statuses = []
+        for index in range(burst):
+            status, _body, _content_type = post_form(base, "/contact", {
+                "name": "Burst", "email": f"burst{index}@example.com",
+                "message": f"A burst submission, number {index}, sent by a script."})
+            statuses.append(status)
+        stored = message_count(base) - burst_before
+        assert stored < burst, (
+            f"a burst of {burst} rapid submissions stored all {stored}: there is no "
+            "rate limit, so a trivial script can flood the form.")
+        assert 429 in statuses, (
+            f"the burst of {burst} was not throttled with 429 (statuses seen: "
+            f"{sorted(set(statuses))}): the rate limit must refuse the excess, not "
+            "accept it silently.")
+        print(f"      burst of {burst} -> {stored} stored, "
+              f"{statuses.count(429)} refused with 429 (limit {limit})")
+
+
 CHECKS: List[Tuple[str, str, Callable[[], None]]] = [
     ("serve.py", "unknown paths return a real 404 page that links home", check_custom_404),
     ("pages.py", "every page has a unique <title> within the length limit", check_titles),
@@ -922,6 +1047,7 @@ CHECKS: List[Tuple[str, str, Callable[[], None]]] = [
     ("pages.py/serve.py", "invalid input gets a field-level message; a 500 leaks nothing", check_error_messages),
     ("pages.py/serve.py", "no analytics cookie before consent; accept sets it, reject does not", check_cookies),
     ("analytics.py", "page views count humans who consented, not bots, reloads or prefetches", check_analytics),
+    ("pages.py/serve.py", "a contact message is stored, retrievable and confirmed; honeypot and rate limit cut spam", check_contact),
 ]
 
 
@@ -952,7 +1078,7 @@ def main(argv: List[str]) -> int:
     wanted = [int(a) for a in argv if a.isdigit()]
     if len(wanted) > 1:
         wanted = list(range(min(wanted), max(wanted) + 1))
-    print(f"\n{BOLD}Web launch checklist — progress check (exercises 1-12){RESET}")
+    print(f"\n{BOLD}Web launch checklist — progress check (exercises 1-13){RESET}")
     print(f"{GREY}implement serve.py and pages.py, then run the observers{RESET}\n")
     passed = failed = todo = 0
     first_gap = None

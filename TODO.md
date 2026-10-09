@@ -91,11 +91,14 @@ Update this file in the same commit that finishes or adds an item.
        MVCC versions in the WAL — both lands (steps 18-19, audited). The engine's remaining
        limits are in the module README §Limits.
        → [database-from-scratch/README.md](database-from-scratch/README.md)
-10. [ ] **web-launch-checklist exercises 9 and 15-16** and the `mobile.py` observer.
-        Exercises 1-8 and 10-14 are now graded (loading states, check step 9, with
+10. [ ] **web-launch-checklist exercises 9 and 16** and the `mobile.py` observer.
+        Exercises 1-8 and 10-15 are now graded (loading states, check step 9, with
         `impatient.py`; error messages, check step 10, with `fetch`/`post_form`; cookies
         and consent, check step 11, with `post_form_headers`; analytics, check step 12,
-        against `analytics.py`); `mobile.py` (responsive, exercise 9) remains.
+        against `analytics.py`; contact methods, check step 13: the message is stored,
+        retrievable and confirmed, with a hidden honeypot and a per-IP rate limit cutting
+        spam); `mobile.py` (responsive, exercise 9) and WebP (exercise 16) remain, both
+        needing a browser or Pillow.
         → [web-launch-checklist/README.md](web-launch-checklist/README.md)
 
 ## Gaps with no plan yet

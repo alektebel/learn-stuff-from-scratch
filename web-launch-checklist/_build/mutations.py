@@ -29,14 +29,23 @@ check step). One classic mistake per exercise:
 12. analytics: is_bot never filters a crawler, count_views counts every GET,
     consent is ignored, a prefetch or a reload is never recognised, or the
     stored result keeps the user-agent (personal data).
+13. contact: a valid message is not stored, the honeypot is ignored or missing
+    (or is a type=hidden field no bot fills), the confirmation has no receipt,
+    or there is no rate limit.
 """
 
 MUTATIONS = [
     (
         "soft 404: unknown path served with status 200",
         "serve.py",
-        "            self._respond(404, not_found())",
-        "            self._respond(200, not_found())",
+        "                if route in site:\n"
+        "                    self._respond(200, site[route])\n"
+        "                else:\n"
+        "                    self._respond(404, not_found())",
+        "                if route in site:\n"
+        "                    self._respond(200, site[route])\n"
+        "                else:\n"
+        "                    self._respond(200, not_found())",
         "1",
     ),
     (
@@ -544,5 +553,49 @@ MUTATIONS = [
         '    if not agent:\n        return True\n',
         '    if not agent:\n        return False\n',
         "12",
+    ),
+    # Step 13 (contact): the message must be stored and retrievable, the
+    # honeypot must catch a form-filler, and a burst must be rate-limited.
+    (
+        'a valid contact message is shown a receipt but never stored',
+        'serve.py',
+        '                    with MESSAGES_LOCK:\n                        MESSAGES[receipt] = {\n                            "name": values["name"].strip(),\n                            "email": values["email"].strip(),\n                            "message": values["message"].strip(),\n                        }\n',
+        '',
+        "13",
+    ),
+    (
+        'the honeypot is ignored and a bot submission is stored',
+        'serve.py',
+        '                # Honeypot: a person never sees the field, so a value means an\n                # automated form-filler. Store nothing and hand out no receipt;\n                # a bot that reads the response learns nothing to exploit.\n                if honeypot.strip():\n                    self._respond(200, contact_page())\n                    return\n',
+        '',
+        "13",
+    ),
+    (
+        'there is no rate limit, so a burst floods the form',
+        'serve.py',
+        '    now = time.monotonic()\n    with MESSAGES_LOCK:\n        hits = [when for when in CONTACT_HITS.get(ip, [])\n                if now - when < CONTACT_RATE_WINDOW_S]\n        limited = len(hits) >= CONTACT_RATE_LIMIT\n        hits.append(now)\n        CONTACT_HITS[ip] = hits\n        return limited\n',
+        '    return False\n',
+        "13",
+    ),
+    (
+        'the honeypot field is removed from the contact form',
+        'pages.py',
+        '        \'<div class="hp" aria-hidden="true" style="display:none">\\n\'\n        f\'<label for="{CONTACT_HONEYPOT}">Leave this field empty</label>\\n\'\n        f\'<input type="text" id="{CONTACT_HONEYPOT}" name="{CONTACT_HONEYPOT}" \'\n        \'tabindex="-1" autocomplete="off">\\n\'\n        "</div>\\n"\n',
+        '',
+        "13",
+    ),
+    (
+        'the honeypot is a type=hidden input, which bots skip',
+        'pages.py',
+        '        f\'<input type="text" id="{CONTACT_HONEYPOT}" name="{CONTACT_HONEYPOT}" \'\n',
+        '        f\'<input type="hidden" id="{CONTACT_HONEYPOT}" name="{CONTACT_HONEYPOT}" \'\n',
+        "13",
+    ),
+    (
+        'the confirmation carries no data-receipt reference',
+        'pages.py',
+        '        f\'<p class="receipt" data-receipt="{safe}">Your reference is \'\n',
+        '        f\'<p class="receipt">Your reference is \'\n',
+        "13",
     ),
 ]
