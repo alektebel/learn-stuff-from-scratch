@@ -54,9 +54,14 @@ Update this file in the same commit that finishes or adds an item.
        on this set fusion ties BM25 overall and beats LSA only on multi-hop, reported honestly.
        Unblocks agent-evals #5, reliability #3 and #5, interview questions 1 and 11.
        → [rag-from-scratch/README.md](rag-from-scratch/README.md)
-2. [ ] **harness-lab phase 1**: message types, model interface, scripted backend (spec and
-       tests first; the learner writes the loop), then a baseline on 20 tasks x 3 seeds.
-       Needs the model API above. → [harness-lab/docs/phase0.md](harness-lab/docs/phase0.md) §5
+2. [ ] **harness-lab phase 1**: the LEARN contract is landed — `docs/phase1.md`
+       (spec) + `RESOURCES.md`, the message types, model interface and
+       deterministic scripted backend in `harness_lab/llm/`, the `run_loop` stub
+       the learner implements in `harness_lab/core/loop.py`, the `mini` adapter in
+       `eval/agents.py`, and `tests/test_llm.py` + `tests/test_loop.py`
+       (infrastructure passes, the loop contract xfails until written). The
+       closing baseline on 20 tasks x 3 seeds still needs the model API above.
+       → [harness-lab/docs/phase1.md](harness-lab/docs/phase1.md)
 3. [x] **CUDA step B**: memory system simulated and graded on CPU (coalescing, bank
        conflicts, occupancy, roofline). Landed as `cuda-from-scratch/memory-system/`
        (16 checks, 4 planted bugs). → [cuda-from-scratch/ROADMAP.md](cuda-from-scratch/ROADMAP.md)

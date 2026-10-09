@@ -44,6 +44,9 @@ and scripted model.
 
 ## 5. Proposal for phase 1 (not started)
 Spec and tests first (LEARN mode), human implements:
+*Update: the message/model interfaces, the scripted backend, the `mini` adapter
+and the loop contract landed in [phase1.md](phase1.md); the loop body and the
+model-backed baseline remain.*
 1. `harness_lab/llm`: the message types and a model interface; a **scripted backend** that
    replays recorded responses with token usage (amendment 5), plus one real transport.
 2. `harness_lab/core`: the linear `while` loop with a single bash tool through `DockerSandbox.exec`,
