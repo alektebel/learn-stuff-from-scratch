@@ -101,7 +101,9 @@ Update this file in the same commit that finishes or adds an item.
        trajectory by invariants, not a fixed path). The shared **simulated service** is built
        (BUILD: infrastructure) — a deterministic, stdlib-only double with synthetic traffic,
        injectable drift and a trace store — which unblocks #2 shadow routing, #9 drift monitor
-       and #10 cost-quality Pareto. Red-team v2 (tool layer, loops) remains, after harness-lab
+       and #10 cost-quality Pareto. #2 is built ([shadow_routing/](agent-evals/shadow_routing/)):
+       the primary stays byte-identical, the mirrored sample is deterministic, and the report
+       keeps cost and quality apart. Red-team v2 (tool layer, loops) remains, after harness-lab
        phase 2.
        → [agent-evals/README.md](agent-evals/README.md)
 9. [x] **database-from-scratch extension**: MVCC on top of the B+tree and durability for

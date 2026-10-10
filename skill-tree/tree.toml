@@ -1699,7 +1699,7 @@ track = "evals"
 difficulty = 4
 requires = ["evals-00-simulated-service"]
 sources = ["agenteval:plan"]
-deliverable = "agent-evals/shadow-routing"
+deliverable = "agent-evals/shadow_routing"
 build = [
   "mirror a fraction of traffic to a second model and diff the trajectories",
   "auto-generate a cost/quality report",
@@ -1711,7 +1711,7 @@ accept = [
 limit_cases = [
   "a slow shadow model never delays the primary request",
 ]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "evals-03-judge-calibration"
