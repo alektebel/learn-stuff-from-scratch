@@ -70,8 +70,12 @@ class DockerSandbox:
         )
         _check(proc, "docker create")
         self.container_id = proc.stdout.decode().strip()
-        _check(_docker("cp", f"{repo_dir}/.", f"{self.container_id}:/work"), "docker cp in")
+        # Start before copying. On rootless Docker the daemon can only mount a
+        # container's rootfs while it runs: `docker cp` into a container that is
+        # merely `create`d fails with "device or resource busy". The entrypoint is
+        # `sleep infinity`, so nothing touches /work before the copy lands.
         _check(_docker("start", self.container_id), "docker start")
+        _check(_docker("cp", f"{repo_dir}/.", f"{self.container_id}:/work"), "docker cp in")
         # docker cp writes files as root; hand them to the agent user.
         _check(_docker("exec", "--user", "root", self.container_id, "chown", "-R", "agent:agent", "/work"),
                "chown /work")
@@ -118,7 +122,14 @@ class DockerSandbox:
         """Copy a host directory into the container as root (used for hidden tests)."""
         cid = self._require()
         _check(_docker("cp", f"{src}/.", f"{cid}:{dest}"), f"docker cp {dest}")
-        _check(_docker("exec", "--user", "root", cid, "chmod", "-R", "a+rX", dest), f"chmod {dest}")
+        # `docker cp` preserves the host uid/gid. Normalise ownership to the agent
+        # user (the one that runs the tests): chown needs CAP_CHOWN, which the
+        # container has, while chmod as root would need CAP_FOWNER, which it drops
+        # (root is not the owner), so the chmod runs as the new owner instead.
+        _check(_docker("exec", "--user", "root", cid, "chown", "-R", "agent:agent", dest),
+               f"chown {dest}")
+        _check(_docker("exec", "--user", "agent", cid, "chmod", "-R", "a+rX", dest),
+               f"chmod {dest}")
 
     def export(self, dest_dir: Path, src: str = "/work") -> None:
         """Copy `src` out of the container. Works on a stopped container too.

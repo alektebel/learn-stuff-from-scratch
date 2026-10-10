@@ -60,15 +60,14 @@ Update this file in the same commit that finishes or adds an item.
        on this set fusion ties BM25 overall and beats LSA only on multi-hop, reported honestly.
        Unblocks agent-evals #5, reliability #3 and #5, interview questions 1 and 11.
        → [rag-from-scratch/README.md](rag-from-scratch/README.md)
-2. [ ] **harness-lab phase 1**: the LEARN contract is landed — `docs/phase1.md`
-       (spec) + `RESOURCES.md`, the message types, model interface and
-       deterministic scripted backend in `harness_lab/llm/`, the OpenAI-compatible
-       transport (`openai_compat.py`; `build_model()` reads `HARNESS_LAB_*`), the
-       `run_loop` stub the learner implements in `harness_lab/core/loop.py`, the
-       `mini` adapter in `eval/agents.py`, and `tests/test_llm.py` +
-       `tests/test_openai_transport.py` + `tests/test_loop.py` (infrastructure
-       passes, the loop contract xfails until written). The closing baseline on
-       20 tasks x 3 seeds still needs Docker and the cost cap above.
+2. [ ] **harness-lab phase 1**: the core is implemented (owner-authorised BUILD for
+       `run_loop`), the Docker sandbox is fixed for rootless Docker (`docker cp` into
+       a started container; `put_dir` chowns before chmod), and the full harness suite
+       is green (128 passed, 8 xpassed). What is left is the closing baseline on
+       20 tasks x 3 seeds: it needs the live endpoint exported
+       (`HARNESS_LAB_BASE_URL`, `HARNESS_LAB_API_KEY`, `HARNESS_LAB_MODEL`) in the
+       shell that runs `python -m eval.runner --agent mini --tasks all --seeds 0 1 2`;
+       Docker and the 0,50 €/run cap are in place.
        → [harness-lab/docs/phase1.md](harness-lab/docs/phase1.md)
 3. [x] **CUDA step B**: memory system simulated and graded on CPU (coalescing, bank
        conflicts, occupancy, roofline). Landed as `cuda-from-scratch/memory-system/`

@@ -1,9 +1,11 @@
 # Phase 1 — Minimum floor (Mini-SWE-Agent style)
 
-Status: **spec, tests and the provider transport shipped; the core is the
-learner's work and the baseline run still needs Docker (no daemon here) and a
-budget cap.** The model endpoint is configured; `harness_lab/llm/openai_compat.py`
-is the one real transport. This file is the contract; `tests/test_llm.py`,
+Status: **the core is implemented (the owner flipped just this piece to BUILD);
+the tests are green. The closing baseline run is the only thing left, and it
+needs the live endpoint exported (`HARNESS_LAB_BASE_URL`, `HARNESS_LAB_API_KEY`,
+`HARNESS_LAB_MODEL`) — Docker and the budget cap are in place.** The model
+endpoint is configured; `harness_lab/llm/openai_compat.py` is the one real
+transport. This file is the contract; `tests/test_llm.py`,
 `tests/test_openai_transport.py` and `tests/test_loop.py` make it executable.
 
 ## What it is
@@ -31,9 +33,9 @@ Shipped as infrastructure (data types and a test double — no agent logic):
 
 The learner writes (the central logic):
 
-- `harness_lab/core/loop.py::run_loop` — currently `NotImplementedError`.
-  `LoopBudget`, `LoopResult`, `BASH_TOOL`, `SYSTEM_PROMPT` and the structural
-  `Sandbox`/`ExecResult` protocols are provided; the loop body is not.
+- `harness_lab/core/loop.py::run_loop` — implemented (the owner flipped just this
+  piece to BUILD, recorded in `CLAUDE.md`). `LoopBudget`, `LoopResult`, `BASH_TOOL`,
+  `SYSTEM_PROMPT` and the structural `Sandbox`/`ExecResult` protocols are provided.
 
 ## What it demonstrates
 

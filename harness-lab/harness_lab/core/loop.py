@@ -1,9 +1,8 @@
-"""Phase 1 core: the linear agent loop. LEARN mode — the learner implements this.
+"""Phase 1 core: the linear agent loop.
 
-This file ships as a stub plus the types the loop returns. The contract is in
-docs/phase1.md; the tests in tests/test_loop.py define it precisely. Nothing
-else in phase 1 depends on the loop's internals, so it can be written from the
-stub up.
+BUILD (owner-authorised for this one piece). The loop is implemented here; the
+contract is docs/phase1.md and the tests in tests/test_loop.py define it
+precisely. It was a LEARN stub until the owner flipped this piece to BUILD.
 
 Contract, in one line per bullet (docs/phase1.md has the reasoning):
 
@@ -28,10 +27,11 @@ change without touching the runner.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from typing import Protocol, Sequence
 
-from harness_lab.llm.base import Model, ToolSpec
+from harness_lab.llm.base import Model, ModelError, ToolSpec
 from harness_lab.llm.messages import Message
 
 BASH_TOOL = ToolSpec(
@@ -81,6 +81,32 @@ class Sandbox(Protocol):
     def exec(self, command: str, timeout: float = 120.0) -> ExecResult: ...
 
 
+def _decode_command(arguments: str) -> str | None:
+    """The `command` from a bash tool call, or None if the arguments are unusable.
+
+    A model can emit malformed or wrongly-shaped arguments; that must end the
+    single call, not the whole run (test_loop_malformed_tool_arguments_...).
+    """
+    try:
+        payload = json.loads(arguments)
+    except (json.JSONDecodeError, TypeError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    command = payload.get("command")
+    return command if isinstance(command, str) and command else None
+
+
+def _tool_output(result: ExecResult) -> str:
+    """The tool message body: the command's streams, with a status prefix."""
+    body = f"{result.stdout}{result.stderr}"
+    if result.timed_out:
+        return "[command timed out]\n" + body
+    if result.exit_code != 0:
+        return f"[exit code {result.exit_code}]\n" + body
+    return body
+
+
 def run_loop(
     model: Model,
     statement: str,
@@ -91,6 +117,40 @@ def run_loop(
     system_prompt: str = SYSTEM_PROMPT,
 ) -> LoopResult:
     """Run the linear loop until it stops; see the module docstring."""
-    raise NotImplementedError(
-        "phase 1 core: the learner implements run_loop (see docs/phase1.md)"
-    )
+    history: list[Message] = [Message(role="system", content=system_prompt)]
+    history += [Message(role="user", content=turn) for turn in user_turns]
+    history.append(Message(role="user", content=statement))
+    result = LoopResult(stop_reason="completed")
+    while True:
+        if result.turns >= budget.max_steps:
+            result.stop_reason = "max_steps"
+            break
+        if result.cost_eur >= budget.max_cost_eur:
+            result.stop_reason = "max_cost"
+            break
+        try:
+            completion = model.complete(history, [BASH_TOOL])
+        except ModelError as exc:
+            result.stop_reason = "model_error"
+            result.error = str(exc) or type(exc).__name__
+            break
+        usage = completion.usage
+        result.turns += 1
+        result.input_tokens += usage.input_tokens
+        result.output_tokens += usage.output_tokens
+        result.cached_tokens += usage.cached_tokens
+        result.cost_eur += model.price.cost(usage)
+        history.append(completion.message)
+        if not completion.message.tool_calls:
+            break
+        for call in completion.message.tool_calls:
+            result.tool_calls += 1
+            command = _decode_command(call.arguments)
+            if command is None:
+                content = "[error] tool arguments were not a JSON object with a 'command'"
+            else:
+                content = _tool_output(sandbox.exec(command))
+            history.append(
+                Message(role="tool", content=content, tool_call_id=call.id, name=call.name)
+            )
+    return result
