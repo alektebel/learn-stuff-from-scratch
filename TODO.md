@@ -92,9 +92,10 @@ Update this file in the same commit that finishes or adds an item.
 7. [ ] **inference-lab CPU-real projects**: #4 prefix-caching proxy and #13 AI gateway are
        built and audited; #3 KV monitor remains.
        → [inference-lab/README.md](inference-lab/README.md)
-8. [ ] **agent-evals next**: #5, #7, #13 and #14 have a LEARN contract (SPEC + RESOURCES +
-       stubbed interface + runnable tests, green with the core unwritten); red-team v2 (tool
-       layer, loops) and trajectory grading remain, both after harness-lab phase 1.
+8. [ ] **agent-evals next**: #1, #5, #7, #13 and #14 have a LEARN contract (SPEC + RESOURCES +
+       stubbed interface + runnable tests, green with the core unwritten; #1 grades a
+       trajectory by invariants, not a fixed path). Red-team v2 (tool layer, loops) remains,
+       after harness-lab phase 2.
        → [agent-evals/README.md](agent-evals/README.md)
 9. [x] **database-from-scratch extension**: MVCC on top of the B+tree and durability for
        MVCC versions in the WAL — both lands (steps 18-19, audited). The engine's remaining

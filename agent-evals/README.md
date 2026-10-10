@@ -14,7 +14,7 @@ implements). The column below is a **proposal to confirm** project by project.
 | # | Project | Status | Builds on / overlaps | Blocked by | Proposed mode |
 |---|---|---|---|---|---|
 | 8 | Agent red-team fuzzer | **v1 done** ([redteam/](redteam/)) | harness-lab sandbox, verifier | v2 needs tools + loop (phase 1-2) | BUILD (eval infra) |
-| 1 | Trajectory grading engine | not started | phase 1 trace format | harness-lab phase 1 | LEARN |
+| 1 | Trajectory grading engine | **spec + tests** ([trajectory/](trajectory/)) | phase 1 trace format | none | LEARN |
 | 11 | Counterfactual replay debugger | not started | = harness-lab `openhands` variant (phase 3) + scripted backend (phase 1) | phase 1 | LEARN, inside harness-lab |
 | 7 | Statistical significance engine | **spec + tests** ([stats_engine/](stats_engine/)) | `harness-lab/eval/stats.py`; add bootstrap **over tasks** | none | LEARN |
 | 13 | Context-window eviction tester | **spec + tests** ([eviction/](eviction/)) | harness-lab tasks t15/t16/t17/t19, phase 4 | phase 1 | LEARN |
@@ -29,8 +29,9 @@ implements). The column below is a **proposal to confirm** project by project.
 | 6 | Automated DPO flywheel | not started | llm-from-scratch post-training | simulated feedback, GPU for LoRA | mixed |
 | 15 | Public methodology teardown | — | everything above | results worth publishing | writing, yours |
 
-Four projects now carry a LEARN contract instead of a table row: [**#5**](rag_attack/),
-[**#7**](stats_engine/), [**#13**](eviction/) and [**#14**](contamination/). Each is `<name>/SPEC.md` (the guidelines:
+Five projects now carry a LEARN contract instead of a table row: [**#1**](trajectory/),
+[**#5**](rag_attack/), [**#7**](stats_engine/), [**#13**](eviction/) and
+[**#14**](contamination/). Each is `<name>/SPEC.md` (the guidelines:
 what it is, the interface, acceptance items, limit cases, out of scope), `<name>/RESOURCES.md`
 (what to read, cited and restated) and `<name>/<module>.py` with the interface as
 `NotImplementedError` stubs, plus `tests/test_<module>.py`. The suite is green with the core
