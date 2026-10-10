@@ -18,7 +18,7 @@ implements). The column below is a **proposal to confirm** project by project.
 | 11 | Counterfactual replay debugger | not started | = harness-lab `openhands` variant (phase 3) + scripted backend (phase 1) | phase 1 | LEARN, inside harness-lab |
 | 7 | Statistical significance engine | **spec + tests** ([stats_engine/](stats_engine/)) | `harness-lab/eval/stats.py`; add bootstrap **over tasks** | none | LEARN |
 | 13 | Context-window eviction tester | **spec + tests** ([eviction/](eviction/)) | harness-lab tasks t15/t16/t17/t19, phase 4 | phase 1 | LEARN |
-| 4 | CI/CD regression gate | not started | runner + stats; gate on low-variance metrics | a baseline to regress from | BUILD |
+| 4 | CI/CD regression gate | **built** ([ci_gate/](ci_gate/)) | runner + stats; gate on low-variance metrics | — | BUILD |
 | 14 | Dataset contamination checker | **spec + tests** ([contamination/](contamination/)) | SWE-bench subset (phase 6) | none | LEARN |
 | 3 | Calibrated LLM-as-a-judge | not started | — | source of 500 human labels; single annotator cannot measure agreement | LEARN |
 | 12 | Synthetic edge-case generator | not started | task format of harness-lab | model + budget | LEARN |

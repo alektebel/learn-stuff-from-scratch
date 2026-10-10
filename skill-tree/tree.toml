@@ -1740,7 +1740,7 @@ track = "evals"
 difficulty = 3
 requires = []
 sources = ["agenteval:plan"]
-deliverable = "agent-evals/ci-gate"
+deliverable = "agent-evals/ci_gate"
 build = [
   "run parameterised evals per change and gate on low-variance metrics",
 ]
@@ -1750,7 +1750,7 @@ accept = [
 limit_cases = [
   "a 2% success delta below the detectable effect does not block",
 ]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "evals-05-rag-adversarial"
