@@ -24,8 +24,11 @@ The service has three parts:
   drops when a `Drift` rule is active.
 - `write_jsonl()` / `read_jsonl()` — the trace store the projects read.
 
-`quality` is the latent probability; `success` is one draw from it. A drift `penalty` is a
-reduction of the logit, so a larger penalty means a worse service from `after_segment` on.
+`quality` is the model's predicted pass rate for the request, computed **before** any drift
+— so it is what a monitor would log. `success` is one draw from the drift-adjusted rate, so
+a `penalty` lowers realised success without touching `quality`: that gap is exactly what a
+monitor has to find, and it lets the monitor separate a real regression from a change in the
+traffic mix. A larger penalty means a worse service from `after_segment` on.
 """
 
 from __future__ import annotations
@@ -104,8 +107,9 @@ class Response:
     tenant: str
     category: str
     segment: int
+    difficulty: float        # a request feature a monitor can see; the drift rule is not
     success: bool
-    quality: float           # latent p, before sampling
+    quality: float           # predicted pass rate, pre-drift (the monitor's expectation)
     input_tokens: int
     output_tokens: int
     latency_ms: float
@@ -167,18 +171,20 @@ class SimulatedService:
     # -- the service -------------------------------------------------------------------
     def serve(self, request: Request, model: str = "small") -> Response:
         cfg = self.models[model]
-        logit = cfg.strength - DIFFICULTY_SLOPE * request.difficulty \
-            - self._penalty(request.tenant, request.category, request.segment)
-        quality = _sigmoid(logit)
+        base_logit = cfg.strength - DIFFICULTY_SLOPE * request.difficulty
+        quality = _sigmoid(base_logit)  # the prediction a monitor logs: no drift in it
+        effective = _sigmoid(base_logit - self._penalty(request.tenant, request.category,
+                                                        request.segment))
         rng = self._rng("serve", model, request.id)
-        success = rng.random() < quality
+        success = rng.random() < effective
         out_tokens = max(1, int(cfg.out_tokens * (0.6 + 0.8 * request.difficulty))
                          + rng.randint(-20, 20))
         latency = cfg.base_latency_ms * (0.7 + 0.6 * request.difficulty) + rng.uniform(0.0, 120.0)
         cost = request.prompt_tokens / 1000 * cfg.in_price + out_tokens / 1000 * cfg.out_price
         return Response(
             request_id=request.id, model=model, tenant=request.tenant,
-            category=request.category, segment=request.segment, success=success,
+            category=request.category, segment=request.segment,
+            difficulty=request.difficulty, success=success,
             quality=round(quality, 6), input_tokens=request.prompt_tokens,
             output_tokens=out_tokens, latency_ms=round(latency, 2), cost_eur=round(cost, 8),
         )

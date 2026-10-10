@@ -31,10 +31,12 @@ Two properties the projects lean on, both from a per-`(seed, request id, model)`
 - **Neighbour-independent.** Serving a request twice, in any order, or after mirroring it
   to another model, yields the same answer — a shadow can never move the primary (#2).
 
-`ModelConfig.strength` is the base logit; `quality = sigmoid(strength − 1.6·difficulty −
-penalty)`. `Drift(after_segment, penalty, tenant, category)` scopes a logit reduction, so a
-planted drop is real and a monitor has to find it from success alone: the drift rule is
-**not** a field in the trace (`drift_schedule()` returns it for scoring only).
+`ModelConfig.strength` is the base logit; `quality = sigmoid(strength − 1.6·difficulty)` is
+the predicted pass rate **before** drift, and `success` is drawn from
+`sigmoid(strength − 1.6·difficulty − penalty)`. `Drift(after_segment, penalty, tenant,
+category)` scopes that logit reduction, so a planted drop pulls realised success down while
+leaving `quality` (and the difficulty) where it was — the gap a monitor has to find. The
+drift rule is **not** a field in the trace (`drift_schedule()` returns it for scoring only).
 
 ## The models
 

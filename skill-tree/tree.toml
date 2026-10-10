@@ -1825,7 +1825,7 @@ track = "evals"
 difficulty = 4
 requires = ["evals-00-simulated-service"]
 sources = ["agenteval:plan"]
-deliverable = "agent-evals/drift-monitor"
+deliverable = "agent-evals/drift_monitor"
 build = [
   "sample traffic nightly, run offline trajectory evals, alert on decay",
 ]
@@ -1835,7 +1835,7 @@ accept = [
 limit_cases = [
   "seasonal traffic does not raise a false alert",
 ]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "evals-10-cost-quality-pareto"
