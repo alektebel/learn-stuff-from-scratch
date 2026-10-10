@@ -60,14 +60,11 @@ Update this file in the same commit that finishes or adds an item.
        on this set fusion ties BM25 overall and beats LSA only on multi-hop, reported honestly.
        Unblocks agent-evals #5, reliability #3 and #5, interview questions 1 and 11.
        → [rag-from-scratch/README.md](rag-from-scratch/README.md)
-2. [ ] **harness-lab phase 1**: the core is implemented (owner-authorised BUILD for
+2. [x] **harness-lab phase 1**: closed. The core is implemented (owner-authorised BUILD for
        `run_loop`), the Docker sandbox is fixed for rootless Docker (`docker cp` into
-       a started container; `put_dir` chowns before chmod), and the full harness suite
-       is green (128 passed, 8 xpassed). What is left is the closing baseline on
-       20 tasks x 3 seeds: it needs the live endpoint exported
-       (`HARNESS_LAB_BASE_URL`, `HARNESS_LAB_API_KEY`, `HARNESS_LAB_MODEL`) in the
-       shell that runs `python -m eval.runner --agent mini --tasks all --seeds 0 1 2`;
-       Docker and the 0,50 €/run cap are in place.
+       a started container; `put_dir` chowns before chmod), and the closing baseline is
+       recorded (the `mini` agent, 20 tasks × 3 seeds = 57/60, 95 %; one reproducible
+       task-level failure, `t14-propagate-field`). Suite green: 134 passed, 8 xpassed.
        → [harness-lab/docs/phase1.md](harness-lab/docs/phase1.md)
 3. [x] **CUDA step B**: memory system simulated and graded on CPU (coalescing, bank
        conflicts, occupancy, roofline). Landed as `cuda-from-scratch/memory-system/`
@@ -140,8 +137,14 @@ Update this file in the same commit that finishes or adds an item.
         [`harness-lab/docs/claude-code-map.md`](harness-lab/docs/claude-code-map.md) — agent
         loop, LLM, tools, permissions, sessions, hooks, subagents, skills/commands/memory,
         MCP and plugins, each mapped to a subsystem and phase. The MCP server is already
-        built ([`mcp-from-scratch/`](mcp-from-scratch/)); the next concrete step is phase 2
-        (the seven-subsystem core). Baseline needs Docker + a budget cap.
+        built ([`mcp-from-scratch/`](mcp-from-scratch/)). Phase 2 (the seven-subsystem core) is
+        started: the typed tool layer is contracted in
+        [docs/phase2.md](harness-lab/docs/phase2.md) (the registry, the tool specs and the
+        task-root path guard are shipped; the five read/edit/write/glob/search bodies are the
+        learner's work, green with the core stubbed). The remaining slices — wiring the tools
+        into the loop, permissions, compaction with provenance, the subsystem registry — follow
+        the same contract. Closing phase 2 needs Docker + the live endpoint; the phase-1
+        baseline is recorded (95 %).
         → [harness-lab/CLAUDE.md](harness-lab/CLAUDE.md)
 
 ## Gaps with no plan yet

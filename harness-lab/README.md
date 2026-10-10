@@ -5,13 +5,12 @@ Engineering: Anatomy, Architecture, and Evolution of Coding Agents* (arXiv 2609.
 distinctive mechanism of each harness in the paper as a swappable variant, and a controlled
 experiment comparing them. The full plan, rules and phases are in [CLAUDE.md](CLAUDE.md).
 
-**Status: phase 0 closed, phase 1 spec shipped, provider transport landed** —
-evaluation bench plus the phase-1 contract (message/model interfaces, scripted
-backend, the learner's loop stub and its tests, and the OpenAI-compatible
-transport `harness_lab/llm/openai_compat.py`). The baseline run still needs
-Docker and a budget cap. See [docs/phase0.md](docs/phase0.md) and
-[docs/phase1.md](docs/phase1.md). **Building your own Claude Code?** The
-capability-by-capability checklist over these phases is
+**Status: phase 0 closed, phase 1 closed (baseline 95 % on 20 tasks × 3 seeds), phase 2
+started** — the seven-subsystem core, beginning with the typed tool layer: the registry, the
+tool specs and the path guard are shipped, and the five tool bodies (read/edit/write/glob/
+search) are the learner's work. See [docs/phase0.md](docs/phase0.md),
+[docs/phase1.md](docs/phase1.md) and [docs/phase2.md](docs/phase2.md). **Building your own
+Claude Code?** The capability-by-capability checklist over these phases is
 [docs/claude-code-map.md](docs/claude-code-map.md).
 
 ```
@@ -37,4 +36,5 @@ python3.12 -m venv .venv && .venv/bin/pip install -e '.[dev]'
 | `docs/adr/` | decisions 0001–0005 |
 | `harness_lab/llm/` | phase 1: message types, model interface, scripted backend, OpenAI-compatible transport |
 | `harness_lab/core/` | phase 1: the loop stub (`run_loop`) the learner implements |
-| `docs/phase1.md`, `RESOURCES.md` | the phase-1 contract and reading list |
+| `harness_lab/tools/` | phase 2: typed tools (read/edit/write/glob/search), registry and path guard |
+| `docs/phase1.md`, `docs/phase2.md`, `RESOURCES.md` | the phase-1 and phase-2 contracts and reading list |
