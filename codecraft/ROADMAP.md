@@ -12,7 +12,7 @@ The order is the one you set: **AWS → LLM internals → RAG → evals + agents
 
 ### Ready now — checker-driven, pure Python, `codecraft` runs them as-is
 
-Ten courses, 131 graded checks between them, no dependencies.
+Eleven courses, 141 graded checks between them, no dependencies.
 
 | Course | Checks | What it teaches |
 |---|---|---|
@@ -24,6 +24,7 @@ Ten courses, 131 graded checks between them, no dependencies.
 | `compiler-and-vgpu` | 12 | ISA, assembler, front end, register allocation, SIMT divergence |
 | `deploy-and-debug` | 12 | Capacity math, percentiles, SLOs, fault diagnosis, rollout |
 | `evals-from-scratch` | 10 | Group-wise splits, EM/F1, nDCG, judge bias, kappa, paired significance, Holm, the gate |
+| `agents-from-scratch` | 10 | The tool loop and its transcript, tool schemas, errors as observations, parsing a reply, retries + idempotent effects, turn-aware memory, a path sandbox, an approval gate, budgets, a state-based audit |
 | `vector-index-from-scratch` | 10 | Exact scan, the metric, k-means, IVF, the frontier, HNSW, deletions, int8 |
 | `rag-from-scratch` | 9 | Chunking, TF-IDF, exact index, BM25, rank fusion, reranking, citations, tenants |
 
@@ -58,9 +59,10 @@ from scratch, not just a checker.
 
 ### Missing entirely — the half of your list the repo does not have yet
 
-Agents, MCP, an agent harness, a benchmark, and an eval framework. Also no
-`CPU` or `OS`. `rag-from-scratch/` (phase B1), `vector-index-from-scratch/`
-(phase B2) and `evals-from-scratch/` (phase C1) now exist and are graded.
+MCP, an agent harness, a benchmark, and an eval framework. Also no `CPU` or
+`OS`. `rag-from-scratch/` (phase B1), `vector-index-from-scratch/` (phase B2),
+`evals-from-scratch/` (phase C1) and `agents-from-scratch/` (phase C2) now
+exist and are graded.
 
 ---
 
@@ -102,11 +104,12 @@ python3 codecraft/cli.py run aws-from-scratch # stage 1: iam.py
 ```
 
 Work one stage at a time; the coach and the mentor handle the rest. Phases B1,
-B2 and C1 are built (`rag-from-scratch`, `vector-index-from-scratch`,
-`evals-from-scratch`); the next course to author is phase C2:
+B2, C1 and C2 are built (`rag-from-scratch`, `vector-index-from-scratch`,
+`evals-from-scratch`, `agents-from-scratch`); the next course to author is phase
+D1:
 
 ```bash
-python3 codecraft/cli.py new agents-from-scratch --title "Agents From Scratch" --stages 10
+python3 codecraft/cli.py new mcp-from-scratch --title "MCP From Scratch" --stages 10
 ```
 
 A course is its tests — write the check that catches the mistake that is easy to

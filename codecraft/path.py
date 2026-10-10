@@ -64,10 +64,13 @@ PHASES = [
          "course": "evals-from-scratch", "kind": "ready", "prereq": ["A4"],
          "why": "Datasets, exact/F1 metrics, LLM-as-judge and its calibration, "
                 "statistical significance, regression gating. Do this before agents."},
-        {"id": "C2", "title": "Agents From Scratch", "course": None,
-         "kind": "author", "prereq": ["C1", "B1"],
-         "why": "The ReAct loop, tool schemas, retries and timeouts, memory, "
-                "multi-turn state, failure recovery, sandboxing."},
+        {"id": "C2", "title": "Agents From Scratch",
+         "course": "agents-from-scratch", "kind": "ready", "prereq": ["C1", "B1"],
+         "why": "The loop and the transcript that is its state, tool schemas and "
+                "validation, errors as observations, parsing what a model actually "
+                "writes, retries with idempotent effects, memory bounded by turns, a "
+                "filesystem sandbox, an approval gate against injected content, "
+                "budgets that stop before the cap, and a state-based audit."},
     ]),
     ("D", "MCP", [
         {"id": "D1", "title": "MCP From Scratch", "course": None,
