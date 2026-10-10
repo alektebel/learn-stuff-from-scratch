@@ -1,10 +1,10 @@
 # Phase 1 — Minimum floor (Mini-SWE-Agent style)
 
 Status: **the core is implemented (the owner flipped just this piece to BUILD);
-the tests are green. The closing baseline run is the only thing left, and it
-needs the live endpoint exported (`HARNESS_LAB_BASE_URL`, `HARNESS_LAB_API_KEY`,
-`HARNESS_LAB_MODEL`) — Docker and the budget cap are in place.** The model
-endpoint is configured; `harness_lab/llm/openai_compat.py` is the one real
+`run_loop` passes the study tests, and the closing baseline run is done — 95% on
+20 tasks × 3 seeds (see *Baseline*).** The live endpoint is exported
+(`HARNESS_LAB_BASE_URL`, `HARNESS_LAB_API_KEY`, `HARNESS_LAB_MODEL`); Docker and
+the budget cap are in place. `harness_lab/llm/openai_compat.py` is the one real
 transport. This file is the contract; `tests/test_llm.py`,
 `tests/test_openai_transport.py` and `tests/test_loop.py` make it executable.
 
@@ -169,6 +169,29 @@ python3.12 -m venv .venv && .venv/bin/pip install -e '.[dev]'
 # (raises=NotImplementedError); zero failures/errors expected.
 .venv/bin/python -m pytest -q        # whole suite, Docker tests skip without a daemon
 ```
+
+## Baseline (first run)
+
+The closing run: the `mini` agent, 20 tasks × 3 seeds (60 runs), one at a time,
+against the live endpoint. Raw records stay in a git-ignored results file, so
+the model id is never committed; only this aggregate is.
+
+| metric | value |
+|---|---|
+| success | **57/60 (95%)** |
+| stop reasons | completed 60/60 |
+| provider errors | 0 |
+| turns | mean 5.2, median 4.5, max 23 |
+| tool calls | mean 4.8, max 22 |
+| input / output tokens | 1.54M / 86k total |
+| cost | 0 (the endpoint is free) |
+| wall time | mean 13.0s, max 83.3s |
+
+All three failures are the same task (`t14-propagate-field`, every seed): the
+edit leaves a `None` phone value and `validate.py` raises `AttributeError` on
+`NoneType.replace`. One reproducible task-level failure, not noise. This is the
+number phase 2 has to beat. An earlier job-parallel attempt was discarded as
+invalid (shared-endpoint rate limits, `model_error`); the baseline is serial.
 
 ## Design decisions
 
