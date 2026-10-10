@@ -22,7 +22,7 @@ implements). The column below is a **proposal to confirm** project by project.
 | 14 | Dataset contamination checker | **spec + tests** ([contamination/](contamination/)) | SWE-bench subset (phase 6) | none | LEARN |
 | 3 | Calibrated LLM-as-a-judge | not started | — | source of 500 human labels; single annotator cannot measure agreement | LEARN |
 | 12 | Synthetic edge-case generator | not started | task format of harness-lab | model + budget | LEARN |
-| 5 | RAG adversarial harness | not started | needs a RAG system under test; none exists in the repo | a RAG target | LEARN |
+| 5 | RAG adversarial harness | not started | needs a RAG system under test | **cleared**: projects 1-7 in [rag-from-scratch/](../rag-from-scratch/) are the target | LEARN |
 | 2 | Shadow routing comparator | not started | simulated service | simulated service | BUILD |
 | 9 | Production drift monitor | not started | simulated service, project 1 | simulated service | BUILD |
 | 10 | Cost-quality Pareto dashboard | not started | run records (tokens, cost) | real runs with cost | BUILD |
@@ -64,11 +64,14 @@ Net new: three projects (cost guardrail middleware, LLM tracing, SLO dashboard) 
 
 ## The RAG dependency
 
-Projects #5, reliability #3 and reliability #5 need a RAG system under test, and the repo has
-none. Planned in [rag-from-scratch/](../rag-from-scratch/README.md), built before them: chunking; BM25; an **HNSW** vector index
-from scratch (layered small-world graphs, greedy search with `ef`, the recall/latency trade-off
-measured against brute force); hybrid retrieval; citation-bearing answers; abstention. It is a
-target for the evals and a learning project on its own.
+Projects #5, reliability #3 and reliability #5 need a RAG system under test, and it now
+exists: [rag-from-scratch/](../rag-from-scratch/README.md) ships projects 1-7 — BM25, LSA, an
+**HNSW** vector index (layered small-world graphs, greedy search with `ef`, the
+recall/latency trade-off measured against brute force), fusion, metadata-filtered retrieval,
+reranking, chunking, a knowledge graph and corrective retrieval, on one shared evaluation set
+with abstention. That is the target for the evals; citation-bearing generation (project 8
+onward) needs a model, which is now available — projects 1-7 are enough for the retrieval
+evals.
 
 ### Corrections to the original briefs
 - **#1:** a coding task has many valid trajectories; a single deterministic DAG penalises correct

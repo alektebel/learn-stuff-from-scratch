@@ -30,9 +30,10 @@ exist before they can be built.
   `skill-tree` node foundations-03) and a small bi-encoder and reranker trained with
   [ml-systems/framework](../ml-systems/framework/). Weaker than pretrained models, and
   completely inspectable.
-- **No LLM API key is configured.** Every stage up to generation runs offline. Generation,
-  answer grading, Self-RAG and agentic RAG need a model; they come last, behind a
-  budget, once a key exists.
+- **A model endpoint is now available.** harness-lab's OpenAI-compatible transport
+  (`build_model()`, reading `HARNESS_LAB_*`) unblocks generation, answer grading, Self-RAG and
+  agentic RAG. They still come last and behind a budget: a graded checker must not call a paid
+  endpoint, so their executable tests run against a scripted model and only a demo spends money.
 - **No frameworks.** The source list's stacks (LangGraph, Elasticsearch, pgvector, Neo4j) are
   replaced by the pieces themselves: an inverted index with BM25, HNSW, SQLite (stdlib)
   for structured data and metadata, a small triple store. Same rule as `harness-lab/`:
