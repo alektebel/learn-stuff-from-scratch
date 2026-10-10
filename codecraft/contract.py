@@ -106,11 +106,15 @@ def load_course_module(course_dir: str):
         raise ImportError(f"cannot load {path}")
     module = importlib.util.module_from_spec(spec)
     # stage implementations import from their own directory, and course.py
-    # imports codecraft.api from the repo root.
+    # imports codecraft.api from the repo root. Every course names its stage
+    # modules `stage_NN.py`, so the course being loaded has to WIN that name
+    # over any course discovered earlier in this process: they are all on
+    # sys.path, and the first match is the one imported.
     root = os.path.dirname(os.path.dirname(os.path.abspath(course_dir)))
-    for p in (course_dir, root):
-        if p not in sys.path:
-            sys.path.insert(0, p)
+    for p in (root, os.path.abspath(course_dir)):
+        while p in sys.path:
+            sys.path.remove(p)
+        sys.path.insert(0, p)
     spec.loader.exec_module(module)
     return module
 

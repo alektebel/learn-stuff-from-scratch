@@ -60,8 +60,8 @@ PHASES = [
                 "something."},
     ]),
     ("C", "Evals and agents", [
-        {"id": "C1", "title": "Evals From Scratch", "course": None,
-         "kind": "author", "prereq": ["A4"],
+        {"id": "C1", "title": "Evals From Scratch",
+         "course": "evals-from-scratch", "kind": "ready", "prereq": ["A4"],
          "why": "Datasets, exact/F1 metrics, LLM-as-judge and its calibration, "
                 "statistical significance, regression gating. Do this before agents."},
         {"id": "C2", "title": "Agents From Scratch", "course": None,
