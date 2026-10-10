@@ -6,8 +6,8 @@
 - LANGUAGE: `Python 3.12`  # núcleo; Rust opcional solo para el sandbox (fase 5)
 - MODEL_BACKENDS: `Anthropic Messages API` + `OpenAI-compatible` (modelos locales vía vLLM/llama.cpp)
 - BENCHMARK: suite propia de 20 tareas (fase 0) + subconjunto de 50 tareas de SWE-bench Verified (fase 6)
-- BUDGET: tope de coste por ejecución de evaluación = `<sin fijar: obligatorio antes de la fase 1>` €
-- MODELO BASE DEL EXPERIMENTO: `<sin fijar: obligatorio antes de la fase 1>`
+- BUDGET: tope de coste por ejecución de evaluación = `0,50 €`  # el endpoint es gratuito en esta sesión; el tope es un cortafuegos contra bucles, no un presupuesto
+- MODELO BASE DEL EXPERIMENTO: el que fija `HARNESS_LAB_MODEL` (el transporte lee el id de ahí; no se escribe el id en el repo)
 
 ---
 

@@ -768,7 +768,7 @@ limit_cases = [
   "a denormal float is not flushed to zero",
   "integer overflow wraps, it does not raise, and is flagged by a separate guarded add",
 ]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "lowlevel-02-memory-layout"
@@ -792,7 +792,7 @@ limit_cases = [
   "a packed (unaligned) struct is smaller but the unaligned access is flagged",
   "an over-aligned member pads the whole struct, not just the member",
 ]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "lowlevel-03-allocator"
@@ -816,7 +816,7 @@ limit_cases = [
   "free(NULL) is a no-op; a double free is detected, not silently corrupting the list",
   "fragmentation: alternating alloc/free leaves no falsely-large free block",
 ]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "lowlevel-04-syscalls-io"
@@ -840,7 +840,7 @@ limit_cases = [
   "a partial write on a pipe is retried for the remainder",
   "read returning 0 means EOF, not an error to retry",
 ]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "lowlevel-05-concurrency"
@@ -864,7 +864,7 @@ limit_cases = [
   "a lost wake-up when the condition is checked with if instead of while",
   "deadlock when two threads take locks in opposite order, surfaced by a timeout",
 ]
-status = "todo"
+status = "done"
 
 # =====================================================================================
 # Track: distributed (replication, consensus, convergence, partitioning)
@@ -892,7 +892,7 @@ limit_cases = [
   "clock skew: two unsynchronised wall clocks can disagree with the causal order",
   "an empty vector clock vs a populated one is handled, not crashed",
 ]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "distributed-02-replication-quorums"
@@ -916,7 +916,7 @@ limit_cases = [
   "under a partition, a minority refuses the write instead of forking the log",
   "a slow follower lags but does not block the quorum",
 ]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "distributed-03-consensus"
@@ -941,7 +941,7 @@ limit_cases = [
   "a partitioned leader rejoins and steps down without diverging the log",
   "delayed and reordered messages do not break safety",
 ]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "distributed-04-crdts"
@@ -965,7 +965,7 @@ limit_cases = [
   "OR-set: remove-then-add keeps the element, add-then-remove drops it",
   "LWW ties are broken by node id, deterministically",
 ]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "distributed-05-partitioning"
@@ -989,7 +989,7 @@ limit_cases = [
   "a hot key overloads one node even with a balanced ring",
   "too few virtual nodes gives a badly uneven ring",
 ]
-status = "todo"
+status = "done"
 
 # =====================================================================================
 # Track: cloud (AWS primitives, re-implemented from scratch so they can be verified)
@@ -1017,7 +1017,7 @@ limit_cases = [
   "deleting a non-empty bucket is refused, not silently destructive",
   "a read-after-write of a just-put key sees it (the model is not eventually consistent)",
 ]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "cloud-02-iam-policy"
@@ -1041,7 +1041,7 @@ limit_cases = [
   "an explicit Deny beats an Allow no matter how many Allows exist",
   "a missing action is an implicit deny, not an error",
 ]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "cloud-03-queue-fanout"
@@ -1065,7 +1065,7 @@ limit_cases = [
   "at-least-once means duplicates; a consumer must be idempotent to survive them",
   "after max receives, the message goes to a dead-letter queue",
 ]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "cloud-04-vpc-routing"
@@ -1089,7 +1089,7 @@ limit_cases = [
   "overlapping prefixes: the longest match beats the default route",
   "a NACL that blocks the ephemeral return port kills an otherwise-allowed connection",
 ]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "cloud-05-iac-drift"
@@ -1114,7 +1114,7 @@ limit_cases = [
   "a rename is create-before-destroy, not destroy-before-create, for a stateful resource",
   "a cycle in the dependency graph is reported, not looped on",
 ]
-status = "todo"
+status = "done"
 
 # =====================================================================================
 # Existing material mapped into the tree (status = exists): built, no graded checks yet.

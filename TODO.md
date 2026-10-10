@@ -5,10 +5,9 @@ Update this file in the same commit that finishes or adds an item.
 
 ## Blocked on a decision or an input from the owner
 
-- [ ] **A cost cap for harness-lab phase 1.** The endpoint and its key are provided and the
-      OpenAI-compatible transport has landed (`harness_lab/llm/openai_compat.py`, verified
-      with a live call); what is still unset is the per-run budget in
-      `harness-lab/CLAUDE.md`. Running the baseline also needs Docker (see "Environment").
+- [x] **A cost cap for harness-lab phase 1.** Decided: `0,50 €` per evaluation run, a runaway
+      guard rather than a budget (the endpoint is free in this session). The baseline still
+      needs the sandbox, which is now available (see "Docker available" below).
       → [harness-lab/CLAUDE.md](harness-lab/CLAUDE.md)
 - [ ] **GPU access: yes or no.** Decides whether the GPU-required half of
       [inference-lab](inference-lab/README.md) and step A of the
@@ -84,11 +83,12 @@ Update this file in the same commit that finishes or adds an item.
 5. [ ] **ml-systems framework part 2**: convolutions and a CNN, then a transformer trained on
        the framework. **Blocked in this environment:** the framework imports numpy, which is
        not installed (part 3 needs it too). → [ml-systems/framework/README.md](ml-systems/framework/README.md)
-6. [ ] **Skill-tree nodes**, one at a time, starting from `tree.py next`. The tree now spans
-       97 nodes in 20 tracks across five domains (added low-level systems, distributed
-       systems, cloud/AWS primitives, and the existing repo material mapped as `exists`), and
-       is lightly gamified (XP, levels, per-track/domain badges). The 15 new nodes are `todo`;
-       `lean-01-galois-path` stays blocked (no `lake`/`lean`/`elan`).
+6. [ ] **Skill-tree nodes**, one at a time, from `tree.py next`. The tree now spans 97 nodes in
+       20 tracks across five domains and is lightly gamified (XP, levels, per-track/domain
+       badges). The 15 new nodes (low level, distributed, cloud/AWS primitives) are built and
+       audited — each a standard-library-only graded module with solutions, a checker and a
+       mutation test. Only `lean-01-galois-path` remains and stays blocked (no
+       `lake`/`lean`/`elan`).
        → [skill-tree/README.md](skill-tree/README.md)
 7. [ ] **inference-lab CPU-real projects**: #4 prefix-caching proxy and #13 AI gateway are
        built and audited; #3 KV monitor remains.
