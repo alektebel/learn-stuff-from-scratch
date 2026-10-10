@@ -21,7 +21,7 @@ implements). The column below is a **proposal to confirm** project by project.
 | 4 | CI/CD regression gate | **built** ([ci_gate/](ci_gate/)) | runner + stats; gate on low-variance metrics | — | BUILD |
 | 14 | Dataset contamination checker | **spec + tests** ([contamination/](contamination/)) | SWE-bench subset (phase 6) | none | LEARN |
 | 3 | Calibrated LLM-as-a-judge | not started | — | source of 500 human labels; single annotator cannot measure agreement | LEARN |
-| 12 | Synthetic edge-case generator | not started | task format of harness-lab | model + budget | LEARN |
+| 12 | Synthetic edge-case generator | **spec + tests** ([edge_cases/](edge_cases/)) | task format of harness-lab | — (deterministic, no model) | LEARN |
 | 5 | RAG adversarial harness | **spec + tests** ([rag_attack/](rag_attack/)) | rag-from-scratch projects 1-7 (SUT) | none | LEARN |
 | 2 | Shadow routing comparator | **built** ([shadow_routing/](shadow_routing/)) | simulated service | — | BUILD |
 | 9 | Production drift monitor | **built** ([drift_monitor/](drift_monitor/)) | simulated service, project 1 | — | BUILD |
@@ -34,9 +34,9 @@ The three BUILD projects share one dependency, now built:
 with injectable drift and a trace store, deterministic and standard-library only. It is
 infrastructure, so it is implemented, not a LEARN core. #2, #9 and #10 run against it.
 
-Five projects now carry a LEARN contract instead of a table row: [**#1**](trajectory/),
-[**#5**](rag_attack/), [**#7**](stats_engine/), [**#13**](eviction/) and
-[**#14**](contamination/). Each is `<name>/SPEC.md` (the guidelines:
+Six projects now carry a LEARN contract instead of a table row: [**#1**](trajectory/),
+[**#5**](rag_attack/), [**#7**](stats_engine/), [**#12**](edge_cases/), [**#13**](eviction/)
+and [**#14**](contamination/). Each is `<name>/SPEC.md` (the guidelines:
 what it is, the interface, acceptance items, limit cases, out of scope), `<name>/RESOURCES.md`
 (what to read, cited and restated) and `<name>/<module>.py` with the interface as
 `NotImplementedError` stubs, plus `tests/test_<module>.py`. The suite is green with the core

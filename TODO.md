@@ -110,7 +110,9 @@ Update this file in the same commit that finishes or adds an item.
        keeping the trade-off, with a Wilson interval on the success. #4 is built
        ([ci_gate/](agent-evals/ci_gate/)): it blocks on deterministic regressions and on
        cost/latency medians, and only warns on the success rate, with its interval (the fix to
-       the original 2 % brief). Red-team v2 (tool layer, loops) remains, after harness-lab
+       the original 2 % brief). #12 adds a sixth LEARN contract ([edge_cases/](agent-evals/edge_cases/)):
+       deterministic edge-case generation with MinHash dedup and a trivial-case filter (the
+       core is the learner's). Red-team v2 (tool layer, loops) remains, after harness-lab
        phase 2.
        → [agent-evals/README.md](agent-evals/README.md)
 9. [x] **database-from-scratch extension**: MVCC on top of the B+tree and durability for

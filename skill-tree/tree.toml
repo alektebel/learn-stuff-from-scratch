@@ -1883,7 +1883,7 @@ track = "evals"
 difficulty = 3
 requires = []
 sources = ["agenteval:plan"]
-deliverable = "agent-evals/edge-cases"
+deliverable = "agent-evals/edge_cases"
 build = [
   "generate out-of-distribution inputs and boundary conditions for the gold set",
 ]
@@ -1893,7 +1893,7 @@ accept = [
 limit_cases = [
   "a generated case that is trivially solvable is filtered out",
 ]
-status = "todo"
+status = "exists"
 
 [[node]]
 id = "evals-13-context-eviction"
