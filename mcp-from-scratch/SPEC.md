@@ -152,9 +152,15 @@ cd mcp-from-scratch
 /tmp/opencode/venv/bin/python -m pytest -q
 ```
 
-(any Python 3.12+ with pytest works). Expected today: **6 passed, 12 xfailed**, exit 0 —
-the xfailed tests are the learner's work; each one passes once the corresponding core
-method is implemented correctly and fails if it is implemented wrongly.
+(any Python 3.12+ with pytest works). Expected on the **template**: **6 passed, 12
+xfailed**, exit 0 — the xfailed tests are the learner's work; each one passes once the
+corresponding core method is implemented correctly and fails if it is implemented
+wrongly.
+
+A complete reference (still LEARN: the stub stays where it is) is in
+[`solutions/`](solutions/README.md); copied over `mcp_server.py` it turns the twelve
+`xfail`s into `xpass`es (18/18). `_build/mutations.py` replays a wrong implementation
+for each mechanism and confirms the contract catches all twelve.
 
 ## Design decisions
 

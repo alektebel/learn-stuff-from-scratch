@@ -18,7 +18,8 @@ Update this file in the same commit that finishes or adds an item.
       aim is breadth or a result on correction/forgetting. Decides what is cut.
 - [x] **MCP server scope:** decided — from scratch, streamable HTTP, exposing ERP read tools
       plus guarded writes, living in [mcp-from-scratch/](mcp-from-scratch/) (spec + resources +
-      runnable tests; the server core is a LEARN task). Related:
+      runnable tests; the server core stays a LEARN task, with a reference implementation in
+      `solutions/` and a 12-bug mutation test the contract catches). Related:
       [enterprise-ai-projects/10](enterprise-ai-projects/10-mcp-legacy-erp.md).
 - [ ] **Inputs only the owner can provide:** the text of the 149 unread X posts and short links
       ([RESOURCES.md](RESOURCES.md), "Unsorted"); titles for the 60 unverified arXiv IDs;
