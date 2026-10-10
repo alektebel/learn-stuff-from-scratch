@@ -12,7 +12,7 @@ The order is the one you set: **AWS → LLM internals → RAG → evals + agents
 
 ### Ready now — checker-driven, pure Python, `codecraft` runs them as-is
 
-Twelve courses, 151 graded checks between them, no dependencies.
+Thirteen courses, 161 graded checks between them, no dependencies.
 
 | Course | Checks | What it teaches |
 |---|---|---|
@@ -26,6 +26,7 @@ Twelve courses, 151 graded checks between them, no dependencies.
 | `evals-from-scratch` | 10 | Group-wise splits, EM/F1, nDCG, judge bias, kappa, paired significance, Holm, the gate |
 | `agents-from-scratch` | 10 | The tool loop and its transcript, tool schemas, errors as observations, parsing a reply, retries + idempotent effects, turn-aware memory, a path sandbox, an approval gate, budgets, a state-based audit |
 | `mcp-from-scratch` | 10 | The JSON-RPC envelope and its codes, stdio/SSE/HTTP framing, the handshake and derived capabilities, tools with the protocol/execution error split, resources and prompts, subscriptions/progress/cancellation, read-only first, idempotency keys, a diff-bound confirmation, the trajectory policy and the audit line (spec 2025-06-18) |
+| `agent-harness-from-scratch` | 10 | The runtime under an agent with the model as a callable: collect an event stream into one turn, a prompt budget recomputed from the bytes, the loop where a spent budget is an outcome, dispatch where an unknown tool is a message, streaming with TTFT and inter-token timings, retries that stop before anything is forwarded, compaction that summarizes the middle, a trace of six keys and no payloads, a process reward grounded in the previous result, and a verifier plus a self-generated data loop measured on held-out tasks |
 | `vector-index-from-scratch` | 10 | Exact scan, the metric, k-means, IVF, the frontier, HNSW, deletions, int8 |
 | `rag-from-scratch` | 9 | Chunking, TF-IDF, exact index, BM25, rank fusion, reranking, citations, tenants |
 
@@ -60,7 +61,8 @@ from scratch, not just a checker.
 
 ### Missing entirely — the half of your list the repo does not have yet
 
-An agent harness, a benchmark, and an eval framework. Also no `CPU` or `OS`.
+A benchmark and an eval framework. Also no `CPU` or `OS`; the agent harness is
+now `agent-harness-from-scratch` (phase E1).
 `rag-from-scratch/` (phase B1), `vector-index-from-scratch/` (phase B2),
 `evals-from-scratch/` (phase C1), `agents-from-scratch/` (phase C2) and
 `mcp-from-scratch/` (phase D1) now exist and are graded. Phase I adds eleven
@@ -107,18 +109,23 @@ python3 codecraft/cli.py run aws-from-scratch # stage 1: iam.py
 ```
 
 Work one stage at a time; the coach and the mentor handle the rest. Phases B1,
-B2, C1, C2 and D1 are built (`rag-from-scratch`, `vector-index-from-scratch`,
-`evals-from-scratch`, `agents-from-scratch`, `mcp-from-scratch`); the next course
-to author is phase E1:
+B2, C1, C2, D1 and E1 are built (`rag-from-scratch`, `vector-index-from-scratch`,
+`evals-from-scratch`, `agents-from-scratch`, `mcp-from-scratch`,
+`agent-harness-from-scratch`); the next course to author is phase F1, the
+benchmark you already own the measurement machinery for:
 
 ```bash
-python3 codecraft/cli.py new agent-harness-from-scratch \
-    --title "Agent Harness From Scratch" --stages 10
+python3 codecraft/cli.py new benchmark-from-scratch \
+    --title "Benchmark From Scratch (Mus)" --stages 10
 ```
 
-E1 is where `agents-from-scratch`'s loop, `mcp-from-scratch`'s transports and
-the harness material on the `claude/rl-posttraining-llm-exercises-wzfe8w` branch
-meet: context assembly and compaction, streaming, dispatch, tracing.
+F1 is a salvage, not a greenfield: `~/Desarrollo/mus-benchmark` already has the
+turn-gated engine, the per-decision JSONL record, the scorecards and the
+calibration probes — the course is the graded checks around that machinery, one
+mistake per stage. E1's `agent-harness-from-scratch` is where
+`agents-from-scratch`'s loop, `mcp-from-scratch`'s transports and the harness
+material on the `claude/rl-posttraining-llm-exercises-wzfe8w` branch met:
+context assembly and compaction, streaming, dispatch, tracing.
 
 A course is its tests — write the check that catches the mistake that is easy to
 make and hard to notice. The enterprise RAG guide tells you which mistakes those

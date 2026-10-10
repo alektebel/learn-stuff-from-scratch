@@ -86,11 +86,20 @@ PHASES = [
                 "revision 2025-06-18."},
     ]),
     ("E", "Harness", [
-        {"id": "E1", "title": "Agent Harness From Scratch", "course": None,
-         "kind": "author", "prereq": ["C2", "D1"],
-         "why": "The runtime around the model: tool dispatch, context assembly and "
-                "compaction, streaming, retries, sandboxing, tracing. What makes an "
-                "agent usable rather than a demo."},
+        {"id": "E1", "title": "Agent Harness From Scratch",
+         "course": "agent-harness-from-scratch", "kind": "ready",
+         "prereq": ["C2", "D1"],
+         "why": "Ten stages, all graded: collect a model's event stream into one "
+                "turn, a prompt budget recomputed from the bytes, the loop whose "
+                "exhaustion is an outcome, dispatch where an unknown tool is a "
+                "message the model can read, streaming with TTFT and inter-token "
+                "timings, retries that stop the moment anything was forwarded, "
+                "compaction that summarizes the middle and pins the system "
+                "message, a trace of six keys and no payloads, a process reward "
+                "grounded in the previous result, and a verifier plus a "
+                "self-generated data loop measured on held-out tasks. The model "
+                "is a callable, the clock is injected, and `time.time` is under a "
+                "landmine in the smoke run."},
     ]),
     ("F", "Benchmark and eval", [
         {"id": "F1", "title": "Benchmark From Scratch (Mus)", "course": None,
