@@ -25,7 +25,7 @@ implements). The column below is a **proposal to confirm** project by project.
 | 5 | RAG adversarial harness | **spec + tests** ([rag_attack/](rag_attack/)) | rag-from-scratch projects 1-7 (SUT) | none | LEARN |
 | 2 | Shadow routing comparator | **built** ([shadow_routing/](shadow_routing/)) | simulated service | — | BUILD |
 | 9 | Production drift monitor | **built** ([drift_monitor/](drift_monitor/)) | simulated service, project 1 | — | BUILD |
-| 10 | Cost-quality Pareto dashboard | ready | run records (tokens, cost) | — | BUILD |
+| 10 | Cost-quality Pareto dashboard | **built** ([pareto/](pareto/)) | run records (tokens, cost) | — | BUILD |
 | 6 | Automated DPO flywheel | not started | llm-from-scratch post-training | simulated feedback, GPU for LoRA | mixed |
 | 15 | Public methodology teardown | — | everything above | results worth publishing | writing, yours |
 

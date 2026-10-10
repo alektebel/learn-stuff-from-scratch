@@ -105,8 +105,10 @@ Update this file in the same commit that finishes or adds an item.
        the primary stays byte-identical, the mirrored sample is deterministic, and the report
        keeps cost and quality apart. #9 is built ([drift_monitor/](agent-evals/drift_monitor/)):
        a planted drop is caught at its segment and localised to the tenant, while a seasonal
-       traffic shift is not a false alarm. Red-team v2 (tool layer, loops) remains, after
-       harness-lab phase 2.
+       traffic shift is not a false alarm. #10 is built ([pareto/](agent-evals/pareto/)): the
+       cost-quality frontier per tenant from run records, dropping only dominated configs and
+       keeping the trade-off, with a Wilson interval on the success. Red-team v2 (tool layer,
+       loops) remains, after harness-lab phase 2.
        → [agent-evals/README.md](agent-evals/README.md)
 9. [x] **database-from-scratch extension**: MVCC on top of the B+tree and durability for
        MVCC versions in the WAL — both lands (steps 18-19, audited). The engine's remaining

@@ -1854,7 +1854,7 @@ accept = [
 limit_cases = [
   "a cheaper configuration that is not actually worse is not dropped",
 ]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "evals-11-counterfactual-replay"
