@@ -22,15 +22,15 @@ implements). The column below is a **proposal to confirm** project by project.
 | 14 | Dataset contamination checker | **spec + tests** ([contamination/](contamination/)) | SWE-bench subset (phase 6) | none | LEARN |
 | 3 | Calibrated LLM-as-a-judge | not started | — | source of 500 human labels; single annotator cannot measure agreement | LEARN |
 | 12 | Synthetic edge-case generator | not started | task format of harness-lab | model + budget | LEARN |
-| 5 | RAG adversarial harness | not started | needs a RAG system under test | **cleared**: projects 1-7 in [rag-from-scratch/](../rag-from-scratch/) are the target | LEARN |
+| 5 | RAG adversarial harness | **spec + tests** ([rag_attack/](rag_attack/)) | rag-from-scratch projects 1-7 (SUT) | none | LEARN |
 | 2 | Shadow routing comparator | not started | simulated service | simulated service | BUILD |
 | 9 | Production drift monitor | not started | simulated service, project 1 | simulated service | BUILD |
 | 10 | Cost-quality Pareto dashboard | not started | run records (tokens, cost) | real runs with cost | BUILD |
 | 6 | Automated DPO flywheel | not started | llm-from-scratch post-training | simulated feedback, GPU for LoRA | mixed |
 | 15 | Public methodology teardown | — | everything above | results worth publishing | writing, yours |
 
-Three projects now carry a LEARN contract instead of a table row: [**#7**](stats_engine/),
-[**#13**](eviction/) and [**#14**](contamination/). Each is `<name>/SPEC.md` (the guidelines:
+Four projects now carry a LEARN contract instead of a table row: [**#5**](rag_attack/),
+[**#7**](stats_engine/), [**#13**](eviction/) and [**#14**](contamination/). Each is `<name>/SPEC.md` (the guidelines:
 what it is, the interface, acceptance items, limit cases, out of scope), `<name>/RESOURCES.md`
 (what to read, cited and restated) and `<name>/<module>.py` with the interface as
 `NotImplementedError` stubs, plus `tests/test_<module>.py`. The suite is green with the core
@@ -82,3 +82,6 @@ evals.
   deterministic regressions); report success as a warning with its interval.
 - **#7:** bootstrap must resample **tasks**, not runs; seeds of one task are correlated and
   resampling runs gives intervals that are falsely narrow.
+- **#5:** an adversarial harness must attack retrieval offline and report the failure recall
+  cannot see — a dropped answer **or** a poison ranked above it — as separate counts, and
+  score no-answer probes by abstention, not recall.
