@@ -23,11 +23,16 @@ implements). The column below is a **proposal to confirm** project by project.
 | 3 | Calibrated LLM-as-a-judge | not started | — | source of 500 human labels; single annotator cannot measure agreement | LEARN |
 | 12 | Synthetic edge-case generator | not started | task format of harness-lab | model + budget | LEARN |
 | 5 | RAG adversarial harness | **spec + tests** ([rag_attack/](rag_attack/)) | rag-from-scratch projects 1-7 (SUT) | none | LEARN |
-| 2 | Shadow routing comparator | not started | simulated service | simulated service | BUILD |
-| 9 | Production drift monitor | not started | simulated service, project 1 | simulated service | BUILD |
-| 10 | Cost-quality Pareto dashboard | not started | run records (tokens, cost) | real runs with cost | BUILD |
+| 2 | Shadow routing comparator | ready | simulated service (**built**) | — | BUILD |
+| 9 | Production drift monitor | ready | simulated service (**built**), project 1 | — | BUILD |
+| 10 | Cost-quality Pareto dashboard | ready | run records (tokens, cost) | — | BUILD |
 | 6 | Automated DPO flywheel | not started | llm-from-scratch post-training | simulated feedback, GPU for LoRA | mixed |
 | 15 | Public methodology teardown | — | everything above | results worth publishing | writing, yours |
+
+The three BUILD projects share one dependency, now built:
+**[simulated_service/](simulated_service/)** emits synthetic traffic over time and tenants
+with injectable drift and a trace store, deterministic and standard-library only. It is
+infrastructure, so it is implemented, not a LEARN core. #2, #9 and #10 run against it.
 
 Five projects now carry a LEARN contract instead of a table row: [**#1**](trajectory/),
 [**#5**](rag_attack/), [**#7**](stats_engine/), [**#13**](eviction/) and

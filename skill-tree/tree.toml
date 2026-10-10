@@ -1663,7 +1663,7 @@ track = "evals"
 difficulty = 4
 requires = []
 sources = ["agenteval:plan"]
-deliverable = "agent-evals/simulated-service"
+deliverable = "agent-evals/simulated_service"
 build = [
   "a seeded request generator and a fake service with injectable drift",
   "a trace store the other eval projects read",
@@ -1675,7 +1675,7 @@ accept = [
 limit_cases = [
   "drift is injected without changing the seed-visible contract",
 ]
-status = "todo"
+status = "done"
 
 [[node]]
 id = "evals-01-trajectory-grading"
@@ -1698,7 +1698,6 @@ title = "Shadow routing comparator"
 track = "evals"
 difficulty = 4
 requires = ["evals-00-simulated-service"]
-blocked_by = ["prod-traffic"]
 sources = ["agenteval:plan"]
 deliverable = "agent-evals/shadow-routing"
 build = [
@@ -1825,7 +1824,6 @@ title = "Production drift monitor"
 track = "evals"
 difficulty = 4
 requires = ["evals-00-simulated-service"]
-blocked_by = ["prod-traffic"]
 sources = ["agenteval:plan"]
 deliverable = "agent-evals/drift-monitor"
 build = [
@@ -1845,7 +1843,6 @@ title = "Cost-quality Pareto dashboard"
 track = "evals"
 difficulty = 3
 requires = ["evals-00-simulated-service"]
-blocked_by = ["prod-traffic"]
 sources = ["agenteval:plan"]
 deliverable = "agent-evals/pareto"
 build = [
