@@ -6,6 +6,23 @@ A collection of from-scratch implementations of various systems and projects for
 principles every directory follows: design choices named as problem-solving decisions,
 MVP-then-complicate driven by limit cases, and verification you can run.
 
+## codecraft — the adaptive course runner
+
+**[codecraft/](codecraft/)** turns this repo into your own CodeCrafters. It runs any
+course's `check.py`, remembers every attempt, classifies how you got stuck (the same
+failure three times vs. three different failures get different advice), and tunes the
+nudge, hint depth and pacing to you. It also scaffolds **new** from-scratch courses you
+author yourself:
+
+```bash
+cz run llm-from-scratch       # run a course, get coached (cz = the CLI shim)
+cz path                       # the ordered plan, with progress
+python3 codecraft/cli.py new my-course --title "Build X" --stages 3
+```
+
+`cz` is a one-line forwarder to `python3 codecraft/cli.py`; both work. See
+[codecraft/README.md](codecraft/README.md).
+
 ## Directory Structure
 
 ### Low-Level Systems (C/C++)

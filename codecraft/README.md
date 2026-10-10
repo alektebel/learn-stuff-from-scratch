@@ -1,0 +1,285 @@
+# codecraft
+
+Your own CodeCrafters, on this repo.
+
+CodeCrafters works because you build a real thing stage by stage and a grader
+tells you when each stage is done. This directory is that, local and yours: a
+course is a directory of templates plus the tests that define them, and
+`codecraft` runs them, remembers how you did, and tunes what it shows you to
+how you are actually learning.
+
+It has two jobs, and they are the same job from two sides:
+
+1. **Run any course and coach you through it.** The seven existing projects
+   (`llm-from-scratch`, `dynamo-paper`, `context-caching`, `contextcite`,
+   `aws-from-scratch`, `deploy-and-debug`, `compiler-and-vgpu`) work
+   immediately — it wraps their existing `check.py`.
+2. **Let you author new ones.** `codecraft new` scaffolds a course you can fill
+   in, so the set of things you can learn grows with your curiosity.
+
+No dependencies. `python3 codecraft/cli.py`, nothing else. There is also a
+one-line shim, `cz`, that forwards to the same CLI (`cz run llm-from-scratch`);
+see [The `cz` shim](#the-cz-shim) for putting it on your PATH.
+
+---
+
+## Quickstart
+
+```bash
+python3 codecraft/cli.py                      # your learning board
+python3 codecraft/cli.py path                 # the ordered plan, with live progress
+python3 codecraft/cli.py run llm-from-scratch # run it; read the nudge
+python3 codecraft/cli.py next                 # just the next action
+python3 codecraft/cli.py hint llm-from-scratch# when the nudge is not enough
+python3 codecraft/cli.py explain              # ask the NAN mentor what you're getting wrong
+python3 codecraft/cli.py ask "why the mask before softmax?"   # or any question
+python3 codecraft/cli.py status llm-from-scratch
+python3 codecraft/cli.py review               # concepts still unretired
+```
+
+A `run` shows the course's own checker output, then three or four coach lines:
+
+```
+  codecraft · LLM From Scratch · stage 5  attention.py  — attention weights and the causal mask
+  cause   row 1 must differ from the full-attention row — the future leaked
+  now     Apply the causal mask as -inf BEFORE the softmax, so each row still
+          sums to 1 and position 0 attends only to itself.
+  pace    One function at a time; re-run after each.
+  predict the output row for position 0 equals V[0].
+  stuck? run: python3 codecraft/cli.py hint llm-from-scratch
+```
+
+The `cause` is condensed from the checker; `now` is the single micro-action;
+`predict` is the number to commit to *before* you run, which is where the
+learning actually consolidates.
+
+---
+
+## The `cz` shim
+
+`cz` is a one-line forwarder to `codecraft/cli.py`, for when the full path is
+noise:
+
+```bash
+cz run aws-from-scratch     # same as python3 codecraft/cli.py run aws-from-scratch
+cz path
+cz hint aws-from-scratch
+```
+
+It lives at the repository root (`./cz`) and is symlinked into `~/.local/bin`,
+which your shell already adds to `PATH` via `~/.local/bin/env`. If `cz` is not
+found, either use `./cz` from the repository, or add the symlink yourself:
+
+```bash
+ln -sf "$PWD/cz" ~/.local/bin/cz
+```
+
+Every subcommand of the CLI is available through it; it does nothing else.
+
+---
+
+## The look: milestones and the mentor
+
+Two layers of output, never one. The course's own `check.py` is left untouched —
+it is the raw, diagnostic truth. On top of it codecraft adds ceremony and
+diagnosis.
+
+**A stage landing gets a banner**, because that is the moment the learning
+consolidates:
+
+```
+╭────────────────────────────────────╮
+│ ✓  Stage 1 passed  —  stage_01.py  │
+│    add and contains                │
+│    first try — no hints            │
+│    █████████████░░░░░░░░░░░░░  1/2 │
+╰────────────────────────────────────╯
+  ✧ ✦ ✶ ✹ ✷
+```
+
+Finishing a course gets a bigger one. A regression (a stage that passed and no
+longer does) is called out in yellow rather than hidden.
+
+**A failure gets the mentor — immediately.** The rule-based coach can see the
+*shape* of your failure but not your code. The mentor can. The moment a stage
+fails (or any time you type `explain`) codecraft sends the failing stage's
+source, the exact error, and your history to a model on the NAN subscription and
+asks for the misconception behind it — before the advice, right after the error:
+
+```
+  ✦ mentor  (deepseek-v4-flash)
+
+  misconception  You're treating contains() as a lookup that recalls what you
+                 inserted, instead of a test that only ever reads bits.
+  the model      contains() is an AND over the positions the item hashes to:
+                 all set → maybe present; any unset → definitely absent.
+  try this       Before any add, print the bit array and ask which positions
+                 _pos returns — can any read 1?
+```
+
+It is explicitly **not** a solution generator: the prompt forbids printing the
+fix, and if you have failed five times it may describe the algorithm in words
+but still not write it. Answers are cached by stage content + error, so a repeat
+run is free.
+
+`ask "..."` uses the same context for a free-form question about the current
+stage. Both need `NAN_API_KEY` in your environment; codecraft falls back to the
+rule-based coach silently when it is absent.
+
+```bash
+python3 codecraft/cli.py config --mentor auto     # explain every failure (default)
+python3 codecraft/cli.py config --mentor stuck    # only when the history says you're circling
+python3 codecraft/cli.py config --mentor manual   # only when you type explain/ask
+python3 codecraft/cli.py config --mentor off      # never
+python3 codecraft/cli.py config --model glm5.3    # any NAN model id
+```
+
+**Privacy:** `explain`/`ask` send the stage source file and the error to
+`api.nan.builders` under your own key. Nothing else leaves your machine.
+`--mentor off` (or `--no-mentor` on a single run) disables it entirely.
+
+---
+
+## How it adapts
+
+Every run is appended to `history.jsonl`. From that record `codecraft` derives
+a model in `profile.json` and classifies the moment you are in:
+
+| Moment | What it saw | What it does |
+|---|---|---|
+| **focused** | first or second attempt, or a fresh `TODO` | minimal nudge: cause, action, prediction |
+| **accelerate** | two stages passed on the first try | tells you to move on with hints closed; if it keeps happening, it says the material is below your level and to author something harder |
+| **stuck** | three runs, same failure signature | stops you re-running unchanged, gives the smallest experiment, raises the hint level |
+| **flailing** | three runs, three *different* failures | tells you to change too much at once and shrink to the smallest case |
+| **done** | every stage passes | recommends the next course and queues concepts for review |
+
+Two things make this more than a run counter:
+
+- **Failure signatures.** Each failure text is normalised (numbers, paths and
+  quoted values dropped) so the *same* misconception on repeat runs collapses to
+  one key, while a genuinely new failure does not. Same failure three times is
+  "stuck"; three different failures is "flailing" — very different advice.
+- **Concept tags.** Every stage is tagged with the concepts it exercises
+  (`boundary`, `numerical-stability`, `masking`, `aliasing`, `quorum-consistency`,
+  …). When a tagged stage fails, the tag's mastery box drops. The same tag
+  failing in three courses is surfaced as a **habit**, not bad luck:
+
+  ```
+  pattern boundary/off-by-one: 4 misses across 3 courses. That is a habit, not a one-off.
+  ```
+
+### The hint ladder
+
+Hints escalate only as far as you ask. `hint` raises you one rung and remembers
+it for that stage:
+
+```
+hint 0  the micro-action for the stage
+hint 1  the smallest experiment to run, plus what to predict
+hint 2  where the reference solution lives (read it after attempting)
+```
+
+Author-specified hints, when a course has them, come first.
+
+### Pacing and style
+
+`python3 codecraft/cli.py config --style deep|balanced|fast`
+
+- **deep** — never auto-reveal; always make you predict; surface review.
+- **balanced** — the default above.
+- **fast** — accelerate sooner and keep the coach terse.
+
+---
+
+## Authoring a course
+
+```bash
+python3 codecraft/cli.py new bloom-filter --title "Build a Bloom Filter" --stages 3
+```
+
+That writes a runnable course. Edit `course.py` — a course *is* its tests:
+
+```python
+from codecraft.api import stage
+
+TITLE = "Build a Bloom Filter"
+DESCRIPTION = "A probabilistic set, from hashing to false-positive math."
+
+def check_1():
+    from stage_01 import BloomFilter
+    bf = BloomFilter(bits=64, hashes=2)
+    bf.add("x")
+    assert "x" in bf
+    assert "y" not in bf, "a fresh filter must not report false members"
+
+STAGES = [
+    stage(1, file="stage_01.py", title="add and contains",
+          tags=["hashing", "data-structure"],
+          action="Implement add(): set the k bit positions for the item.",
+          predict="Can contains() ever be certain an item is absent?",
+          check=check_1),
+]
+```
+
+Then `python3 codecraft/cli.py run bloom-filter`. Stage files under
+`stage_NN.py` raise `NotImplementedError` until you fill them; finished
+versions go in `solutions/`.
+
+Write the checks that catch **the mistakes that are easy to make and hard to
+notice** — a wrong bit index, a false negative on a fresh filter — not line
+coverage. A check whose message names the likely cause is a tutor; the whole
+repo is built on that idea, and your courses inherit it.
+
+---
+
+## Files
+
+```
+codecraft/
+├── cli.py         # the command surface
+├── contract.py    # run a check.py (subprocess) or course.py (import) → one result shape
+├── manifests.py   # discover courses; merge built-in curriculum or authored course.py
+├── curriculum.py  # built-in metadata for the seven existing projects
+├── api.py         # the `stage(...)` helper an authored course imports
+├── adapt.py       # the adaptive decision: kind, hint level, pacing, review
+├── patterns.py    # failure text → category + stable signature
+├── store.py       # history.jsonl + profile.json
+├── render.py      # the coach block
+├── style.py       # banners, progress bars, the mentor box
+├── mentor.py      # NAN client + prompt + cache
+├── scaffold.py    # `codecraft new`
+├── path.py        # the ordered plan (see ROADMAP.md)
+└── history.jsonl / profile.json / mentor_cache.json   # your record (git-ignored)
+```
+
+## Design decisions
+
+- **Wrap, do not patch.** The seven checkers already teach well; editing them to
+  emit JSON would risk that and touch seven projects. `contract.py` parses their
+  existing output, and authored courses import through `api.py`. One result
+  shape either way.
+- **A course is its tests.** Authoring a course *is* writing the grader, so the
+  scaffold puts metadata and checks in one file, `course.py`, next to the
+  templates. There is no separate lesson format to learn.
+- **Legible rules over an opaque model.** `adapt.py` is a handful of named
+  thresholds you can read and disagree with. An "AI tutor" whose reasoning you
+  cannot inspect is hard to trust with your learning.
+- **Standard library only.** Same rule as the rest of the repo: if it cannot run
+  with `python3`, the lesson gets buried under an install.
+
+## Where this stops
+
+- **It does not grade correctness beyond the checks you (or the project) wrote.**
+  A weak check makes a weak course. The quality of the course is the quality of
+  its assertions.
+- **Review is concept-level, not a full spaced-repetition scheduler.** It
+  resurfaces concepts you failed; it does not schedule cards by half-life.
+- **No timing analytics yet.** Attempt timestamps are stored, so pace-over-time
+  is possible, but nothing reads them yet.
+- **It will not write the course for you.** Generating exercises is a different
+  tool; this one makes the ones you write adapt to you.
+- **The mentor can be wrong.** It sees the failing file and the error, not the
+  whole repo or your intent. Treat its diagnosis as a strong hypothesis to test,
+  not a verdict — which is why it is asked for an experiment rather than a fix.
+  It also needs network access to `api.nan.builders`; the rule-based coach works
+  offline.

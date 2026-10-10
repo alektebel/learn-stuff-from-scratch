@@ -94,3 +94,9 @@ deepfake-detection/checkpoints/
 deepfake-detection/logs/
 deepfake-detection/*.pt
 deepfake-detection/*.pth
+
+# codecraft — personal learning record (courses themselves ARE tracked)
+codecraft/profile.json
+codecraft/history.jsonl
+codecraft/*.tmp
+codecraft/mentor_cache.json
