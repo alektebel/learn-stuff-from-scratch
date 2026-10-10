@@ -3,7 +3,7 @@
 Ten retrieval-augmented generation projects, from hybrid search to agentic RAG, built as one
 pipeline whose every stage has to earn its place on a shared evaluation set.
 
-**Status: step 0 and projects 1-7 built.** The shared evaluation set lives in
+**Status: step 0 and projects 1-8 built.** The shared evaluation set lives in
 [`eval-set/`](eval-set/README.md): a deterministic synthetic corpus, five query families
 with judgments, the retrieval/abstention metrics and a trivial baseline. Project 1 lives
 in [`bm25/`](bm25/README.md), [`lsa/`](lsa/README.md), [`hnsw/`](hnsw/README.md) and
@@ -12,8 +12,10 @@ in [`bm25/`](bm25/README.md), [`lsa/`](lsa/README.md), [`hnsw/`](hnsw/README.md)
 [`reranking/`](reranking/README.md); project 4 in [`chunking/`](chunking/README.md);
 project 5 in [`sql-vector/`](sql-vector/README.md); project 6 in
 [`knowledge-graph/`](knowledge-graph/README.md); project 7 in
-[`corrective/`](corrective/README.md). Projects 8-10 are still planned; a project gets
-code only when it is chosen, through the `graded-module` skill.
+[`corrective/`](corrective/README.md); project 8 in
+[`self-rag/`](self-rag/README.md) (the retrieve / grade / support control loop, with the
+reflection model injected and an offline deterministic stand-in). Projects 9-10 are still
+planned; a project gets code only when it is chosen, through the `graded-module` skill.
 
 ## Why this directory is first among the RAG-shaped plans
 

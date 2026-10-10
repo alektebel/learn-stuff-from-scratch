@@ -105,6 +105,12 @@ Update this file in the same commit that finishes or adds an item.
         spam); `mobile.py` (responsive, exercise 9) and WebP (exercise 16) remain, both
         needing a browser or Pillow.
         → [web-launch-checklist/README.md](web-launch-checklist/README.md)
+11. [x] **RAG projects 2-8**: metadata-filtered retrieval, reranking, contextual chunking,
+        SQL+vector, knowledge graph + vector, corrective RAG and Self-RAG are built and
+        audited, each a graded module on the shared eval set; project 8 landed as
+        [`rag-from-scratch/self-rag/`](rag-from-scratch/self-rag/README.md). Projects 9
+        (multimodal, needs a vision model) and 10 (agentic, needs the harness loop) remain.
+        → [rag-from-scratch/README.md](rag-from-scratch/README.md)
 
 ## Gaps with no plan yet
 
