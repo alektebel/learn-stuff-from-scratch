@@ -102,12 +102,22 @@ PHASES = [
                 "landmine in the smoke run."},
     ]),
     ("F", "Benchmark and eval", [
-        {"id": "F1", "title": "Benchmark From Scratch (Mus)", "course": None,
-         "kind": "salvage", "prereq": ["C1", "E1"],
-         "why": "Reimplement the measurement machinery of your own mus-benchmark "
-                "(2v2 Mus against LLM teams): strict turn-gated engine, one JSONL "
-                "record per decision, scorecards, calibration probes (Brier/AUC), "
-                "mirrored seating to cancel bias. Reference repo: "
+        {"id": "F1", "title": "Benchmark From Scratch (Mus)",
+         "course": "benchmark-from-scratch", "kind": "ready",
+         "prereq": ["C1", "E1"],
+         "why": "Ten stages, all graded: the turn gate where a refusal is data and "
+                "not a turn, the match loop with as-dealt snapshots and the rails "
+                "that stop a run that became about the harness, one ground-truth "
+                "record per decision taken BEFORE the action, the link from an "
+                "aggression to the answer it got, the strength reference drawn "
+                "from the hands that could bet, a risk scorecard where a bluff is "
+                "a weak hand and not a lost bet, the outcome that survives the "
+                "40-point vaca reset, the calibration and discrimination probes "
+                "with their degenerate cases, the gate that decides what may be "
+                "published, and the mirrored pair that cancels the seat "
+                "advantage. The game is provided (`mus.py`: a Fournier mus table "
+                "with the four lances, three bet scales and two reference seats); "
+                "the measurement is the exercise. Reference repo: "
                 "~/Desarrollo/mus-benchmark."},
         {"id": "F2", "title": "Eval Framework From Scratch", "course": None,
          "kind": "author", "prereq": ["F1"],
