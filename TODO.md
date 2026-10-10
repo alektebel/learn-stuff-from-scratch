@@ -5,9 +5,11 @@ Update this file in the same commit that finishes or adds an item.
 
 ## Blocked on a decision or an input from the owner
 
-- [ ] **A model API for harness-lab phase 1.** An OpenAI-compatible endpoint, its key as an
-      environment secret, and a cost cap per evaluation run. Phase 1 has been blocked on
-      this since phase 0 closed. → [harness-lab/CLAUDE.md](harness-lab/CLAUDE.md)
+- [ ] **A cost cap for harness-lab phase 1.** The endpoint and its key are provided and the
+      OpenAI-compatible transport has landed (`harness_lab/llm/openai_compat.py`, verified
+      with a live call); what is still unset is the per-run budget in
+      `harness-lab/CLAUDE.md`. Running the baseline also needs Docker (see "Environment").
+      → [harness-lab/CLAUDE.md](harness-lab/CLAUDE.md)
 - [ ] **GPU access: yes or no.** Decides whether the GPU-required half of
       [inference-lab](inference-lab/README.md) and step A of the
       [CUDA roadmap](cuda-from-scratch/ROADMAP.md) are in the plan, or stay code without
@@ -56,11 +58,13 @@ Update this file in the same commit that finishes or adds an item.
        → [rag-from-scratch/README.md](rag-from-scratch/README.md)
 2. [ ] **harness-lab phase 1**: the LEARN contract is landed — `docs/phase1.md`
        (spec) + `RESOURCES.md`, the message types, model interface and
-       deterministic scripted backend in `harness_lab/llm/`, the `run_loop` stub
-       the learner implements in `harness_lab/core/loop.py`, the `mini` adapter in
-       `eval/agents.py`, and `tests/test_llm.py` + `tests/test_loop.py`
-       (infrastructure passes, the loop contract xfails until written). The
-       closing baseline on 20 tasks x 3 seeds still needs the model API above.
+       deterministic scripted backend in `harness_lab/llm/`, the OpenAI-compatible
+       transport (`openai_compat.py`; `build_model()` reads `HARNESS_LAB_*`), the
+       `run_loop` stub the learner implements in `harness_lab/core/loop.py`, the
+       `mini` adapter in `eval/agents.py`, and `tests/test_llm.py` +
+       `tests/test_openai_transport.py` + `tests/test_loop.py` (infrastructure
+       passes, the loop contract xfails until written). The closing baseline on
+       20 tasks x 3 seeds still needs Docker and the cost cap above.
        → [harness-lab/docs/phase1.md](harness-lab/docs/phase1.md)
 3. [x] **CUDA step B**: memory system simulated and graded on CPU (coalescing, bank
        conflicts, occupancy, roofline). Landed as `cuda-from-scratch/memory-system/`

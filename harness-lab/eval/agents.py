@@ -57,15 +57,45 @@ class OracleAgent:
 
 
 def build_model():
-    """The phase 1 model transport (docs/phase1.md). Blocked: choosing and
-    implementing the provider transport needs the model API and cost cap the
-    owner has not set (TODO.md, "Blocked on a decision"). Tests never call
-    this; they build `MiniAgent(model_factory=...)` with a scripted backend.
+    """The phase 1 model transport (docs/phase1.md): an OpenAI-compatible
+    endpoint configured entirely from the environment.
+
+    Required: ``HARNESS_LAB_BASE_URL``, ``HARNESS_LAB_API_KEY``,
+    ``HARNESS_LAB_MODEL``. Optional: ``HARNESS_LAB_INPUT_EUR_PER_MTOK``,
+    ``HARNESS_LAB_OUTPUT_EUR_PER_MTOK``, ``HARNESS_LAB_CACHED_EUR_PER_MTOK``
+    (cost tracking defaults to zero). Tests never call this; they build
+    ``MiniAgent(model_factory=...)`` with a scripted backend.
     """
-    raise NotImplementedError(
-        "phase 1 real transport not implemented (needs the model API, TODO.md); "
-        "construct MiniAgent(model_factory=...) with a scripted backend to test"
+    from harness_lab.llm.base import ModelError, Price
+    from harness_lab.llm.openai_compat import OpenAICompatibleModel
+
+    base_url = os.environ.get("HARNESS_LAB_BASE_URL")
+    api_key = os.environ.get("HARNESS_LAB_API_KEY")
+    model = os.environ.get("HARNESS_LAB_MODEL")
+    missing = [
+        name for name, value in (
+            ("HARNESS_LAB_BASE_URL", base_url),
+            ("HARNESS_LAB_API_KEY", api_key),
+            ("HARNESS_LAB_MODEL", model),
+        ) if not value
+    ]
+    if missing:
+        raise ModelError(
+            "missing environment for the model transport: " + ", ".join(missing))
+
+    def per_mtok(name: str) -> float:
+        try:
+            return float(os.environ.get(name, "0"))
+        except ValueError as exc:
+            raise ModelError(f"{name} must be a number, got {os.environ[name]!r}") from exc
+
+    price = Price(
+        input_per_mtok=per_mtok("HARNESS_LAB_INPUT_EUR_PER_MTOK"),
+        output_per_mtok=per_mtok("HARNESS_LAB_OUTPUT_EUR_PER_MTOK"),
+        cached_input_per_mtok=per_mtok("HARNESS_LAB_CACHED_EUR_PER_MTOK"),
     )
+    return OpenAICompatibleModel(
+        base_url=base_url, api_key=api_key, model=model, price=price)
 
 
 class MiniAgent:

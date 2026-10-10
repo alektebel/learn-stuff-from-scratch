@@ -1,6 +1,5 @@
 """LLM integration (phase 1): message types, the model interface, the
-scripted backend. Provider transports (the one real backend) land here too;
-the transport is the learner's work, see docs/phase1.md.
+scripted backend, and the OpenAI-compatible transport for the real endpoint.
 """
 
 from harness_lab.llm.base import (
@@ -12,6 +11,7 @@ from harness_lab.llm.base import (
     Usage,
 )
 from harness_lab.llm.messages import ROLES, Message, Role, ToolCall
+from harness_lab.llm.openai_compat import OpenAICompatibleModel
 from harness_lab.llm.scripted import ScriptedBackend, ScriptExhausted
 
 __all__ = [
@@ -20,6 +20,7 @@ __all__ = [
     "Message",
     "Model",
     "ModelError",
+    "OpenAICompatibleModel",
     "Price",
     "Role",
     "ScriptExhausted",

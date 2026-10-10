@@ -1,9 +1,10 @@
 # Phase 1 — Minimum floor (Mini-SWE-Agent style)
 
-Status: **spec and tests shipped, core is the learner's work, baseline blocked**
-on the model API and cost cap ([TODO.md](../TODO.md), "Blocked on a decision").
-This file is the contract; `tests/test_llm.py` and `tests/test_loop.py` make it
-executable.
+Status: **spec, tests and the provider transport shipped; the core is the
+learner's work and the baseline run still needs Docker (no daemon here) and a
+budget cap.** The model endpoint is configured; `harness_lab/llm/openai_compat.py`
+is the one real transport. This file is the contract; `tests/test_llm.py`,
+`tests/test_openai_transport.py` and `tests/test_loop.py` make it executable.
 
 ## What it is
 
@@ -23,15 +24,16 @@ Shipped as infrastructure (data types and a test double — no agent logic):
 - `harness_lab/llm/scripted.py` — `ScriptedBackend`, the deterministic
   recording player (amendment 5).
 - `eval/agents.py` — `MiniAgent`, the adapter the runner sees; its transport
-  factory `build_model()` is a stub.
+  factory `build_model()` reads the environment and returns the transport.
+- `harness_lab/llm/openai_compat.py` — `OpenAICompatibleModel`, the real
+  OpenAI-compatible transport (messages/tools to the wire and back), testable
+  with an injected `http_post`.
 
 The learner writes (the central logic):
 
 - `harness_lab/core/loop.py::run_loop` — currently `NotImplementedError`.
   `LoopBudget`, `LoopResult`, `BASH_TOOL`, `SYSTEM_PROMPT` and the structural
   `Sandbox`/`ExecResult` protocols are provided; the loop body is not.
-- one real provider transport behind `Model` (`harness_lab/llm/`), once the
-  model API is chosen.
 
 ## What it demonstrates
 
@@ -78,7 +80,11 @@ BASH_TOOL                            # the one tool, advertised every step
 
 # eval/agents.py
 MiniAgent(model_factory=None)        # maps LoopResult -> eval AgentResult
-build_model()                        # stub: needs the model API (blocked)
+build_model()                        # transport from HARNESS_LAB_* env vars
+
+# harness_lab/llm/openai_compat.py
+OpenAICompatibleModel(base_url, api_key, model, price=Price(), http_post=None)
+    .complete(messages, tools=())    # POSTs /chat/completions, maps errors to ModelError
 ```
 
 **The loop, exactly** (what `tests/test_loop.py` pins):
@@ -135,9 +141,11 @@ today.
 
 ## Out of scope / blocked
 
-- **The real baseline is blocked.** No provider transport, no model, no cost
-  cap (`BUDGET` and the base model are unset in `harness-lab/CLAUDE.md`).
-  `build_model()` raises `NotImplementedError` until the owner decides.
+- **The baseline run needs Docker.** The provider transport and the model
+  endpoint are in place (`build_model()` + `openai_compat.py`, verified with one
+  live call), but running the 20-task suite needs the sandbox image and a
+  daemon, which this environment does not have; `BUDGET` is also still unset in
+  `harness-lab/CLAUDE.md`.
 - **One transport only.** Phase 1 needs one provider behind `Model`; a second
   provider, streaming, retries and prompt caching are phase 2+.
 - **No context management.** History is unpruned on purpose; compaction is
