@@ -111,6 +111,13 @@ Update this file in the same commit that finishes or adds an item.
         [`rag-from-scratch/self-rag/`](rag-from-scratch/self-rag/README.md). Projects 9
         (multimodal, needs a vision model) and 10 (agentic, needs the harness loop) remain.
         → [rag-from-scratch/README.md](rag-from-scratch/README.md)
+12. [ ] **Build your own Claude Code** (harness-lab): the capability-by-capability map is
+        [`harness-lab/docs/claude-code-map.md`](harness-lab/docs/claude-code-map.md) — agent
+        loop, LLM, tools, permissions, sessions, hooks, subagents, skills/commands/memory,
+        MCP and plugins, each mapped to a subsystem and phase. The MCP server is already
+        built ([`mcp-from-scratch/`](mcp-from-scratch/)); the next concrete step is phase 2
+        (the seven-subsystem core). Baseline needs Docker + a budget cap.
+        → [harness-lab/CLAUDE.md](harness-lab/CLAUDE.md)
 
 ## Gaps with no plan yet
 

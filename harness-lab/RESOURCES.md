@@ -86,3 +86,18 @@ exists as cited; `[verify]` = written from memory, confirm the details later.
     Restated (as cited by the repo, not verified): coding agents can be read as
     seven subsystems, and harnesses differ mostly in a swappable mechanism
     each.
+
+## Claude Code capabilities (for `docs/claude-code-map.md`)
+
+The public documentation behind the capability map. Read the page, not a summary;
+`[verify]` the exact URLs against <https://docs.claude.com/en/docs/claude-code>.
+
+- **Tools reference** — the built-in tool set and each schema.
+- **Settings** — `hooks` (lifecycle events) and `permissions` (`allow`/`ask`/`deny`
+  patterns), and the project/user/enterprise precedence.
+- **Subagents** — isolated context, the task tool, per-agent tools and model.
+- **MCP** — transports, servers, and tools / resources / prompts.
+- **Sessions / CLI reference** — `--continue`, `--resume`, `--fork-session`, `/compact`.
+- **Skills and slash commands** — `SKILL.md` progressive disclosure; `.claude/commands/`.
+- **Memory** — `CLAUDE.md` project and user files, and imports.
+- **Plugins** — packaging skills, agents, hooks and MCP servers, and installing by path.

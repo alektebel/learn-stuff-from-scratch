@@ -10,7 +10,9 @@ evaluation bench plus the phase-1 contract (message/model interfaces, scripted
 backend, the learner's loop stub and its tests, and the OpenAI-compatible
 transport `harness_lab/llm/openai_compat.py`). The baseline run still needs
 Docker and a budget cap. See [docs/phase0.md](docs/phase0.md) and
-[docs/phase1.md](docs/phase1.md).
+[docs/phase1.md](docs/phase1.md). **Building your own Claude Code?** The
+capability-by-capability checklist over these phases is
+[docs/claude-code-map.md](docs/claude-code-map.md).
 
 ```
 python3.12 -m venv .venv && .venv/bin/pip install -e '.[dev]'
