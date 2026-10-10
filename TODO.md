@@ -82,12 +82,16 @@ Update this file in the same commit that finishes or adds an item.
 5. [ ] **ml-systems framework part 2**: convolutions and a CNN, then a transformer trained on
        the framework. **Blocked in this environment:** the framework imports numpy, which is
        not installed (part 3 needs it too). → [ml-systems/framework/README.md](ml-systems/framework/README.md)
-6. [ ] **Skill-tree nodes**, one at a time, from `tree.py next`. The tree now spans 97 nodes in
-       20 tracks across five domains and is lightly gamified (XP, levels, per-track/domain
+6. [ ] **Skill-tree nodes**, one at a time, from `tree.py next`. The tree now spans 113 nodes
+       in 21 tracks across six domains and is lightly gamified (XP, levels, per-track/domain
        badges). The 15 new nodes (low level, distributed, cloud/AWS primitives) are built and
        audited — each a standard-library-only graded module with solutions, a checker and a
        mutation test. Only `lean-01-galois-path` remains and stays blocked (no
-       `lake`/`lean`/`elan`).
+       `lake`/`lean`/`elan`). A sixth **Projects** domain now draws the open agent-evals work:
+       each project node is blocked by an unmet `requires` (e.g. the simulated prod service) or
+       an external `blocked_by` (GPU, prod traffic, human labels); project nodes are tracked on
+       the map but earn no XP, so the level is unchanged. The page became a quiet daylight map
+       (one typeface, hairlines, hatched dot = blocked).
        → [skill-tree/README.md](skill-tree/README.md)
 7. [ ] **inference-lab CPU-real projects**: #4 prefix-caching proxy and #13 AI gateway are
        built and audited; #3 KV monitor remains.

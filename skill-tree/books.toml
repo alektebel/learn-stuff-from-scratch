@@ -144,3 +144,9 @@ title = "POSIX.1-2017 / Linux man-pages"
 authors = "IEEE / man-pages project"
 year = 2018
 access = "free, man7.org"
+
+[doc.agenteval]
+title = "agent-evals: evaluation, safety and operations tooling for agents"
+authors = "the repo's own plan (agent-evals/README.md)"
+year = 2026
+access = "in-repo, agent-evals/README.md"

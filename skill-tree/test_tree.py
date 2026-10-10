@@ -108,6 +108,19 @@ class TreeTests(unittest.TestCase):
         self.assertIn("raft", BOOKS)
         self.assertIn("awsiam", BOOKS)
 
+    def test_unknown_blocker(self):
+        p = problems_after(lambda ns: node(ns, "evals-02-shadow-routing").update(blocked_by=["vibes"]))
+        self.assertTrue(any("blocker" in x for x in p), p)
+
+    def test_blocked_node_is_not_ready(self):
+        ns = copy.deepcopy(NODES)
+        for n in ns:
+            n["status"] = "todo"
+        ready = [n["id"] for n in tree.ready_nodes(ns)]
+        # the simulated service is unblocked and ready; the projects behind it are not
+        self.assertIn("evals-00-simulated-service", ready)
+        self.assertNotIn("evals-02-shadow-routing", ready)
+
 
 class GamificationTests(unittest.TestCase):
     def test_exists_earns_no_xp(self):
@@ -122,6 +135,11 @@ class GamificationTests(unittest.TestCase):
     def test_level_increases_with_xp(self):
         self.assertEqual(tracks.level_for(0)[1], "Novice")
         self.assertLess(tracks.level_for(0)[0], tracks.level_for(10_000)[0])
+
+    def test_project_track_earns_no_xp(self):
+        # a project node is tracked but does not move the level
+        self.assertEqual(tracks.node_xp({"status": "todo", "difficulty": 5, "track": "evals"}), 0)
+        self.assertGreater(tracks.node_xp({"status": "todo", "difficulty": 5, "track": "ai"}), 0)
 
     def test_badge_needs_every_node(self):
         ns = [{"track": "cloud", "status": "todo"}, {"track": "cloud", "status": "done"}]

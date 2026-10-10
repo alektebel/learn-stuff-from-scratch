@@ -9,9 +9,11 @@ the vertical order (prerequisites first), each node is a station, and every
 `requires` edge is drawn between stations. The page is one file, no network, no
 dependencies beyond the system fonts.
 
-The design: a night transit map. Colour is identity (which track); shape is progress
-(solid = built, ringed = ready to build, hollow = todo). Only one thing is loud: the
-map itself. Regenerate after any change to tree.toml.
+The design: a quiet daylight dependency map. One typeface, one accent, hairlines instead
+of chrome. Colour is identity (which track) and shape is progress: filled = built, ringed
+= ready, hollow = todo, hatched = blocked on a resource. Only one thing is loud — the map.
+Project nodes (tracks.py: `counts_for_xp=False`) are drawn but do not move the level.
+Regenerate after any change to tree.toml.
 """
 
 from __future__ import annotations
@@ -115,6 +117,7 @@ def legend_markup() -> str:
         '<li><span class="sdot s-done"></span>built</li>'
         '<li><span class="sdot s-ready"></span>ready</li>'
         '<li><span class="sdot s-todo"></span>todo</li>'
+        '<li><span class="sdot s-blocked"></span>blocked</li>'
         '<li><span class="sdot s-exists"></span>exists</li>'
         '<li><span class="sdot s-cap"></span>capstone</li>'
     )
@@ -152,6 +155,7 @@ def build(nodes: list[dict], sources: dict) -> str:
         "colors": COLORS,
         "domains": {t: TRACKS[t].domain for t in TRACKS},
         "domainLabels": DOMAIN_LABEL,
+        "countsForXp": {t: TRACKS[t].counts_for_xp for t in TRACKS},
         "xp": {n["id"]: node_xp(n) for n in nodes},
         "bookName": {n: book_name(sources, n)
                      for n in sorted({s for x in nodes for s in x["sources"]})},
@@ -178,15 +182,15 @@ TEMPLATE = r"""<!doctype html>
 <title>The Skill Tree — a dependency map of everything you build from scratch</title>
 <style>
   :root{
-    --paper:#161821; --panel:#1B1E29; --panel2:#20243352; --ink:#E8E6DE; --soft:#B9B7AE;
-    --dim:#82879B; --line:#282C3A; --focus:#E8E6DE;
-    --serif:"DejaVu Serif Condensed","Liberation Serif",Georgia,serif;
+    --paper:#FAFAF7; --panel:#FFFFFF; --ink:#16181D; --soft:#565A60; --dim:#9A9C9F;
+    --line:#E4E3DD; --focus:#16181D; --flag:#B23A2E;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
     --mono:"Hack","DejaVu Sans Mono","Liberation Mono",monospace;
     --colw:210px; --rowh:108px; --ncols:__NCOLS__;
   }
   *{box-sizing:border-box}
   html{-webkit-text-size-adjust:100%}
-  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
     font-size:16px;line-height:1.5;text-rendering:optimizeLegibility}
   .mono{font-family:var(--mono)}
   a{color:inherit}
@@ -197,8 +201,8 @@ TEMPLATE = r"""<!doctype html>
     border-bottom:1px solid var(--line)}
   .masthead .cols{display:flex;flex-wrap:wrap;gap:26px 48px;align-items:flex-end;
     justify-content:space-between}
-  h1{font-family:var(--serif);font-weight:700;font-size:clamp(2.1rem,4.6vw,3.5rem);
-    line-height:.98;letter-spacing:-.012em;margin:0}
+  h1{font-family:var(--sans);font-weight:680;font-size:clamp(2.1rem,4.6vw,3.4rem);
+    line-height:.98;letter-spacing:-.03em;margin:0}
   .lede{margin:.7rem 0 0;max-width:60ch;color:var(--soft);font-size:1.02rem}
   .lede b{color:var(--ink);font-weight:600}
   .stat{display:flex;flex-direction:column;gap:10px;min-width:min(360px,100%)}
@@ -208,19 +212,18 @@ TEMPLATE = r"""<!doctype html>
   .pwrap{display:flex;flex-direction:column;gap:5px;flex:1;min-width:150px}
   .plabel{color:var(--dim);font-size:.72rem;letter-spacing:.02em}
   .bar{display:flex;gap:3px;height:7px}
-  .seg{flex:1;background:#2b3040;border-radius:99px;overflow:hidden;position:relative}
+  .seg{flex:1;background:var(--line);border-radius:99px;overflow:hidden;position:relative}
   .seg .fill{display:block;height:100%;background:var(--c);border-radius:99px}
 
   /* ---- gamification: one quiet rank line, then badges ---- */
   .gamify{margin-top:12px;display:flex;flex-direction:column;gap:6px}
   .rankrow{display:flex;align-items:baseline;gap:9px}
-  .lvl{font-size:.78rem;color:var(--ink);background:#ffffff0f;border:1px solid var(--line);
+  .lvl{font-size:.78rem;color:var(--ink);background:#00000008;border:1px solid var(--line);
     border-radius:5px;padding:1px 7px}
-  .rank{font-weight:600;font-size:1.02rem}
+  .rank{font-weight:650;font-size:1.02rem}
   .xps{margin-left:auto;color:var(--soft);font-size:.78rem}
-  .xpbar{height:6px;background:#2b3040;border-radius:99px;overflow:hidden}
-  .xpbar span{display:block;height:100%;background:linear-gradient(90deg,#E0B33C,#8CBF68);
-    border-radius:99px}
+  .xpbar{height:5px;background:var(--line);border-radius:99px;overflow:hidden}
+  .xpbar span{display:block;height:100%;background:var(--ink);border-radius:99px}
   .nxtx{color:var(--dim);font-size:.72rem}
   .chips{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
   .chiplab{color:var(--dim);font-size:.66rem;letter-spacing:.03em}
@@ -237,8 +240,10 @@ TEMPLATE = r"""<!doctype html>
   .sdot{width:11px;height:11px;border-radius:50%;display:inline-block;border:1.5px solid var(--dim)}
   .sdot.s-done{background:var(--ink);border-color:var(--ink)}
   .sdot.s-ready{border-color:var(--ink);box-shadow:inset 0 0 0 2.5px var(--paper),inset 0 0 0 5px var(--ink)}
-  .sdot.s-todo{border-color:#5a5f72}
+  .sdot.s-todo{border-color:var(--dim)}
   .sdot.s-exists{border-style:dashed}
+  .sdot.s-blocked{border-color:var(--flag);
+    background:repeating-linear-gradient(45deg,transparent 0 2px,var(--flag) 2px 3px)}
   .sdot.s-cap{box-shadow:0 0 0 2px var(--paper),0 0 0 4px var(--dim)}
 
   /* ---- atlas ---- */
@@ -256,11 +261,11 @@ TEMPLATE = r"""<!doctype html>
   #edges{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
   .lane{position:absolute;top:0;bottom:0;width:var(--colw);border-left:1px solid var(--line);
     opacity:.5;pointer-events:none}
-  .lane.alt{background:#ffffff05}
+  .lane.alt{background:#00000003}
 
   .station{position:absolute;display:flex;gap:9px;align-items:flex-start;width:calc(var(--colw) - 26px);
     padding:9px 10px 9px 0;background:none;border:0;color:inherit;text-align:left;cursor:pointer;
-    font-family:var(--serif);border-radius:6px;transition:opacity .18s ease,transform .18s ease}
+    font-family:var(--sans);border-radius:6px;transition:opacity .18s ease,transform .18s ease}
   .station .dot{flex:0 0 auto;width:13px;height:13px;border-radius:50%;margin-top:3px;
     border:1.6px solid var(--dim);background:transparent;position:relative}
   .station .name{font-size:.92rem;line-height:1.22}
@@ -274,10 +279,13 @@ TEMPLATE = r"""<!doctype html>
   .station[data-status="todo"] .name{color:var(--soft)}
   .station[data-status="exists"] .dot{border-style:dashed}
   .station[data-status="exists"] .name{color:var(--dim);font-style:italic}
+  .station[data-status="blocked"] .dot{border-color:var(--flag);
+    background:repeating-linear-gradient(45deg,transparent 0 2px,var(--flag) 2px 3px)}
+  .station[data-status="blocked"] .name{color:var(--soft)}
   .station[data-kind="capstone"] .dot{box-shadow:0 0 0 2.5px var(--paper),0 0 0 5.5px var(--c)}
   .station[data-kind="capstone"] .name{font-weight:700}
-  .station:hover,.station:focus-visible{background:#ffffff0a}
-  .station[aria-current="true"]{background:#ffffff12}
+  .station:hover,.station:focus-visible{background:#00000007}
+  .station[aria-current="true"]{background:#0000000f}
   .station[aria-current="true"] .name{font-weight:700}
   #map.dimming .station{opacity:.22}
   #map.dimming .station.inchain{opacity:1}
@@ -303,14 +311,15 @@ TEMPLATE = r"""<!doctype html>
   #detail ul{margin:0;padding-left:1.05em}
   #detail li{margin:.28em 0;color:var(--soft)}
   #detail .reqs{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
-  #detail .reqs button{font-family:var(--mono);font-size:.7rem;background:#ffffff08;color:var(--soft);
+  #detail .reqs button{font-family:var(--mono);font-size:.7rem;background:#00000006;color:var(--soft);
     border:1px solid var(--line);border-radius:99px;padding:3px 9px;cursor:pointer}
   #detail .reqs button:hover{color:var(--ink);border-color:var(--dim)}
+  #detail .tag.blocked{color:var(--flag);border-color:var(--flag)}
   .empty{color:var(--dim)}
   #lowbar{display:flex;flex-wrap:wrap;gap:8px;padding:12px clamp(18px,3.4vw,44px);border-top:1px solid var(--line)}
-  #lowbar button{font-family:var(--mono);font-size:.72rem;background:#ffffff08;color:var(--soft);
+  #lowbar button{font-family:var(--mono);font-size:.72rem;background:#00000006;color:var(--soft);
     border:1px solid var(--line);border-radius:99px;padding:4px 11px;cursor:pointer}
-  #lowbar button[aria-pressed="true"]{color:var(--ink);border-color:var(--dim);background:#ffffff14}
+  #lowbar button[aria-pressed="true"]{color:var(--ink);border-color:var(--dim);background:#00000010}
   footer{padding:22px clamp(18px,3.4vw,44px) 46px;color:var(--dim);font-size:.8rem;
     border-top:1px solid var(--line)}
   footer code{font-family:var(--mono);color:var(--soft)}
@@ -333,7 +342,9 @@ TEMPLATE = r"""<!doctype html>
         <b>Columns are tracks, the vertical order is dependency</b> — a node unlocks only when
         everything above it, in its own column or another, is built. Every station is a graded
         module; a thick ring marks a <b>capstone</b>, a dashed dot material already in the repo
-        (it counts toward a badge, not toward XP).</p>
+        (it counts toward a badge, not toward XP). A <b>hatched dot</b> is a project
+        <b>blocked</b> on a resource it does not have — a GPU, production traffic, human labels —
+        tracked on the map but not moving the level.</p>
     </div>
     <div class="stat">
       <!--__PROGRESS__-->
@@ -350,6 +361,7 @@ TEMPLATE = r"""<!doctype html>
       <button type="button" data-filter="ready" aria-pressed="false">ready</button>
       <button type="button" data-filter="done" aria-pressed="false">built</button>
       <button type="button" data-filter="todo" aria-pressed="false">todo</button>
+      <button type="button" data-filter="blocked" aria-pressed="false">blocked</button>
       <button type="button" id="reset" aria-pressed="false">clear selection</button>
     </div>
     <div class="scroller">
@@ -384,8 +396,9 @@ function depth(id){
   const r = byId[id].requires;
   return (depthMemo[id] = r.length ? 1 + Math.max(...r.map(depth)) : 0);
 }
-const status = n => n.status === 'todo' && n.requires.every(r => byId[r].status === 'done')
-  ? 'ready' : n.status;
+const status = n => (n.status === 'done' || n.status === 'exists') ? n.status
+  : (n.blocked_by && n.blocked_by.length) ? 'blocked'
+  : n.status === 'todo' && n.requires.every(r => byId[r].status === 'done') ? 'ready' : n.status;
 
 const CSS = getComputedStyle(document.documentElement);
 const COLW = parseInt(CSS.getPropertyValue('--colw')) || 210;
@@ -510,10 +523,15 @@ function renderDetail(n){
   const reqs = n.requires.length
     ? n.requires.map(r => '<button type="button" data-goto="' + r + '">' + r + ' · ' + status(byId[r]) + '</button>').join('')
     : '<span class="empty">nothing — a root</span>';
+  const metric = DATA.countsForXp[n.track]
+    ? (n.difficulty || 2) + '/5 · ' + (DATA.xp[n.id] || 0) + ' XP'
+    : 'project · not graded';
   detail.innerHTML =
     '<span class="tag"><span class="swatch" style="--c:' + DATA.colors[n.track] + '"></span>' +
       DATA.labels[n.track] + '</span> <span class="tag">' + st + '</span>' +
-    '<span class="tag">' + (n.difficulty || 2) + '/5 · ' + (DATA.xp[n.id] || 0) + ' XP</span>' +
+    (n.blocked_by && n.blocked_by.length
+      ? '<span class="tag blocked">blocked · ' + escapeHtml(n.blocked_by.join(', ')) + '</span>' : '') +
+    '<span class="tag">' + metric + '</span>' +
     (n.kind === 'capstone' ? '<span class="tag">capstone</span>' : '') +
     '<h2>' + escapeHtml(n.title) + '</h2>' +
     '<div class="path">' + escapeHtml(n.deliverable) + '/</div>' +

@@ -40,6 +40,10 @@ from tracks import (  # noqa: E402
 REPO = HERE.parent
 STATUSES = ("todo", "in-progress", "done", "exists")
 KINDS = ("skill", "capstone")
+# External requirements a project can be blocked on. Validated so each reason is a
+# known, greppable token rather than free text; a node with any of these is never ready.
+BLOCKERS = ("gpu", "prod-traffic", "human-labels", "model", "network", "owner-input",
+            "phase-2", "phase-3", "docker", "browser", "numpy")
 REQUIRED = ("id", "title", "track", "requires", "sources", "deliverable", "build", "accept",
             "limit_cases", "status")
 BEGIN, END = "<!-- BEGIN GENERATED: tree.py render -->", "<!-- END GENERATED -->"
@@ -77,6 +81,9 @@ def validate(nodes: list[dict], books: dict, repo: Path = REPO) -> list[str]:
                             f"{sorted(XP_BY_DIFFICULTY)}")
         if "kind" in n and n["kind"] not in KINDS:
             problems.append(f"{nid}: kind {n['kind']!r} must be one of {list(KINDS)}")
+        for b in n.get("blocked_by", []):
+            if b not in BLOCKERS:
+                problems.append(f"{nid}: unknown blocker {b!r}; known: {list(BLOCKERS)}")
         for r in n["requires"]:
             if r not in by_id:
                 problems.append(f"{nid}: requires unknown node {r!r}")
@@ -139,8 +146,10 @@ def topological_order(nodes: list[dict]) -> list[str]:
 
 
 def ready_nodes(nodes: list[dict]) -> list[dict]:
+    """Todo nodes whose prerequisites are done and that have no external blocker."""
     by_id = {n["id"]: n for n in nodes}
     return [n for n in nodes if n["status"] == "todo"
+            and not n.get("blocked_by")
             and all(by_id[r]["status"] == "done" for r in n["requires"])]
 
 
@@ -172,17 +181,21 @@ def render(nodes: list[dict]) -> str:
         lines.append(f"  subgraph {track}")
         for n in members:
             label = n["id"].split("-", 2)[1] + " " + n["title"].replace('"', "'")
-            lines.append(f'    {n["id"]}["{label}"]{style[n["status"]]}')
+            mark = ":::blocked" if n.get("blocked_by") else style[n["status"]]
+            lines.append(f'    {n["id"]}["{label}"]{mark}')
         lines.append("  end")
     for n in nodes:
         for r in n["requires"]:
             lines.append(f"  {r} --> {n['id']}")
     lines += ["  classDef done fill:#2e7d32,color:#fff", "  classDef wip fill:#f9a825",
-              "  classDef exists fill:#90a4ae", "```", ""]
-    lines += ["| Node | Track | Requires | Status |", "|---|---|---|---|"]
+              "  classDef exists fill:#90a4ae", "  classDef blocked fill:#c62828,color:#fff",
+              "```", ""]
+    lines += ["| Node | Track | Requires | Status | Blocked by |", "|---|---|---|---|---|"]
     for i in topological_order(nodes):
         n = next(x for x in nodes if x["id"] == i)
-        lines.append(f"| `{i}` {n['title']} | {n['track']} | {', '.join(n['requires']) or '—'} | {n['status']} |")
+        blocked = ", ".join(n.get("blocked_by", [])) or "—"
+        lines.append(f"| `{i}` {n['title']} | {n['track']} | {', '.join(n['requires']) or '—'} "
+                     f"| {n['status']} | {blocked} |")
     return "\n".join(lines)
 
 
@@ -209,6 +222,8 @@ def main(argv: list[str]) -> int:
         by_id = {x["id"]: x for x in nodes}
         print(f"{n['id']}: {n['title']}  [{n['status']}]\n  deliverable: {n['deliverable']}")
         print("  requires: " + (", ".join(f"{r} ({by_id[r]['status']})" for r in n["requires"]) or "nothing"))
+        if n.get("blocked_by"):
+            print("  blocked:  " + ", ".join(n["blocked_by"]))
         print("  sources:  " + ", ".join(n["sources"]))
         for key in ("build", "accept", "limit_cases"):
             print(f"  {key}:")

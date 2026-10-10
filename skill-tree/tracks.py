@@ -37,7 +37,7 @@ class Track:
     color: str
     root: str          # deliverables live under "<root>/"
     domain: str        # grouping for badges
-
+    counts_for_xp: bool = True   # project tracks are tracked, but do not move the level
 
 TRACKS: dict[str, Track] = {
     # mathematics
@@ -65,6 +65,9 @@ TRACKS: dict[str, Track] = {
     "quant":        Track("Quant",               "#E0B33C", "quant",             "ai"),
     # craft
     "algos":        Track("Algorithms & craft",  "#8893A8", "algos",             "craft"),
+    # projects — the open work, blocked by what it needs, not by a skill gap
+    "evals":        Track("Eval engineering",    "#6E8B9E", "agent-evals",       "projects",
+                          counts_for_xp=False),
 }
 
 DOMAIN_LABEL = {
@@ -73,12 +76,20 @@ DOMAIN_LABEL = {
     "cloud": "Cloud",
     "ai": "AI",
     "craft": "Craft",
+    "projects": "Projects",
 }
 
 
 def node_xp(node: dict) -> int:
-    """XP a node is worth once built (0 for material that already exists without checks)."""
+    """XP a node is worth once built (0 for material that already exists without checks).
+
+    Project tracks (`counts_for_xp=False`) are tracked on the map but do not move the
+    level: they gate on resources (GPU, prod traffic), not on learning.
+    """
     if node.get("status") == "exists":
+        return 0
+    track = TRACKS.get(node.get("track"))
+    if track is not None and not track.counts_for_xp:
         return 0
     xp = XP_BY_DIFFICULTY.get(node.get("difficulty", DEFAULT_DIFFICULTY), XP_BY_DIFFICULTY[2])
     if node.get("kind") == "capstone":

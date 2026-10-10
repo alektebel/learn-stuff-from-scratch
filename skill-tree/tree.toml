@@ -1648,3 +1648,302 @@ build = []
 accept = []
 limit_cases = []
 status = "exists"
+
+# ---------------------------------------------------------------------------
+# Projects — the open work, not a learning track. Each node is blocked either by
+# an unmet `requires` (a piece that must exist first) or by an external
+# `blocked_by` requirement this machine does not have. These nodes do not move the
+# level (tracks.py: counts_for_xp=False).
+# ---------------------------------------------------------------------------
+
+[[node]]
+id = "evals-00-simulated-service"
+title = "Simulated prod service (synthetic traffic + injected drift)"
+track = "evals"
+difficulty = 4
+requires = []
+sources = ["agenteval:plan"]
+deliverable = "agent-evals/simulated-service"
+build = [
+  "a seeded request generator and a fake service with injectable drift",
+  "a trace store the other eval projects read",
+]
+accept = [
+  "a seeded run is reproducible and the injected drift is measured",
+  "shadow, drift and Pareto can all read the same traces",
+]
+limit_cases = [
+  "drift is injected without changing the seed-visible contract",
+]
+status = "todo"
+
+[[node]]
+id = "evals-01-trajectory-grading"
+title = "Trajectory grading engine"
+track = "evals"
+difficulty = 3
+requires = []
+sources = ["agenteval:plan"]
+deliverable = "agent-evals/trajectory"
+build = []
+accept = [
+  "grades a trajectory by invariants: schema, prerequisite order, loops, budget",
+]
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "evals-02-shadow-routing"
+title = "Shadow routing comparator"
+track = "evals"
+difficulty = 4
+requires = ["evals-00-simulated-service"]
+blocked_by = ["prod-traffic"]
+sources = ["agenteval:plan"]
+deliverable = "agent-evals/shadow-routing"
+build = [
+  "mirror a fraction of traffic to a second model and diff the trajectories",
+  "auto-generate a cost/quality report",
+]
+accept = [
+  "the primary path is byte-identical to unshadowed traffic",
+  "the report separates cost from quality",
+]
+limit_cases = [
+  "a slow shadow model never delays the primary request",
+]
+status = "todo"
+
+[[node]]
+id = "evals-03-judge-calibration"
+title = "Calibrated LLM-as-a-judge"
+track = "evals"
+difficulty = 4
+requires = []
+blocked_by = ["human-labels"]
+sources = ["agenteval:plan"]
+deliverable = "agent-evals/judge-calibration"
+build = [
+  "measure verbosity, position and self-preference bias",
+]
+accept = [
+  "agreement with the human anchors is measured, not assumed",
+]
+limit_cases = [
+  "a longer answer is not preferred for being longer",
+]
+status = "todo"
+
+[[node]]
+id = "evals-04-ci-regression-gate"
+title = "CI/CD regression gate"
+track = "evals"
+difficulty = 3
+requires = []
+sources = ["agenteval:plan"]
+deliverable = "agent-evals/ci-gate"
+build = [
+  "run parameterised evals per change and gate on low-variance metrics",
+]
+accept = [
+  "a seeded regression is blocked; noise is not",
+]
+limit_cases = [
+  "a 2% success delta below the detectable effect does not block",
+]
+status = "todo"
+
+[[node]]
+id = "evals-05-rag-adversarial"
+title = "RAG adversarial harness"
+track = "evals"
+difficulty = 4
+requires = []
+sources = ["agenteval:plan"]
+deliverable = "agent-evals/rag_attack"
+build = []
+accept = [
+  "injects irrelevant, missing and contradictory context and scores abstention",
+]
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "evals-06-dpo-flywheel"
+title = "Automated DPO flywheel"
+track = "evals"
+difficulty = 5
+requires = []
+blocked_by = ["gpu"]
+sources = ["agenteval:plan"]
+deliverable = "agent-evals/dpo-flywheel"
+build = [
+  "capture feedback, format preference pairs, trigger a nightly LoRA fine-tune",
+]
+accept = [
+  "preference pairs are well-formed and the flywheel is reproducible",
+]
+limit_cases = [
+  "a poisoned pair cannot silently flip the ranking",
+]
+status = "todo"
+
+[[node]]
+id = "evals-07-statistical-significance"
+title = "Statistical significance engine"
+track = "evals"
+difficulty = 3
+requires = []
+sources = ["agenteval:plan"]
+deliverable = "agent-evals/stats_engine"
+build = []
+accept = [
+  "bootstrap resamples tasks (not runs) and reports an interval and a p-value",
+]
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "evals-08-redteam-fuzzer"
+title = "Agent red-team fuzzer"
+track = "evals"
+difficulty = 4
+requires = []
+blocked_by = ["phase-2"]
+sources = ["agenteval:plan"]
+deliverable = "agent-evals/redteam"
+build = []
+accept = [
+  "v1: prompt injection and malformed tool schemas against the sandbox",
+]
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "evals-09-drift-monitor"
+title = "Production drift monitor"
+track = "evals"
+difficulty = 4
+requires = ["evals-00-simulated-service"]
+blocked_by = ["prod-traffic"]
+sources = ["agenteval:plan"]
+deliverable = "agent-evals/drift-monitor"
+build = [
+  "sample traffic nightly, run offline trajectory evals, alert on decay",
+]
+accept = [
+  "a planted quality drop raises an alert before a user reports it",
+]
+limit_cases = [
+  "seasonal traffic does not raise a false alert",
+]
+status = "todo"
+
+[[node]]
+id = "evals-10-cost-quality-pareto"
+title = "Cost-quality Pareto dashboard"
+track = "evals"
+difficulty = 3
+requires = ["evals-00-simulated-service"]
+blocked_by = ["prod-traffic"]
+sources = ["agenteval:plan"]
+deliverable = "agent-evals/pareto"
+build = [
+  "map inference cost against task success per tenant",
+]
+accept = [
+  "the frontier is computed from run records, not eyeballed",
+]
+limit_cases = [
+  "a cheaper configuration that is not actually worse is not dropped",
+]
+status = "todo"
+
+[[node]]
+id = "evals-11-counterfactual-replay"
+title = "Counterfactual replay debugger"
+track = "evals"
+difficulty = 5
+requires = []
+blocked_by = ["phase-3"]
+sources = ["agenteval:plan"]
+deliverable = "agent-evals/replay"
+build = [
+  "record every hop and tool output; swap one node and replay the rest",
+]
+accept = [
+  "a replayed run is deterministic given the recorded tape",
+]
+limit_cases = [
+  "a swapped node cannot leak into the untouched part of the trajectory",
+]
+status = "todo"
+
+[[node]]
+id = "evals-12-synthetic-edge-cases"
+title = "Synthetic edge-case generator"
+track = "evals"
+difficulty = 3
+requires = []
+sources = ["agenteval:plan"]
+deliverable = "agent-evals/edge-cases"
+build = [
+  "generate out-of-distribution inputs and boundary conditions for the gold set",
+]
+accept = [
+  "generated cases are reproducible and deduplicated against the gold set",
+]
+limit_cases = [
+  "a generated case that is trivially solvable is filtered out",
+]
+status = "todo"
+
+[[node]]
+id = "evals-13-context-eviction"
+title = "Context-window eviction tester"
+track = "evals"
+difficulty = 3
+requires = []
+sources = ["agenteval:plan"]
+deliverable = "agent-evals/eviction"
+build = []
+accept = [
+  "fills memory with noise and checks the right state is kept or retrieved",
+]
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "evals-14-dataset-contamination"
+title = "Dataset contamination checker"
+track = "evals"
+difficulty = 3
+requires = []
+sources = ["agenteval:plan"]
+deliverable = "agent-evals/contamination"
+build = []
+accept = [
+  "nm-gram and MinHash overlap between train and eval, with reasons",
+]
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "evals-15-methodology-teardown"
+title = "Public eval methodology teardown"
+track = "evals"
+difficulty = 3
+requires = []
+blocked_by = ["owner-input"]
+sources = ["agenteval:plan"]
+deliverable = "agent-evals/methodology"
+build = [
+  "publish the exact grading rubrics, judge prompts and statistics",
+]
+accept = [
+  "each claim is backed by a run record in the repo",
+]
+limit_cases = [
+  "methodology that cannot survive an adversarial read is not published",
+]
+status = "todo"
