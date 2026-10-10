@@ -73,11 +73,17 @@ PHASES = [
                 "budgets that stop before the cap, and a state-based audit."},
     ]),
     ("D", "MCP", [
-        {"id": "D1", "title": "MCP From Scratch", "course": None,
-         "kind": "author", "prereq": ["C2"],
-         "why": "JSON-RPC 2.0, stdio and streamable-HTTP transports, the capability "
-                "handshake, tools/resources/prompts, and tool design for an "
-                "unreliable caller (idempotency, read-only first)."},
+        {"id": "D1", "title": "MCP From Scratch",
+         "course": "mcp-from-scratch", "kind": "ready", "prereq": ["C2"],
+         "why": "Ten stages, all graded: the JSON-RPC envelope and the spec's error "
+                "codes, stdio/SSE/HTTP framing with stdout purity, the lifecycle "
+                "handshake and derived capabilities, tools with the protocol-"
+                "versus-execution error split, resources and prompts with the "
+                "pinned -32002, subscriptions/progress/cancellation, read-only "
+                "first with an allowlisted report tool, idempotency keys, a "
+                "confirmation that shows the diff, and the trajectory policy with "
+                "an audit line that has no clock and no payload. Pinned to spec "
+                "revision 2025-06-18."},
     ]),
     ("E", "Harness", [
         {"id": "E1", "title": "Agent Harness From Scratch", "course": None,
