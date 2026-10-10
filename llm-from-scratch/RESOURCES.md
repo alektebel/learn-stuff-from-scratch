@@ -9,6 +9,7 @@ External reading for this directory, filed from a link dump. Notes describe the 
 - [Raschka: LLMs from scratch](https://github.com/rasbt/LLMs-from-scratch)
 - [bbycroft: 3D LLM visualisation](https://bbycroft.net/llm)
 - [LLM internals](https://github.com/amitshekhariitbhu/llm-internals)
+- [Ed Donner: LLM engineering](https://github.com/ed-donner/llm_engineering) — an applied eight-week course; its foundations weeks (chat API, tokens, structured outputs, prompt caching) overlap this directory. [Course map](../llm-engineering/README.md)
 - [System Design One: LLM concepts](https://newsletter.systemdesign.one/p/llm-concepts)
 
 ## Mixture of Experts

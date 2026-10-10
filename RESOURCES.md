@@ -92,7 +92,7 @@ Implemented as a course on branch `claude/rl-posttraining-llm-exercises-wzfe8w`
 - [Berkeley: Advanced LLM Agents (Spring 2025)](https://rdi.berkeley.edu/adv-llm-agents/sp25)
 - [AI agents from scratch](https://github.com/pguso/ai-agents-from-scratch)
 - [AI engineering from scratch](https://github.com/rohitg00/ai-engineering-from-scratch)
-- [Ed Donner: LLM engineering](https://github.com/ed-donner/llm_engineering)
+- [Ed Donner: LLM engineering](https://github.com/ed-donner/llm_engineering) — mapped week by week onto this repo in [llm-engineering/](llm-engineering/README.md)
 - [AI crash course](https://github.com/henrythe9th/AI-Crash-Course)
 
 ## Agent benchmarks and security

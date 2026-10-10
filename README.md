@@ -170,6 +170,10 @@ To complement the hands-on projects in this repository, we've curated relevant v
 
 **Note**: This curated list is based on the excellent [cs-video-courses](https://github.com/Developer-Y/cs-video-courses) repository by Developer-Y, which maintains a comprehensive collection of Computer Science courses with video lectures.
 
+### Applied courses mapped to this repo
+
+- **[llm-engineering/](llm-engineering/)** - Ed Donner's eight-week applied LLM course, mapped week by week onto what this repo already builds (RAG, tool calling, agents, inference). Most of the course duplicates existing directories; the one genuine gap it names is supervised fine-tuning (LoRA/QLoRA), blocked on a GPU.
+
 ### General Computer Science
 - [CS 50 - Introduction to Computer Science, Harvard University](https://online-learning.harvard.edu/course/cs50-introduction-computer-science)
 - [6.0001 - Introduction to Computer Science and Programming in Python - MIT OCW](https://ocw.mit.edu/courses/6-0001-introduction-to-computer-science-and-programming-in-python-fall-2016/video_galleries/lecture-videos/)

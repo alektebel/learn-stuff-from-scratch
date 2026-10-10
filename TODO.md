@@ -146,6 +146,15 @@ Update this file in the same commit that finishes or adds an item.
         the same contract. Closing phase 2 needs Docker + the live endpoint; the phase-1
         baseline is recorded (95 %).
         → [harness-lab/CLAUDE.md](harness-lab/CLAUDE.md)
+13. [ ] **LLM-engineering intake**: Ed Donner's eight-week applied LLM course is mapped
+        week by week in [`llm-engineering/`](llm-engineering/README.md). Almost all of it
+        duplicates existing directories (RAG week → `rag-from-scratch`, agents → `agent-evals`
+        + harness-lab, prompt caching → `context-caching`, structured outputs → `sgl-lang`).
+        The one genuine gap it names is supervised fine-tuning (LoRA/QLoRA), which stays
+        blocked on GPU. The CPU-real next step it suggests is a **code-generation task
+        family** for harness-lab (generate → compile → run hidden tests → score), which also
+        feeds red-team and contamination.
+        → [llm-engineering/README.md](llm-engineering/README.md)
 
 ## Gaps with no plan yet
 
