@@ -52,11 +52,12 @@ PHASES = [
          "kind": "ready", "prereq": ["A2", "A4"],
          "why": "Built and ready: chunking, TF-IDF, a vector index, BM25, rank "
                 "fusion, reranking, citations, tenant isolation, recall@k. 9 checks."},
-        {"id": "B2", "title": "Vector Index From Scratch", "course": None,
-         "kind": "author", "prereq": ["B1"],
-         "why": "Brute force -> IVF -> HNSW, with recall/latency measured against "
-                "the exact index you built in B1. The stage that makes "
-                "'approximate' mean something."},
+        {"id": "B2", "title": "Vector Index From Scratch", "course": "vector-index-from-scratch",
+         "kind": "ready", "prereq": ["B1"],
+         "why": "Brute force -> IVF -> HNSW, with recall and work measured "
+                "against the exact index you built in B1. 10 checks, pure "
+                "Python, and the stage that makes 'approximate' mean "
+                "something."},
     ]),
     ("C", "Evals and agents", [
         {"id": "C1", "title": "Evals From Scratch", "course": None,

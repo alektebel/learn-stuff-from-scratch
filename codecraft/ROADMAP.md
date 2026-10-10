@@ -12,7 +12,7 @@ The order is the one you set: **AWS → LLM internals → RAG → evals + agents
 
 ### Ready now — checker-driven, pure Python, `codecraft` runs them as-is
 
-Seven courses, 102 graded checks between them, no dependencies.
+Nine courses, 121 graded checks between them, no dependencies.
 
 | Course | Checks | What it teaches |
 |---|---|---|
@@ -23,6 +23,8 @@ Seven courses, 102 graded checks between them, no dependencies.
 | `llm-from-scratch` | 13 | BPE, attention, sampling, KV cache, RoPE |
 | `compiler-and-vgpu` | 12 | ISA, assembler, front end, register allocation, SIMT divergence |
 | `deploy-and-debug` | 12 | Capacity math, percentiles, SLOs, fault diagnosis, rollout |
+| `vector-index-from-scratch` | 10 | Exact scan, the metric, k-means, IVF, the frontier, HNSW, deletions, int8 |
+| `rag-from-scratch` | 9 | Chunking, TF-IDF, exact index, BM25, rank fusion, reranking, citations, tenants |
 
 ### Legacy — templates and solutions, but no checker (needs a `course.py`)
 
@@ -56,7 +58,8 @@ from scratch, not just a checker.
 ### Missing entirely — the half of your list the repo does not have yet
 
 A vector index, evals, agents, MCP, an agent harness, a benchmark, and an eval
-framework. Also no `CPU` or `OS`. `rag-from-scratch/` now exists (phase B1).
+framework. Also no `CPU` or `OS`. `rag-from-scratch/` (phase B1) and
+`vector-index-from-scratch/` (phase B2) now exist and are graded.
 
 ---
 
@@ -97,17 +100,20 @@ python3 codecraft/cli.py path                 # the plan, with progress
 python3 codecraft/cli.py run aws-from-scratch # stage 1: iam.py
 ```
 
-Work one stage at a time; the coach and the mentor handle the rest. When the
-seven ready courses are done, phase B is the first thing to author:
+Work one stage at a time; the coach and the mentor handle the rest. Phases B1
+and B2 are built (`rag-from-scratch`, `vector-index-from-scratch`); the next
+course to author is phase C1:
 
 ```bash
-python3 codecraft/cli.py new rag-from-scratch --title "RAG From Scratch" --stages 8
+python3 codecraft/cli.py new evals-from-scratch --title "Evals From Scratch" --stages 8
 ```
 
 A course is its tests — write the check that catches the mistake that is easy to
 make and hard to notice. The enterprise RAG guide tells you which mistakes those
 are (the `FORCE ROW LEVEL SECURITY` line everyone forgets, embeddings not being
-de-identified, recall vs. latency).
+de-identified, recall vs. latency) — and `vector-index-from-scratch` is the
+worked example of the standard: ten stages, sixteen planted mistakes, every one
+caught by the stage's own check.
 
 ---
 

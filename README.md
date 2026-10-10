@@ -63,6 +63,11 @@ python3 codecraft/cli.py new my-course --title "Build X" --stages 3
 - **[context-caching/](context-caching/)** - LLM context caching from scratch on a tiny pure-Python transformer: KV cache, block-hash and radix-tree prefix caching, paged KV blocks with copy-on-write, semantic response caching, and cache-aware request routing (16 graded checks via `python3 check.py`)
 - **[contextcite/](contextcite/)** - ContextCite (NeurIPS 2024) replicated from scratch: context attribution by ablating sources and fitting a sparse LASSO surrogate - source partitioning, logit-probability scoring, coordinate-descent LASSO, held-out LDS evaluation, and the paper's three applications (14 graded checks via `python3 check.py`)
 
+### LLM Engineering & Retrieval
+- **[llm-from-scratch/](llm-from-scratch/)** - The forward-pass mechanisms of a language model in plain Python: BPE tokenizer, attention, sampling, the KV cache and rotary positions (13 graded checks via `python3 check.py`)
+- **[rag-from-scratch/](rag-from-scratch/)** - Retrieval-augmented generation from the parts up: chunking with exact offsets, TF-IDF, an exact vector index, BM25, reciprocal rank fusion, reranking with MRR, grounded citations and tenant isolation (9 graded checks via `python3 codecraft/cli.py run rag-from-scratch`)
+- **[vector-index-from-scratch/](vector-index-from-scratch/)** - Approximate nearest-neighbour search, measured against the exact answer: brute force with a work counter, the metric and its norm cache, k-means, IVF with `nprobe`, HNSW built and walked, deletions by tombstone, int8 quantization, and the recall/latency frontier with the tuning held out (10 graded checks via `python3 codecraft/cli.py run vector-index-from-scratch`)
+
 ### System Design & Distributed Systems
 - **[system-design/](system-design/)** - Core distributed systems patterns: caching (LRU, cache-aside, stampede), async queues (retries, backoff, DLQ, idempotency), reliability (circuit breaker, bulkhead, backpressure), consistent hashing, leaderboards, URL shortener, rate limiter, and capacity math
 - **[dynamo-paper/](dynamo-paper/)** - Amazon's Dynamo paper (SOSP 2007) implemented directly: consistent hashing with preference lists, vector clocks, N/R/W quorums, sloppy quorum with hinted handoff, Merkle-tree anti-entropy, and gossip membership (17 graded checks via `python3 check.py`)
