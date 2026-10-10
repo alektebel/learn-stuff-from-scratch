@@ -29,6 +29,10 @@ Update this file in the same commit that finishes or adds an item.
 
 - [ ] **Session-start hook**: start `dockerd` and build the harness-lab sandbox image
       automatically in cloud sessions (today it is manual, see [CLAUDE.md](CLAUDE.md)).
+- [x] **Docker available for harness-lab**: installed rootless on the owner's machine (engine
+      + the `buildx` plugin) and built `harness-lab-sandbox:0`; `PATH` and `DOCKER_HOST` are
+      set in `~/.bashrc`. `loginctl enable-linger diego` is still needed (needs root) so the
+      user service survives logout.
 - [ ] **numpy is not installed** (no pip either). Any module that imports it cannot run
       here: `ml-systems/framework` (parts 2-3), CUDA step C. Either install numpy or keep
       those items out of the environment's build queue.
