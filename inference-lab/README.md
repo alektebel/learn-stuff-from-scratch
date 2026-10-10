@@ -1,7 +1,8 @@
 # inference-lab
 
 Fifteen inference-infrastructure projects (serve, optimise, scale), mapped onto what this repo
-already has. **Project #4 (prefix-caching proxy)** is in
+already has. **Project #3 (KV-cache monitor)** is the graded module
+[`kv-monitor/`](kv-monitor/), **project #4 (prefix-caching proxy)** is in
 [`prefix-caching-proxy/`](prefix-caching-proxy/) and **project #13 (AI gateway)** is the
 graded module [`ai-gateway/`](ai-gateway/); the rest is still the plan. This file is the
 plan; a project gets code only when chosen.
@@ -24,7 +25,7 @@ three groups:
 |---|---|---|---|---|
 | 1 | Self-hosted inference server (vLLM/SGLang, continuous batching) | GPU-required | `vllm-engine/`, `sgl-lang/` are implementation guides, not deployments | an actual deployment + API |
 | 2 | TTFT/ITL benchmark suite under rising concurrency | CPU-real (harness) / GPU-required (numbers) | percentiles in `deploy-and-debug/metrics.py` | open-loop load generator, streaming timers, load curves |
-| 3 | KV cache memory calculator and monitor | CPU-real | **calculator exists**: `deploy-and-debug/capacity.py` (`kv_bytes_per_token`, `kv_cache_capacity`, `max_concurrent_sequences`) | live utilisation monitor (needs #1) |
+| 3 | KV cache memory calculator and monitor | CPU-real | **built**: calculator in `deploy-and-debug/capacity.py`; the monitor is the graded module [`kv-monitor/`](kv-monitor/) (a simulated block pool) | — |
 | 4 | Prefix-caching proxy | CPU-real | **routing exists**: `context-caching/cache_router.py` (cache-aware policies vs round robin), `radix_cache.py` | a real HTTP proxy in front of replicas |
 | 5 | Quantization comparison lab (FP16/FP8/INT8/AWQ) | GPU-required | `ml-inference/phase2_optimization`, `tensorrt-inference/` (guides) | measured quality × latency × VRAM table |
 | 6 | Speculative decoding with acceptance-rate tracking | Simulated or GPU | nothing | draft/verify loop; acceptance math runs on the tiny CPU transformer in `context-caching/tiny_transformer.py` |

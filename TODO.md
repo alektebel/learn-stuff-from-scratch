@@ -93,8 +93,10 @@ Update this file in the same commit that finishes or adds an item.
        the map but earn no XP, so the level is unchanged. The page became a quiet daylight map
        (one typeface, hairlines, hatched dot = blocked).
        → [skill-tree/README.md](skill-tree/README.md)
-7. [ ] **inference-lab CPU-real projects**: #4 prefix-caching proxy and #13 AI gateway are
-       built and audited; #3 KV monitor remains.
+7. [ ] **inference-lab CPU-real projects**: #3 KV monitor (a simulated block pool with
+       preemption and a capacity recommendation, the graded module `kv-monitor/`), #4
+       prefix-caching proxy and #13 AI gateway are built and audited. What remains is
+       GPU-required (#1, #5, #7) or larger simulations (#2, #8, #9, #10, #11, #12, #14, #15).
        → [inference-lab/README.md](inference-lab/README.md)
 8. [ ] **agent-evals next**: #1, #5, #7, #13 and #14 have a LEARN contract (SPEC + RESOURCES +
        stubbed interface + runnable tests, green with the core unwritten; #1 grades a
