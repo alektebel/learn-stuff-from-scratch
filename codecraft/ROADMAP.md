@@ -63,7 +63,9 @@ from scratch, not just a checker.
 An agent harness, a benchmark, and an eval framework. Also no `CPU` or `OS`.
 `rag-from-scratch/` (phase B1), `vector-index-from-scratch/` (phase B2),
 `evals-from-scratch/` (phase C1), `agents-from-scratch/` (phase C2) and
-`mcp-from-scratch/` (phase D1) now exist and are graded.
+`mcp-from-scratch/` (phase D1) now exist and are graded. Phase I adds eleven
+more "to author" lines: the inference spine below names the artifact each stage
+builds on, and the SIROM/MUS benchmark work in phase F is its last stage.
 
 ---
 
@@ -124,6 +126,174 @@ are (the `FORCE ROW LEVEL SECURITY` line everyone forgets, embeddings not being
 de-identified, recall vs. latency) — and `vector-index-from-scratch` (sixteen
 planted mistakes) and `evals-from-scratch` (thirty-four) are the worked examples
 of the standard: every check catches the stage's own characteristic error.
+
+---
+
+## The inference spine (phase I) — twelve stages, silicon to serving
+
+The serving track, in order. Each stage is a real piece of infrastructure
+knowledge; each one is graded the way the rest of this repo grades — by the
+mistake it catches, offline and deterministic — and each one carries a **runbook**
+for the hardware run, the way `deploy-and-debug` carries the real
+`vllm`/`nvidia-smi`/`kubectl` commands. The rule throughout: the *check* grades the
+mechanism, the *runbook* tells you how to see it on a real GPU. A stage that needs
+a cluster to be graded is a stage that will never be graded.
+
+| Stage | Repo artifact | State |
+|---|---|---|
+| I1 Systems & GPU foundations | `compiler-and-vgpu` (G1) + `gpu-architecture-from-scratch` | G1 ready; the memory hierarchy is to author |
+| I2 Transformer inference physics | `inference-physics-from-scratch` (+ A2's KV math) | to author |
+| I3 Serving engines & batching | `vllm-engine` (README-only on main), A3's paged KV | to author |
+| I4 KV-cache & memory optimization | `context-caching` (A3) + `kv-cache-ops` | A3 ready; the rest to author |
+| I5 Quantization & compression | `quantization-from-scratch`, `tensorrt-inference` (README-only) | to author / salvage |
+| I6 Kernel-level engineering | `kernels-from-scratch`, `sgl-lang` (README-only) | to author |
+| I7 Distributed inference & parallelism | `distributed-inference-from-scratch` | to author |
+| I8 Speculative decoding | `speculative-decoding-from-scratch` | to author |
+| I9 Multi-node & interconnects | `interconnects-from-scratch` | to author |
+| I10 Cluster orchestration & GPU scheduling | `gpu-scheduling-from-scratch` (+ A7) | to author |
+| I11 AI gateways, routing & observability | `ai-gateway-from-scratch` (+ A3's routing, A7's percentiles) | to author |
+| I12 Public benchmarks & teardowns | `inference-benchmark-from-scratch` (+ F1/F2) | to author |
+
+The stages, verbatim as they were set out, with what the offline course does about
+each:
+
+**Stage 1 — Systems & GPU Foundations.**
+*Learn:* C++, Rust, CUDA memory hierarchy, PCIe vs NVLink, thread blocks and warp
+scheduling. *Practice:* write a custom CUDA kernel for matrix multiplication from
+scratch and profile it against cuBLAS. *Why:* you cannot optimize what you do not
+understand at the silicon level.
+→ `compiler-and-vgpu` (G1) already grades the ISA, register allocation and SIMT
+divergence in pure Python. The missing course adds the memory hierarchy itself —
+banks, coalescing, L2/TLB, host↔device and PCIe vs NVLink bandwidth — as a
+simulator with a roofline, so the matmul kernel's *predicted* time can be checked
+against its measured time; the CUDA/cuBLAS profile is the runbook, and both C++ and
+Rust get one compiled kernel each so the toolchain stops being the excuse.
+
+**Stage 2 — Transformer Inference Physics.**
+*Learn:* prefill vs decode phases, arithmetic intensity, memory bandwidth
+bottlenecks, KV-cache math. *Practice:* profile a HuggingFace model with Nsight
+Systems to find the exact memory bottleneck during generation. *Why:* LLM inference
+is almost always memory-bound, not compute-bound.
+→ `inference-physics-from-scratch`: a cost model that predicts TTFT and ITL from
+the config alone (parameters, batch, context, dtype, bandwidth), and a check that
+fails when the model's prediction and a measured trace disagree. The Nsight run is
+the runbook; the arithmetic is the graded part.
+
+**Stage 3 — Modern Serving Engines & Batching.**
+*Learn:* vLLM, SGLang, PagedAttention, continuous batching, chunked prefill.
+*Practice:* deploy a 70B model and tune chunk sizes to maximise throughput without
+starving decode requests during long-context prefills. *Why:* naive batching leaves
+60% of GPU VRAM wasted; PagedAttention fixes this.
+→ A3 already builds paged KV with copy-on-write and eviction. This course authors
+the scheduler around it: admission, mixing prefill and decode tokens, chunk sizing,
+the starvation curve a throughput number hides, and the VRAM accounting that makes
+"60% wasted" a number the check can reproduce. `vllm-engine/` on main is README-only
+and becomes this course's documentation half.
+
+**Stage 4 — KV-Cache & Memory Optimization.**
+*Learn:* prefix caching, KV quantization, CPU offloading, multi-turn cache reuse.
+*Practice:* build a routing proxy that directs requests with identical system
+prompts to the same replica to share KV blocks. *Why:* reused cache is free speed —
+it can cut TTFT by 80%.
+→ A3 grades prefix sharing, radix reuse, eviction, semantic routing and the proxy
+idea (16 checks). What is missing is KV *quantization* (per-head scales, the
+quality/VRAM curve), CPU offload with a transfer budget, and cache reuse across
+sessions; those go into `kv-cache-ops`.
+
+**Stage 5 — Quantization & Compression.**
+*Learn:* FP8, INT4, AWQ, GPTQ, sparsity, TensorRT-LLM calibration. *Practice:*
+serve a model in FP8 vs FP16 and benchmark the exact perplexity drop against the
+latency and VRAM gains. *Why:* quantization is the only way to fit frontier models
+on edge GPUs and protect your margins.
+→ `quantization-from-scratch`: scales and zero points, per-tensor vs per-channel vs
+group-wise, KL-divergence calibration, activation-aware weighting, and the
+quality/compression/latency trade-off measured on a tiny model — the "perplexity
+drop" becomes a graded number instead of a vendor chart. `tensorrt-inference/`
+(README-only) supplies the calibration half.
+
+**Stage 6 — Kernel-Level Engineering.**
+*Learn:* Triton, FlashAttention, CUDA graphs, operator fusion. *Practice:* write a
+fused Triton kernel for RMSNorm or Softmax and benchmark it against native
+PyTorch. *Why:* Python overhead kills inference; fused kernels save milliseconds
+that compound at scale.
+→ `kernels-from-scratch`: tiling and online softmax by hand in Python (so the
+algorithm is not hidden behind a framework), then a small Triton-shaped IR with a
+fusion pass and a launch-overhead model. The check: the fused path is bit-identical
+to the reference and measurably cheaper in the model's own counters. `sgl-lang/`
+(README-only) is the DSL half.
+
+**Stage 7 — Distributed Inference & Parallelism.**
+*Learn:* tensor parallelism, pipeline parallelism, expert parallelism for MoE.
+*Practice:* shard a 405B model across 8 nodes and measure the communication
+overhead. *Why:* single-GPU inference is dead for frontier models; you must master
+the shard.
+→ `distributed-inference-from-scratch`: cut one model across N simulated ranks
+(row/column/tensor, layer/pipeline, expert/MoE), schedule the pipeline stages,
+dispatch the experts, and measure the communication volume on a modelled
+interconnect from I9. The 8-node run is the runbook; the sharding arithmetic and
+the comms/ compute overlap are the checks.
+
+**Stage 8 — Speculative Decoding.**
+*Learn:* draft-target models, Medusa heads, acceptance rates, n-gram drafting.
+*Practice:* build a pipeline where a local 3B model drafts tokens for a cloud 70B
+model to verify in parallel. *Why:* 2x decode speed at zero quality cost is the
+closest thing to a free lunch in inference.
+→ `speculative-decoding-from-scratch`: the draft/verify loop with a scripted draft
+model, the acceptance-rate math, rejection sampling that provably preserves the
+target distribution, tree attention for Medusa-style heads, and the KV bookkeeping
+that makes rejection cheap. "2x at zero quality cost" becomes a distribution check,
+not a claim.
+
+**Stage 9 — Multi-Node & Hardware Interconnects.**
+*Learn:* NCCL, RDMA, InfiniBand, NVLink, disaggregated prefill/decode. *Practice:*
+set up a multi-node cluster and profile network latency of tensor parallelism
+across nodes vs within a node. *Why:* network latency is the new GPU bottleneck;
+disaggregating prefill and decode is the 2026 meta.
+→ `interconnects-from-scratch`: ring and tree all-reduce with a latency/bandwidth
+model (the same algorithm NCCL runs), one-sided RDMA semantics with completion
+queues, NVLink vs PCIe vs IB as parameterised links, and the disaggregation
+scheduler that decides whether moving the prefill pays. It is `aws-from-scratch`'s
+networking chapter with a different wire.
+
+**Stage 10 — Cluster Orchestration & GPU Scheduling.**
+*Learn:* Kubernetes GPU operators, Ray, Slurm, MIG partitioning, KEDA. *Practice:*
+build a queue-based autoscaler that spins up spot GPUs from pending requests and
+drains them when empty. *Why:* idle H100s burn $3+/hr; FinOps and scheduling are
+core infra responsibilities.
+→ `gpu-scheduling-from-scratch`: a scheduler with MIG slices, queue depth,
+autoscaling policy, spot preemption and a cost model, graded on the failures that
+matter (a drain that kills an in-flight request, an autoscaler that oscillates, a
+queue that starves a tenant). `deploy-and-debug` (A7) already grades rollout,
+liveness/readiness and budget-based rollback; the Kubernetes/Ray/Slurm specifics
+are the runbook.
+
+**Stage 11 — AI Gateways, Routing & Observability.**
+*Learn:* TTFT/ITL SLOs, semantic routing, DCGM metrics, OpenTelemetry for LLMs.
+*Practice:* build a gateway that routes simple queries to a quantized local model
+and complex reasoning to a frontier API based on prompt complexity. *Why:* routing
+protects your margins and DCGM metrics tell you when your GPUs are silently
+throttling.
+→ `ai-gateway-from-scratch`: an SLO in TTFT/ITL, a complexity classifier that
+decides the route, cost accounting per request, a percentile pipeline (A7's
+percentiles), and a throttling detector that catches the clock drop before the
+users do. DCGM and OTel are the runbook; the routing decision and the SLO
+arithmetic are graded.
+
+**Stage 12 — Public Benchmarks & Teardowns.**
+*Learn:* reproducible methodology, latency/throughput Pareto curves,
+cost-per-token analysis. *Practice:* publish a teardown comparing vLLM vs SGLang vs
+TensorRT-LLM on your specific hardware with full configs. *Why:* public proof of
+hardware mastery gets you hired instantly by top AI labs.
+→ `inference-benchmark-from-scratch`: capture the full config or refuse to run,
+sweep the knobs, plot the latency/throughput frontier, pin cost per token to a
+price and a utilisation, and fail the comparison when two runs differ in a knob
+nobody recorded. F1 (`mus-benchmark`) and F2 own the measurement machinery it
+reuses, and the `benchmark-methodology` skill is the checklist behind it.
+
+The honest sequence: I1–I2 before I3 (the cost model is what makes a scheduler
+decision checkable), I9 before I7 (you cannot shard without knowing what a link
+costs), and I4/I5 before I11 (a gateway routes to what exists). Everything else is
+parallel.
 
 ---
 

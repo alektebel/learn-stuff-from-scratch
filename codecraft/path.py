@@ -138,8 +138,10 @@ PHASES = [
          "kind": "legacy", "prereq": ["A2"], "why": "Data and model parallelism."},
         {"id": "H2", "title": "Inference and serving", "course": None,
          "kind": "salvage", "prereq": ["A3"],
-         "why": "vllm-engine, tensorrt-inference, ml-inference, sgl-lang. Three are "
-                "README-only on main; an inference-from-scratch set exists on a branch."},
+         "why": "Superseded by phase I, which is this list as a twelve-stage spine: "
+                "vllm-engine, sgl-lang and tensorrt-inference are I3, I6 and I5 there. "
+                "ml-inference lives here; three of the four are README-only on main, "
+                "and an inference-from-scratch set exists on a branch."},
         {"id": "H3", "title": "Generative models", "course": None,
          "kind": "legacy", "prereq": ["C1"],
          "why": "diffusion-models, world-models (10k lines of PyTorch), deepfake "
@@ -147,6 +149,93 @@ PHASES = [
         {"id": "H4", "title": "Long tail", "course": None, "kind": "legacy", "prereq": [],
          "why": "quantitative-trading, spectral-graphs, lean-proofs, haskell-projects, "
                 "mlops, ml-in-production, sas-lineage-tool, web-scraping."},
+    ]),
+    ("I", "Inference engineering: from silicon to serving", [
+        {"id": "I1", "title": "Systems & GPU Foundations", "course": "compiler-and-vgpu",
+         "kind": "ready", "prereq": ["G1"],
+         "why": "The silicon half: thread blocks, warps and SIMT divergence are G1's "
+                "12 checks; then author gpu-architecture-from-scratch for the memory "
+                "hierarchy (banks, coalescing, TLB, PCIe vs NVLink) and the matmul "
+                "kernel, as a simulator plus a roofline, with the CUDA/cuBLAS profile "
+                "as the runbook. C++ and Rust belong here too: one kernel each, "
+                "compiled, so the toolchain is not a mystery."},
+        {"id": "I2", "title": "Transformer Inference Physics", "course": None,
+         "kind": "author", "prereq": ["A2", "I1"],
+         "why": "Prefill vs decode as two different machines, arithmetic intensity, "
+                "the KV-cache equation, and where tokens/second actually comes from. "
+                "Author inference-physics-from-scratch: a cost model that predicts "
+                "TTFT and ITL from config alone, checked against measured traces — "
+                "the offline stand-in for Nsight Systems."},
+        {"id": "I3", "title": "Modern Serving Engines & Batching", "course": None,
+         "kind": "author", "prereq": ["I2", "A3"],
+         "why": "vLLM, SGLang, PagedAttention, continuous batching, chunked prefill. "
+                "vllm-engine/ and sgl-lang/ are README-only on main; A3 already builds "
+                "paged KV with copy-on-write, so this course authors the scheduler: "
+                "admission, prefill/decode mixing, chunk sizing, and the starvation "
+                "curve a throughput number hides."},
+        {"id": "I4", "title": "KV-Cache & Memory Optimization", "course": "context-caching",
+         "kind": "ready", "prereq": ["A3"],
+         "why": "Prefix and radix reuse, semantic routing and eviction are A3's 16 "
+                "checks. The missing half (KV quantization, CPU offload, multi-turn "
+                "reuse across sessions, a KV-affinity routing proxy) is what "
+                "kv-cache-ops would add on top."},
+        {"id": "I5", "title": "Quantization & Compression", "course": None,
+         "kind": "salvage", "prereq": ["I2"],
+         "why": "FP8, INT4, AWQ, GPTQ, sparsity and calibration. tensorrt-inference/ is "
+                "README-only; author quantization-from-scratch: scales and zero points, "
+                "per-channel vs per-tensor, KL calibration, and the quality/latency/VRAM "
+                "trade-off measured on a tiny model instead of promised."},
+        {"id": "I6", "title": "Kernel-Level Engineering", "course": None,
+         "kind": "author", "prereq": ["G1", "I2"],
+         "why": "Triton, FlashAttention, CUDA graphs, fusion. sgl-lang/ is README-only; "
+                "author kernels-from-scratch: tiling and online softmax by hand in "
+                "Python, then a small Triton-shaped IR with a fusion pass and a "
+                "launch-overhead model. The fused RMSNorm/softmax benchmark becomes a "
+                "check that the fused path is bit-identical and cheaper."},
+        {"id": "I7", "title": "Distributed Inference & Parallelism", "course": None,
+         "kind": "author", "prereq": ["I3", "I9"],
+         "why": "Tensor, pipeline and expert parallelism: how a 405B model is cut, "
+                "what each cut costs, and why the comms hide behind the compute or do "
+                "not. Author distributed-inference-from-scratch: shard one model "
+                "across N simulated ranks, schedule the pipeline, dispatch the experts, "
+                "and measure the volume on a modelled interconnect."},
+        {"id": "I8", "title": "Speculative Decoding", "course": None,
+         "kind": "author", "prereq": ["I2"],
+         "why": "Draft-target, Medusa heads, n-gram drafting, acceptance rates, and the "
+                "KV bookkeeping that makes rejection cheap. Author "
+                "speculative-decoding-from-scratch: pure Python, offline, with the "
+                "acceptance-rate math and the '2x at zero quality cost' claim made "
+                "checkable rather than repeated."},
+        {"id": "I9", "title": "Multi-Node & Hardware Interconnects", "course": None,
+         "kind": "author", "prereq": ["I1"],
+         "why": "NCCL, RDMA, InfiniBand, NVLink, and disaggregated prefill/decode. "
+                "Author interconnects-from-scratch: ring and tree all-reduce with a "
+                "latency/bandwidth model, an RDMA-semantics simulator (one-sided, "
+                "completion queues), and the topology that decides whether "
+                "disaggregation pays. Same mechanism as AWS's networking, different "
+                "wire."},
+        {"id": "I10", "title": "Cluster Orchestration & GPU Scheduling", "course": None,
+         "kind": "author", "prereq": ["A7", "I3"],
+         "why": "Kubernetes GPU operators, Ray, Slurm, MIG partitioning, KEDA. "
+                "deploy-and-debug/ already grades rollout and capacity math; author "
+                "gpu-scheduling-from-scratch: a scheduler simulator with MIG slices, "
+                "queue-based autoscaling, spot preemption, and the cost model that "
+                "makes an idle H100 a bug."},
+        {"id": "I11", "title": "AI Gateways, Routing & Observability", "course": None,
+         "kind": "author", "prereq": ["A7", "I5"],
+         "why": "TTFT/ITL SLOs, complexity routing, DCGM metrics, OpenTelemetry for "
+                "LLMs. Author ai-gateway-from-scratch: a router that sends the cheap "
+                "query to the quantized local model and the hard one upstream, with the "
+                "SLO, the percentile pipeline and a throttling detector as graded "
+                "checks. A3's routing and A7's percentiles are the two halves it "
+                "joins."},
+        {"id": "I12", "title": "Public Benchmarks & Teardowns", "course": None,
+         "kind": "author", "prereq": ["F1", "I3"],
+         "why": "Reproducible methodology, latency/throughput Pareto curves, "
+                "cost-per-token. F1/F2 own the measurement machinery; "
+                "inference-benchmark-from-scratch is the teardown: capture the full "
+                "config, sweep the knobs, plot the frontier, pin cost per token to a "
+                "price, and fail the run when a config is missing."},
     ]),
 ]
 
@@ -164,7 +253,8 @@ def render_path(profile, courses, ink):
     green, yellow, grey, cyan = ("\033[32m", "\033[33m", "\033[90m", "\033[36m")
     lines = ["", ink("  codecraft \u00b7 the path", "\033[1m"),
              ink("  your order: AWS, LLM internals, RAG, evals + agents, MCP, "
-                 "harness, benchmark, eval, then the machine stack", grey), ""]
+                 "harness, benchmark, eval, the machine stack, and the inference "
+                 "spine", grey), ""]
     done = active = 0
     for code, title, items in PHASES:
         lines.append(ink(f"  PHASE {code} \u2014 {title}", cyan))
