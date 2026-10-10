@@ -1,10 +1,14 @@
 """Each test breaks the real tree in one way and checks that the validator notices."""
 
 import copy
+import sys
 import unittest
 from pathlib import Path
 
-import tree
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import tree  # noqa: E402
+import tracks  # noqa: E402
 
 NODES, BOOKS = tree.load()
 
@@ -80,6 +84,50 @@ class TreeTests(unittest.TestCase):
         for n in NODES:
             for r in n["requires"]:
                 self.assertLess(pos[r], pos[n["id"]], f"{r} must come before {n['id']}")
+
+    def test_unknown_difficulty(self):
+        p = problems_after(lambda ns: node(ns, "lowlevel-01-bit-representation").update(difficulty=9))
+        self.assertTrue(any("difficulty" in x for x in p), p)
+
+    def test_unknown_kind(self):
+        p = problems_after(lambda ns: node(ns, "lowlevel-01-bit-representation").update(kind="boss"))
+        self.assertTrue(any("kind" in x for x in p), p)
+
+    def test_deliverable_outside_track_root(self):
+        p = problems_after(lambda ns: node(ns, "lowlevel-01-bit-representation")
+                           .update(deliverable="math/lowlevel/01-bit-representation"))
+        self.assertTrue(any("deliverable" in x for x in p), p)
+
+    def test_unknown_source_is_rejected(self):
+        p = problems_after(lambda ns: node(ns, "cloud-01-object-store").update(sources=["nosuch:s3"]))
+        self.assertTrue(any("source" in x for x in p), p)
+
+    def test_doc_source_is_accepted(self):
+        # docs (specs, manuals) live beside books in the same registry
+        self.assertEqual(tree.validate(NODES, BOOKS), [])
+        self.assertIn("raft", BOOKS)
+        self.assertIn("awsiam", BOOKS)
+
+
+class GamificationTests(unittest.TestCase):
+    def test_exists_earns_no_xp(self):
+        self.assertEqual(tracks.node_xp({"status": "exists", "difficulty": 5}), 0)
+
+    def test_capstone_doubles(self):
+        skill = tracks.node_xp({"status": "todo", "difficulty": 4})
+        boss = tracks.node_xp({"status": "todo", "difficulty": 4, "kind": "capstone"})
+        self.assertEqual(boss, 2 * skill)
+        self.assertGreater(skill, 0)
+
+    def test_level_increases_with_xp(self):
+        self.assertEqual(tracks.level_for(0)[1], "Novice")
+        self.assertLess(tracks.level_for(0)[0], tracks.level_for(10_000)[0])
+
+    def test_badge_needs_every_node(self):
+        ns = [{"track": "cloud", "status": "todo"}, {"track": "cloud", "status": "done"}]
+        self.assertFalse(tracks.badges(ns)["tracks"]["cloud"])
+        ns[0]["status"] = "exists"
+        self.assertTrue(tracks.badges(ns)["tracks"]["cloud"])
 
 
 if __name__ == "__main__":

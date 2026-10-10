@@ -1,28 +1,32 @@
-# Skill tree: mathematics and pattern recognition
+# Skill tree: everything, built from scratch
 
-A dependency graph of mathematical skills, from linear systems to variational inference.
-Each node is one graded module in [`math/`](../math/), built in this repo's format
-(templates + `check.py` + `solutions/`, see `.claude/skills/graded-module`).
+A dependency graph of what this repo builds from scratch — mathematics, low-level systems,
+distributed systems, the cloud (AWS-shaped primitives), ML systems, agents and more. Each
+node is one graded module in this repo's format (templates + `check.py` + `solutions/`, see
+`.claude/skills/graded-module`), or an `exists` node pointing at material already built.
 
 The tree's shape, acceptance criteria and procedure are fixed, so work proceeds node by
-node, by a person or another model, without re-deciding the design each time. The running
-count of built nodes is in the generated section below, and
-[`tree.html`](tree.html) renders the whole tree as an interactive map.
+node, by a person or another model, without re-deciding the design each time. It is lightly
+gamified (XP, levels, per-track and per-domain badges); the running count and current level
+are in the generated section below, and [`tree.html`](tree.html) renders the whole tree as
+an interactive map.
 
 ## Files
 
 | File | What |
 |---|---|
-| `tree.toml` | the nodes: prerequisites, sources, what to build, acceptance criteria, limit cases, status |
-| `books.toml` | the books cited; access notes marked "verify" were written from memory |
-| `tree.py` | `check` validates; `next` lists ready nodes; `show <id>`; `order`; `status`; `render` |
+| `tree.toml` | the nodes: prerequisites, sources, what to build, acceptance criteria, limit cases, status, difficulty, kind |
+| `books.toml` | the sources cited: `[book.*]` (cited by chapter) and `[doc.*]` (specs, RFCs, manuals); access notes marked "verify" were written from memory |
+| `tracks.py` | the track registry (label, colour, root, domain) and the gamification rules (XP by difficulty, capstones, levels, badges) |
+| `tree.py` | `check` validates; `next` lists ready nodes; `show <id>`; `order`; `status`; `xp`; `render` |
 | `render_html.py` | renders `tree.html`: an interactive dependency map (tracks as columns, colour = track, shape = progress) |
 | `tree.html` | the map, open it in a browser; regenerate with `render_html.py` after editing `tree.toml` |
-| `test_tree.py` | breaks the tree in each way the validator must catch (cycle, unknown book, done without a checker...) |
+| `test_tree.py` | breaks the tree in each way the validator must catch (cycle, unknown book, unknown difficulty, done without a checker...) |
 
 ```bash
 python3 skill-tree/tree.py check      # must print OK before any commit that touches tree.toml
 python3 skill-tree/tree.py next       # what can be worked on now
+python3 skill-tree/tree.py xp         # XP, level, rank and badges per track
 python3 skill-tree/tree.py show prml-09-mixtures-em
 python3 skill-tree/render_html.py     # refresh tree.html after changing tree.toml
 python3 -m unittest discover -s skill-tree -p 'test_*.py'
@@ -48,24 +52,42 @@ checker, set the status to `done`, run `tree.py check` and `tree.py render`, com
 
 ## Tracks
 
-| Track | Books | Nodes |
-|---|---|---|
-| foundations | Deisenroth, Faisal & Ong, *Mathematics for Machine Learning* | 6 |
-| linalg | Axler, *Linear Algebra Done Right*; Trefethen & Bau, *Numerical Linear Algebra* | 6 |
-| probability | Blitzstein & Hwang, *Introduction to Probability* | 7 |
-| optimization | Boyd & Vandenberghe, *Convex Optimization* | 4 |
-| prml | Bishop, *Pattern Recognition and Machine Learning* (+ Murphy, MML as alternates) | 14 |
-| lean | existing [`lean-proofs/`](../lean-proofs/) (no checker yet) | 1 |
+Twenty tracks in five domains. A track is one column of the map and earns a badge when
+every node in it is settled (graded or `exists`).
 
-The book list is a starting choice, not a fixed one. Adding a book means adding it to
-`books.toml` and nodes to `tree.toml`; `tree.py check` enforces the rest.
+| Domain | Tracks |
+|---|---|
+| mathematics | foundations, linalg, probability, optimization, prml, lean |
+| systems | lowlevel, distributed, databases, security, web, gpu, langs |
+| cloud | cloud, deploy |
+| ai | mlsys, llm, agents, quant |
+| craft | algos |
+
+The mathematics tracks cite their books in `books.toml`; the systems, cloud and ai tracks
+cite books (CS:APP, OSTEP, DDIA, van Steen) and docs (AWS docs, the Raft paper, RFCs).
+Adding a source means adding it to `books.toml` as either `[book.*]` or `[doc.*]`, then
+nodes to `tree.toml`; `tree.py check` enforces the rest.
+
+## Gamification
+
+- **XP by difficulty.** A node is worth 10/25/60/120/250 XP for difficulty 1–5; a
+  `kind = "capstone"` boss doubles it. `exists` material is worth nothing until it earns a
+  graded `check.py`.
+- **Levels.** Total XP crosses thresholds with rank names, Novice → Grandmaster.
+- **Badges.** A track badge when every node in it is settled; a domain badge when all its
+  tracks are. Shown in the map (a ★ on the column) and by `tree.py xp`.
+- The point is honesty, not points: XP is a settled-aware progress signal, and the map still
+  shows a dashed dot (and awards no XP) for material that lacks graded checks.
 
 ## The tree
 
 Generated by `python3 tree.py render` from `tree.toml`; do not edit by hand.
 
 <!-- BEGIN GENERATED: tree.py render -->
-**37 of 38 nodes built** (foundations 6/6, linalg 6/6, probability 7/7, optimization 4/4, prml 14/14, lean 0/1).
+**37 of 97 nodes graded** — 82 settled (graded or already in the repo). Per track (graded/total): foundations 6/6, linalg 6/6, probability 7/7, optimization 4/4, prml 14/14, lean 0/1, lowlevel 0/8, distributed 0/7, databases 0/2, security 0/2, web 0/5, gpu 0/2, langs 0/3, cloud 0/5, deploy 0/1, mlsys 0/8, llm 0/10, agents 0/3, quant 0/1, algos 0/2.
+
+**Level 4 · Adept** — 925 / 2,590 XP, next at 1,800.
+Badges: Foundations ✓ · Linear algebra ✓ · Probability ✓ · Optimisation ✓ · Pattern recognition ✓ · Lean ✓ · Databases ✓ · Security ✓ · Web & protocols ✓ · GPU & performance ✓ · Languages ✓ · Deploy & SRE ✓ · ML systems ✓ · LLMs ✓ · Agents ✓ · Quant ✓ · Algorithms & craft ✓ · domains: mathematics, ai, craft
 
 ```mermaid
 graph LR
@@ -119,6 +141,93 @@ graph LR
   subgraph lean
     lean-01-galois-path["01 Logic to the fundamental theorem of Galois theory (Lean 4)"]:::exists
   end
+  subgraph lowlevel
+    lowlevel-01-bit-representation["01 Bits: integers, floats, endianness"]
+    lowlevel-02-memory-layout["02 Struct layout, alignment, padding"]
+    lowlevel-03-allocator["03 A malloc: free list, split, coalesce"]
+    lowlevel-04-syscalls-io["04 File descriptors, read/write, buffering"]
+    lowlevel-05-concurrency["05 Locks, atomics, condition variables"]
+    lowlevel-06-bash-from-scratch["06 A shell from scratch"]:::exists
+    lowlevel-07-c-compiler["07 A C compiler"]:::exists
+    lowlevel-08-toralizer["08 Apt via LD_PRELOAD (toralizer)"]:::exists
+  end
+  subgraph distributed
+    distributed-01-clocks["01 Time, Lamport and vector clocks"]
+    distributed-02-replication-quorums["02 Replication and quorums"]
+    distributed-03-consensus["03 Consensus (Raft): elect, replicate, commit"]
+    distributed-04-crdts["04 CRDTs: counters, registers, sets"]
+    distributed-05-partitioning["05 Partitioning and rebalancing"]
+    distributed-06-dynamo-paper["06 The Dynamo paper, implemented"]:::exists
+    distributed-07-system-design["07 System design exercises"]:::exists
+  end
+  subgraph databases
+    databases-01-relational-engine["01 A relational engine (B+tree, MVCC, WAL)"]:::exists
+    databases-02-data-lineage["02 Data lineage tool"]:::exists
+  end
+  subgraph security
+    security-01-cryptographic-library["01 A cryptographic library"]:::exists
+    security-02-firewall["02 A firewall from scratch"]:::exists
+  end
+  subgraph web
+    web-01-http-server["01 An HTTP server"]:::exists
+    web-02-dns-server["02 A DNS server"]:::exists
+    web-03-web-scraping["03 Web scraping"]:::exists
+    web-04-launch-checklist["04 Launch checklist observers"]:::exists
+    web-05-communication-protocols["05 Communication protocols"]:::exists
+  end
+  subgraph gpu
+    gpu-01-cuda["01 CUDA from scratch"]:::exists
+    gpu-02-compiler-and-vgpu["02 Compiler and virtual GPU"]:::exists
+  end
+  subgraph langs
+    langs-01-haskell["01 Haskell projects"]:::exists
+    langs-02-sgl["02 A small graph language"]:::exists
+    langs-03-quantum["03 A quantum computing language"]:::exists
+  end
+  subgraph cloud
+    cloud-01-object-store["01 An object store (S3-shaped)"]
+    cloud-02-iam-policy["02 An IAM policy evaluator"]
+    cloud-03-queue-fanout["03 A queue and pub/sub (SQS + SNS-shaped)"]
+    cloud-04-vpc-routing["04 A VPC: routes, security groups, NACLs"]
+    cloud-05-iac-drift["05 Infra as code and drift"]
+  end
+  subgraph deploy
+    deploy-01-deploy-and-debug["01 Deploy and debug"]:::exists
+  end
+  subgraph mlsys
+    mlsys-01-ml-framework["01 An ML framework"]:::exists
+    mlsys-02-model-serving["02 Model serving"]:::exists
+    mlsys-03-inference-engine["03 An inference engine"]:::exists
+    mlsys-04-tensorrt["04 TensorRT-style inference"]:::exists
+    mlsys-05-inference-lab["05 Inference lab"]:::exists
+    mlsys-06-distributed-training["06 Distributed training"]:::exists
+    mlsys-07-mlops["07 MLOps"]:::exists
+    mlsys-08-ml-in-production["08 ML in production"]:::exists
+  end
+  subgraph llm
+    llm-01-llm-from-scratch["01 An LLM from scratch"]:::exists
+    llm-02-rag["02 Retrieval-augmented generation"]:::exists
+    llm-03-diffusion["03 Diffusion models"]:::exists
+    llm-04-context-caching["04 Prompt caching and context"]:::exists
+    llm-05-contextcite["05 Context attribution"]:::exists
+    llm-06-world-models["06 World models"]:::exists
+    llm-07-rl-posttraining["07 RL post-training of LLMs"]:::exists
+    llm-08-spectral-graphs["08 Spectral graph methods"]:::exists
+    llm-09-deepfake-creation["09 Deepfake creation"]:::exists
+    llm-10-deepfake-detection["10 Deepfake detection"]:::exists
+  end
+  subgraph agents
+    agents-01-agent-harness["01 An agent harness (Harness Lab)"]:::exists
+    agents-02-mcp-server["02 An MCP server"]:::exists
+    agents-03-agent-evals["03 Agent evaluation tooling"]:::exists
+  end
+  subgraph quant
+    quant-01-quant-trading["01 Quantitative trading"]:::exists
+  end
+  subgraph algos
+    algos-01-interview-prep["01 Interview preparation"]:::exists
+    algos-02-codecraft["02 CodeCrafters-style course runner"]:::exists
+  end
   foundations-01-linear-algebra --> foundations-02-analytic-geometry
   foundations-02-analytic-geometry --> foundations-03-matrix-decompositions
   foundations-01-linear-algebra --> foundations-04-vector-calculus
@@ -171,6 +280,18 @@ graph LR
   prml-09-mixtures-em --> prml-13-sequential
   prml-12-latent-continuous --> prml-13-sequential
   prml-04-linear-classification --> prml-14-combining-models
+  lowlevel-01-bit-representation --> lowlevel-02-memory-layout
+  lowlevel-02-memory-layout --> lowlevel-03-allocator
+  lowlevel-02-memory-layout --> lowlevel-04-syscalls-io
+  lowlevel-03-allocator --> lowlevel-05-concurrency
+  distributed-01-clocks --> distributed-02-replication-quorums
+  distributed-02-replication-quorums --> distributed-03-consensus
+  distributed-01-clocks --> distributed-04-crdts
+  distributed-02-replication-quorums --> distributed-05-partitioning
+  cloud-01-object-store --> cloud-03-queue-fanout
+  cloud-01-object-store --> cloud-04-vpc-routing
+  cloud-02-iam-policy --> cloud-05-iac-drift
+  cloud-04-vpc-routing --> cloud-05-iac-drift
   classDef done fill:#2e7d32,color:#fff
   classDef wip fill:#f9a825
   classDef exists fill:#90a4ae
@@ -178,12 +299,37 @@ graph LR
 
 | Node | Track | Requires | Status |
 |---|---|---|---|
+| `agents-01-agent-harness` An agent harness (Harness Lab) | agents | — | exists |
+| `agents-02-mcp-server` An MCP server | agents | — | exists |
+| `agents-03-agent-evals` Agent evaluation tooling | agents | — | exists |
+| `algos-01-interview-prep` Interview preparation | algos | — | exists |
+| `algos-02-codecraft` CodeCrafters-style course runner | algos | — | exists |
+| `cloud-01-object-store` An object store (S3-shaped) | cloud | — | todo |
+| `cloud-02-iam-policy` An IAM policy evaluator | cloud | — | todo |
+| `cloud-03-queue-fanout` A queue and pub/sub (SQS + SNS-shaped) | cloud | cloud-01-object-store | todo |
+| `cloud-04-vpc-routing` A VPC: routes, security groups, NACLs | cloud | cloud-01-object-store | todo |
+| `cloud-05-iac-drift` Infra as code and drift | cloud | cloud-02-iam-policy, cloud-04-vpc-routing | todo |
+| `databases-01-relational-engine` A relational engine (B+tree, MVCC, WAL) | databases | — | exists |
+| `databases-02-data-lineage` Data lineage tool | databases | — | exists |
+| `deploy-01-deploy-and-debug` Deploy and debug | deploy | — | exists |
+| `distributed-01-clocks` Time, Lamport and vector clocks | distributed | — | todo |
+| `distributed-02-replication-quorums` Replication and quorums | distributed | distributed-01-clocks | todo |
+| `distributed-03-consensus` Consensus (Raft): elect, replicate, commit | distributed | distributed-02-replication-quorums | todo |
+| `distributed-04-crdts` CRDTs: counters, registers, sets | distributed | distributed-01-clocks | todo |
+| `distributed-05-partitioning` Partitioning and rebalancing | distributed | distributed-02-replication-quorums | todo |
+| `distributed-06-dynamo-paper` The Dynamo paper, implemented | distributed | — | exists |
+| `distributed-07-system-design` System design exercises | distributed | — | exists |
 | `foundations-01-linear-algebra` Vectors, matrices, linear systems | foundations | — | done |
 | `foundations-02-analytic-geometry` Norms, inner products, projections, rotations | foundations | foundations-01-linear-algebra | done |
 | `foundations-03-matrix-decompositions` Eigendecomposition, Cholesky, SVD | foundations | foundations-02-analytic-geometry | done |
 | `foundations-04-vector-calculus` Gradients, Jacobians, chain rule, backpropagation | foundations | foundations-01-linear-algebra | done |
 | `foundations-05-probability` Probability and distributions for ML | foundations | foundations-04-vector-calculus | done |
 | `foundations-06-optimization` Continuous optimisation | foundations | foundations-04-vector-calculus, foundations-03-matrix-decompositions | done |
+| `gpu-01-cuda` CUDA from scratch | gpu | — | exists |
+| `gpu-02-compiler-and-vgpu` Compiler and virtual GPU | gpu | — | exists |
+| `langs-01-haskell` Haskell projects | langs | — | exists |
+| `langs-02-sgl` A small graph language | langs | — | exists |
+| `langs-03-quantum` A quantum computing language | langs | — | exists |
 | `lean-01-galois-path` Logic to the fundamental theorem of Galois theory (Lean 4) | lean | — | exists |
 | `linalg-01-vector-spaces` Vector spaces and linear maps | linalg | foundations-01-linear-algebra | done |
 | `linalg-02-eigenvalues` Eigenvalues, invariant subspaces, diagonalisability | linalg | linalg-01-vector-spaces | done |
@@ -191,6 +337,32 @@ graph LR
 | `linalg-04-qr-least-squares` QR factorisation and least squares | linalg | linalg-03-spectral-theorem | done |
 | `linalg-05-conditioning-stability` Conditioning and numerical stability | linalg | linalg-04-qr-least-squares | done |
 | `linalg-06-eigenvalue-algorithms` Eigenvalue algorithms | linalg | linalg-05-conditioning-stability, linalg-02-eigenvalues | done |
+| `llm-01-llm-from-scratch` An LLM from scratch | llm | — | exists |
+| `llm-02-rag` Retrieval-augmented generation | llm | — | exists |
+| `llm-03-diffusion` Diffusion models | llm | — | exists |
+| `llm-04-context-caching` Prompt caching and context | llm | — | exists |
+| `llm-05-contextcite` Context attribution | llm | — | exists |
+| `llm-06-world-models` World models | llm | — | exists |
+| `llm-07-rl-posttraining` RL post-training of LLMs | llm | — | exists |
+| `llm-08-spectral-graphs` Spectral graph methods | llm | — | exists |
+| `llm-09-deepfake-creation` Deepfake creation | llm | — | exists |
+| `llm-10-deepfake-detection` Deepfake detection | llm | — | exists |
+| `lowlevel-01-bit-representation` Bits: integers, floats, endianness | lowlevel | — | todo |
+| `lowlevel-02-memory-layout` Struct layout, alignment, padding | lowlevel | lowlevel-01-bit-representation | todo |
+| `lowlevel-03-allocator` A malloc: free list, split, coalesce | lowlevel | lowlevel-02-memory-layout | todo |
+| `lowlevel-04-syscalls-io` File descriptors, read/write, buffering | lowlevel | lowlevel-02-memory-layout | todo |
+| `lowlevel-05-concurrency` Locks, atomics, condition variables | lowlevel | lowlevel-03-allocator | todo |
+| `lowlevel-06-bash-from-scratch` A shell from scratch | lowlevel | — | exists |
+| `lowlevel-07-c-compiler` A C compiler | lowlevel | — | exists |
+| `lowlevel-08-toralizer` Apt via LD_PRELOAD (toralizer) | lowlevel | — | exists |
+| `mlsys-01-ml-framework` An ML framework | mlsys | — | exists |
+| `mlsys-02-model-serving` Model serving | mlsys | — | exists |
+| `mlsys-03-inference-engine` An inference engine | mlsys | — | exists |
+| `mlsys-04-tensorrt` TensorRT-style inference | mlsys | — | exists |
+| `mlsys-05-inference-lab` Inference lab | mlsys | — | exists |
+| `mlsys-06-distributed-training` Distributed training | mlsys | — | exists |
+| `mlsys-07-mlops` MLOps | mlsys | — | exists |
+| `mlsys-08-ml-in-production` ML in production | mlsys | — | exists |
 | `optimization-01-convexity` Convex sets and convex functions | optimization | foundations-06-optimization | done |
 | `optimization-02-duality` Lagrangian duality and KKT | optimization | optimization-01-convexity | done |
 | `optimization-03-unconstrained` Unconstrained minimisation: gradient and Newton | optimization | optimization-01-convexity, linalg-05-conditioning-stability | done |
@@ -216,4 +388,12 @@ graph LR
 | `probability-06-conditional-expectation` Conditional expectation | probability | probability-04-joint | done |
 | `probability-07-markov-chains-mcmc` Markov chains and MCMC | probability | probability-06-conditional-expectation | done |
 | `prml-11-sampling` Sampling methods | prml | prml-02-distributions, probability-07-markov-chains-mcmc | done |
+| `quant-01-quant-trading` Quantitative trading | quant | — | exists |
+| `security-01-cryptographic-library` A cryptographic library | security | — | exists |
+| `security-02-firewall` A firewall from scratch | security | — | exists |
+| `web-01-http-server` An HTTP server | web | — | exists |
+| `web-02-dns-server` A DNS server | web | — | exists |
+| `web-03-web-scraping` Web scraping | web | — | exists |
+| `web-04-launch-checklist` Launch checklist observers | web | — | exists |
+| `web-05-communication-protocols` Communication protocols | web | — | exists |
 <!-- END GENERATED -->

@@ -80,10 +80,11 @@ Update this file in the same commit that finishes or adds an item.
 5. [ ] **ml-systems framework part 2**: convolutions and a CNN, then a transformer trained on
        the framework. **Blocked in this environment:** the framework imports numpy, which is
        not installed (part 3 needs it too). → [ml-systems/framework/README.md](ml-systems/framework/README.md)
-6. [ ] **Skill-tree nodes** (38), one at a time, starting from `tree.py next`.
-       37 of 38 built and audited; `lean-01-galois-path` is the only node left and is
-       blocked in this environment (no `lake`/`lean`/`elan`, so `lake build` cannot run),
-       tracked under "Gaps" below.
+6. [ ] **Skill-tree nodes**, one at a time, starting from `tree.py next`. The tree now spans
+       97 nodes in 20 tracks across five domains (added low-level systems, distributed
+       systems, cloud/AWS primitives, and the existing repo material mapped as `exists`), and
+       is lightly gamified (XP, levels, per-track/domain badges). The 15 new nodes are `todo`;
+       `lean-01-galois-path` stays blocked (no `lake`/`lean`/`elan`).
        → [skill-tree/README.md](skill-tree/README.md)
 7. [ ] **inference-lab CPU-real projects**: #4 prefix-caching proxy and #13 AI gateway are
        built and audited; #3 KV monitor remains.

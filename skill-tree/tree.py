@@ -6,10 +6,15 @@ The skill tree: validate it, find what is ready to work on, render it.
     python3 tree.py order            # a full topological order
     python3 tree.py show <id>        # one node, with its prerequisites' status
     python3 tree.py status           # counts per track and status
+    python3 tree.py xp               # XP, level, rank and badges
     python3 tree.py render           # rewrite the generated section of README.md
 
 A node is READY when its status is "todo" and every node in `requires` is "done".
 "exists" (material without graded checks) never satisfies a prerequisite.
+
+Tracks and the gamification rules (XP by difficulty, capstones, levels, badges) live
+in tracks.py so the README and the HTML page agree. Sources come from books.toml:
+either a `[book.*]` (cite the chapter) or a `[doc.*]` (a spec, standard or manual).
 """
 
 from __future__ import annotations
@@ -21,9 +26,20 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+if str(HERE) not in sys.path:
+    sys.path.insert(0, str(HERE))
+from tracks import (  # noqa: E402
+    TRACKS,
+    XP_BY_DIFFICULTY,
+    badges,
+    earned_xp,
+    level_for,
+    max_xp,
+)
+
 REPO = HERE.parent
-TRACKS = ("foundations", "linalg", "probability", "optimization", "prml", "lean")
 STATUSES = ("todo", "in-progress", "done", "exists")
+KINDS = ("skill", "capstone")
 REQUIRED = ("id", "title", "track", "requires", "sources", "deliverable", "build", "accept",
             "limit_cases", "status")
 BEGIN, END = "<!-- BEGIN GENERATED: tree.py render -->", "<!-- END GENERATED -->"
@@ -31,8 +47,10 @@ BEGIN, END = "<!-- BEGIN GENERATED: tree.py render -->", "<!-- END GENERATED -->
 
 def load(tree_path: Path = HERE / "tree.toml", books_path: Path = HERE / "books.toml"):
     nodes = tomllib.loads(tree_path.read_text()).get("node", [])
-    books = tomllib.loads(books_path.read_text()).get("book", {})
-    return nodes, books
+    data = tomllib.loads(books_path.read_text())
+    # one flat registry: books (chapter citations) plus docs (specs, standards, manuals)
+    sources = {**data.get("book", {}), **data.get("doc", {})}
+    return nodes, sources
 
 
 def validate(nodes: list[dict], books: dict, repo: Path = REPO) -> list[str]:
@@ -54,6 +72,11 @@ def validate(nodes: list[dict], books: dict, repo: Path = REPO) -> list[str]:
             problems.append(f"{nid}: id must look like '{n['track']}-NN-slug'")
         if n["status"] not in STATUSES:
             problems.append(f"{nid}: unknown status {n['status']!r}")
+        if "difficulty" in n and n["difficulty"] not in XP_BY_DIFFICULTY:
+            problems.append(f"{nid}: difficulty {n['difficulty']!r} must be one of "
+                            f"{sorted(XP_BY_DIFFICULTY)}")
+        if "kind" in n and n["kind"] not in KINDS:
+            problems.append(f"{nid}: kind {n['kind']!r} must be one of {list(KINDS)}")
         for r in n["requires"]:
             if r not in by_id:
                 problems.append(f"{nid}: requires unknown node {r!r}")
@@ -62,11 +85,12 @@ def validate(nodes: list[dict], books: dict, repo: Path = REPO) -> list[str]:
         for s in n["sources"]:
             book = s.split(":", 1)[0]
             if ":" not in s or book not in books:
-                problems.append(f"{nid}: source {s!r} must be 'book:chapter' with a book from books.toml")
+                problems.append(f"{nid}: source {s!r} must be 'id:locator' with an id from books.toml")
         if n["status"] != "exists":
-            expected = f"math/{n['track']}/"
-            if not n["deliverable"].startswith(expected):
-                problems.append(f"{nid}: deliverable should live under {expected}")
+            if n["track"] in TRACKS:
+                expected = TRACKS[n["track"]].root + "/"
+                if not n["deliverable"].startswith(expected):
+                    problems.append(f"{nid}: deliverable should live under {expected}")
             if not n["accept"]:
                 problems.append(f"{nid}: no acceptance criteria")
         if n["status"] == "done":
@@ -123,13 +147,24 @@ def ready_nodes(nodes: list[dict]) -> list[dict]:
 def render(nodes: list[dict]) -> str:
     style = {"done": ":::done", "in-progress": ":::wip", "exists": ":::exists", "todo": ""}
     done = sum(1 for n in nodes if n["status"] == "done")
+    settled = sum(1 for n in nodes if n["status"] in ("done", "exists"))
     per = []
     for t in TRACKS:
         mem = [n for n in nodes if n["track"] == t]
         if mem:
             per.append(f"{t} {sum(1 for n in mem if n['status'] == 'done')}/{len(mem)}")
-    lines = [f"**{done} of {len(nodes)} nodes built** ({', '.join(per)}).", "",
-             "```mermaid", "graph LR"]
+    xp, cap = earned_xp(nodes), max_xp(nodes)
+    level, rank, nxt = level_for(xp)
+    badge = badges(nodes)
+    earned = [TRACKS[t].label for t, ok in badge["tracks"].items() if ok]
+    lines = [f"**{done} of {len(nodes)} nodes graded** — {settled} settled "
+             f"(graded or already in the repo). Per track (graded/total): {', '.join(per)}.", "",
+             f"**Level {level} · {rank}** — {xp:,} / {cap:,} XP"
+             + (f", next at {nxt:,}." if nxt else "."),
+             "Badges: " + (" · ".join(f"{b} ✓" for b in earned) if earned else "none yet")
+             + (f" · domains: {', '.join(k for k, v in badge['domains'].items() if v)}"
+                if any(badge["domains"].values()) else ""),
+             "", "```mermaid", "graph LR"]
     for track in TRACKS:
         members = [n for n in nodes if n["track"] == track]
         if not members:
@@ -153,12 +188,13 @@ def render(nodes: list[dict]) -> str:
 
 def main(argv: list[str]) -> int:
     cmd = argv[0] if argv else "check"
-    nodes, books = load()
-    problems = validate(nodes, books)
+    nodes, sources = load()
+    problems = validate(nodes, sources)
     if cmd == "check" or problems:
         for p in problems:
             print(f"  ✗ {p}")
-        print(f"{len(nodes)} nodes, {len(books)} books: {'OK' if not problems else f'{len(problems)} problems'}")
+        print(f"{len(nodes)} nodes, {len(sources)} sources: "
+              f"{'OK' if not problems else f'{len(problems)} problems'}")
         return 1 if problems else 0
     if cmd == "next":
         for n in ready_nodes(nodes):
@@ -182,7 +218,21 @@ def main(argv: list[str]) -> int:
         c = Counter((n["track"], n["status"]) for n in nodes)
         for track in TRACKS:
             row = {s: c[(track, s)] for s in STATUSES if c[(track, s)]}
-            print(f"{track:13s} {row}")
+            if row:
+                print(f"{track:13s} {row}")
+    elif cmd == "xp":
+        xp, cap = earned_xp(nodes), max_xp(nodes)
+        level, rank, nxt = level_for(xp)
+        print(f"Level {level} · {rank}: {xp} / {cap} XP"
+              + (f" (next at {nxt})" if nxt else ""))
+        badge = badges(nodes)
+        for t, ok in badge["tracks"].items():
+            mem = [n for n in nodes if n["track"] == t]
+            d = sum(1 for n in mem if n["status"] in ("done", "exists"))
+            print(f"  {'★' if ok else '·'} {TRACKS[t].label:22s} {d}/{len(mem)}"
+                  f"  [{TRACKS[t].domain}]")
+        print("domains: " + ", ".join(f"{d}{' ✓' if ok else ''}"
+                                      for d, ok in badge["domains"].items()))
     elif cmd == "render":
         readme = HERE / "README.md"
         text = readme.read_text()

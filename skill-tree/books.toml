@@ -50,3 +50,97 @@ title = "Probabilistic Machine Learning: Advanced Topics"
 authors = "Murphy"
 year = 2023
 access = "free, probml.github.io/pml-book/book2.html"
+
+# --- systems / cloud / ai tracks (cite by chapter; never copy text) ---
+
+[book.csapp]
+title = "Computer Systems: A Programmer's Perspective, 3rd edition"
+authors = "Bryant, O'Hallaron"
+year = 2015
+access = "not free (Pearson)"
+
+[book.ostep]
+title = "Operating Systems: Three Easy Pieces"
+authors = "Arpaci-Dusseau, Arpaci-Dusseau"
+year = 2018
+access = "free, pages.cs.wisc.edu/~remzi/OSTEP (verify)"
+
+[book.ddia]
+title = "Designing Data-Intensive Applications"
+authors = "Kleppmann"
+year = 2017
+access = "not free (O'Reilly)"
+
+[book.dbint]
+title = "Database Internals"
+authors = "Petrov"
+year = 2019
+access = "not free (O'Reilly)"
+
+[book.vansteen]
+title = "Distributed Systems, 4th edition"
+authors = "van Steen, Tanenbaum"
+year = 2023
+access = "free, distsys.net (verify)"
+
+[book.kurose]
+title = "Computer Networking: A Top-Down Approach, 8th edition"
+authors = "Kurose, Ross"
+year = 2021
+access = "not free (Pearson)"
+
+[book.nystrom]
+title = "Crafting Interpreters"
+authors = "Nystrom"
+year = 2021
+access = "free, craftinginterpreters.com"
+
+[book.huyen]
+title = "Designing Machine Learning Systems"
+authors = "Huyen"
+year = 2022
+access = "not free (O'Reilly)"
+
+[book.aumasson]
+title = "Serious Cryptography, 2nd edition"
+authors = "Aumasson"
+year = 2024
+access = "not free (No Starch)"
+
+# --- non-book sources: specs, RFCs, standards, vendor manuals ---
+
+[doc.awsdocs]
+title = "AWS Documentation (S3, SQS, SNS, VPC, CloudFormation)"
+authors = "Amazon Web Services"
+year = 2026
+access = "free, docs.aws.amazon.com"
+
+[doc.awsiam]
+title = "IAM policy evaluation logic"
+authors = "Amazon Web Services"
+year = 2026
+access = "free, docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html"
+
+[doc.raft]
+title = "In Search of an Understandable Consensus Algorithm (Raft)"
+authors = "Ongaro, Ousterhout"
+year = 2014
+access = "free, raft.github.io"
+
+[doc.rfc9110]
+title = "RFC 9110: HTTP Semantics"
+authors = "IETF"
+year = 2022
+access = "free, rfc-editor.org"
+
+[doc.rfc1035]
+title = "RFC 1035: Domain Names — Implementation and Specification"
+authors = "IETF"
+year = 1987
+access = "free, rfc-editor.org"
+
+[doc.posix]
+title = "POSIX.1-2017 / Linux man-pages"
+authors = "IEEE / man-pages project"
+year = 2018
+access = "free, man7.org"

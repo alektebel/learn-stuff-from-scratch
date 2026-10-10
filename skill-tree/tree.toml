@@ -741,3 +741,910 @@ accept = ["`lake build` succeeds with no `sorry` in the learner's files (not yet
 limit_cases = []
 related = ["lean-proofs"]
 status = "exists"
+
+# =====================================================================================
+# Track: lowlevel (systems programming: representation, memory, the OS boundary)
+# =====================================================================================
+
+[[node]]
+id = "lowlevel-01-bit-representation"
+title = "Bits: integers, floats, endianness"
+track = "lowlevel"
+difficulty = 2
+requires = []
+sources = ["csapp:2"]
+deliverable = "lowlevel/01-bit-representation"
+build = [
+  "encode and decode two's-complement integers of any width",
+  "encode and decode IEEE-754 binary32/binary64 with struct",
+  "byte order: little/big endian, and a host-order detector",
+]
+accept = [
+  "round-trips agree with struct.pack/unpack on random bit patterns",
+  "hex dump of known values matches the reference (0xFFFFFFFF = -1 in i32)",
+  "-0.0, +inf and NaN survive a round-trip with their sign and payload class",
+]
+limit_cases = [
+  "a denormal float is not flushed to zero",
+  "integer overflow wraps, it does not raise, and is flagged by a separate guarded add",
+]
+status = "todo"
+
+[[node]]
+id = "lowlevel-02-memory-layout"
+title = "Struct layout, alignment, padding"
+track = "lowlevel"
+difficulty = 3
+requires = ["lowlevel-01-bit-representation"]
+sources = ["csapp:3"]
+deliverable = "lowlevel/02-memory-layout"
+build = [
+  "sizeof and member offsets for a struct under natural alignment",
+  "a packer that lays out a struct as a byte string",
+  "reordering fields to shrink a struct",
+]
+accept = [
+  "sizeof and offsets match struct.calcsize and struct field offsets",
+  "packed layout matches a hand-written format string",
+  "reordering strictly reduces size when padding exists",
+]
+limit_cases = [
+  "a packed (unaligned) struct is smaller but the unaligned access is flagged",
+  "an over-aligned member pads the whole struct, not just the member",
+]
+status = "todo"
+
+[[node]]
+id = "lowlevel-03-allocator"
+title = "A malloc: free list, split, coalesce"
+track = "lowlevel"
+difficulty = 4
+requires = ["lowlevel-02-memory-layout"]
+sources = ["csapp:9"]
+deliverable = "lowlevel/03-allocator"
+build = [
+  "allocate/free over a fixed arena with 16-byte alignment",
+  "free-list search (first fit), block split and neighbour coalescing",
+  "a utilisation metric (payload bytes over arena bytes)",
+]
+accept = [
+  "every returned pointer is 16-byte aligned and non-overlapping",
+  "freed blocks are reused and adjacent free blocks coalesce",
+  "a stress run keeps utilisation above a stated floor",
+]
+limit_cases = [
+  "free(NULL) is a no-op; a double free is detected, not silently corrupting the list",
+  "fragmentation: alternating alloc/free leaves no falsely-large free block",
+]
+status = "todo"
+
+[[node]]
+id = "lowlevel-04-syscalls-io"
+title = "File descriptors, read/write, buffering"
+track = "lowlevel"
+difficulty = 3
+requires = ["lowlevel-02-memory-layout"]
+sources = ["ostep:36", "posix:2"]
+deliverable = "lowlevel/04-syscalls-io"
+build = [
+  "copy a file with os.read/os.write and no buffering",
+  "a buffered reader that handles short reads",
+  "an fd table mapping small integers to open handles",
+]
+accept = [
+  "the copy is byte-identical to the source on random data",
+  "a deliberately short read is looped until EOF, not truncated",
+  "closing an fd twice is reported, not ignored",
+]
+limit_cases = [
+  "a partial write on a pipe is retried for the remainder",
+  "read returning 0 means EOF, not an error to retry",
+]
+status = "todo"
+
+[[node]]
+id = "lowlevel-05-concurrency"
+title = "Locks, atomics, condition variables"
+track = "lowlevel"
+difficulty = 4
+requires = ["lowlevel-03-allocator"]
+sources = ["ostep:28", "ostep:29"]
+deliverable = "lowlevel/05-concurrency"
+build = [
+  "a spinlock from an atomic test-and-set and a compare-and-swap",
+  "a bounded queue with a mutex and condition variables (producer/consumer)",
+  "a shared counter incremented with and without the lock",
+]
+accept = [
+  "the unsynchronised counter loses updates; the locked one does not",
+  "no item is lost or duplicated across many producers and consumers",
+  "the spinlock is not held across a blocking call",
+]
+limit_cases = [
+  "a lost wake-up when the condition is checked with if instead of while",
+  "deadlock when two threads take locks in opposite order, surfaced by a timeout",
+]
+status = "todo"
+
+# =====================================================================================
+# Track: distributed (replication, consensus, convergence, partitioning)
+# =====================================================================================
+
+[[node]]
+id = "distributed-01-clocks"
+title = "Time, Lamport and vector clocks"
+track = "distributed"
+difficulty = 3
+requires = []
+sources = ["ddia:8", "vansteen:6"]
+deliverable = "distributed/01-clocks"
+build = [
+  "a Lamport clock over a simulated message stream",
+  "a vector clock and the happens-before relation",
+  "classify two events: before, after, or concurrent",
+]
+accept = [
+  "causal order is preserved (a send precedes its receive everywhere)",
+  "concurrent events are reported concurrent, never ordered",
+  "clocks merge correctly when a message is received",
+]
+limit_cases = [
+  "clock skew: two unsynchronised wall clocks can disagree with the causal order",
+  "an empty vector clock vs a populated one is handled, not crashed",
+]
+status = "todo"
+
+[[node]]
+id = "distributed-02-replication-quorums"
+title = "Replication and quorums"
+track = "distributed"
+difficulty = 3
+requires = ["distributed-01-clocks"]
+sources = ["ddia:5"]
+deliverable = "distributed/02-replication-quorums"
+build = [
+  "a single-leader log replicated to followers over a simulated network",
+  "quorum reads and writes with parameters R, W and N",
+  "a read-after-write check under the quorum rule",
+]
+accept = [
+  "with R + W > N a read sees the last acknowledged write",
+  "with R + W <= N a stale read is possible and is demonstrated",
+  "a write acknowledged to the client is durable on a quorum",
+]
+limit_cases = [
+  "under a partition, a minority refuses the write instead of forking the log",
+  "a slow follower lags but does not block the quorum",
+]
+status = "todo"
+
+[[node]]
+id = "distributed-03-consensus"
+title = "Consensus (Raft): elect, replicate, commit"
+track = "distributed"
+difficulty = 5
+kind = "capstone"
+requires = ["distributed-02-replication-quorums"]
+sources = ["raft:5", "vansteen:8"]
+deliverable = "distributed/03-consensus"
+build = [
+  "leader election with terms and a randomised timeout",
+  "log replication and the commitment rule (majority match)",
+  "an apply channel that delivers committed entries in order",
+]
+accept = [
+  "at most one leader per term; a new election after a leader crash",
+  "two nodes never apply different entries at the same index",
+  "a minority cannot commit anything",
+]
+limit_cases = [
+  "a partitioned leader rejoins and steps down without diverging the log",
+  "delayed and reordered messages do not break safety",
+]
+status = "todo"
+
+[[node]]
+id = "distributed-04-crdts"
+title = "CRDTs: counters, registers, sets"
+track = "distributed"
+difficulty = 4
+requires = ["distributed-01-clocks"]
+sources = ["vansteen:7"]
+deliverable = "distributed/04-crdts"
+build = [
+  "a grow-only counter and a two-phase (PN) counter",
+  "last-writer-wins register with a total order tie-break",
+  "an observed-remove set (OR-set)",
+]
+accept = [
+  "merge is commutative, associative and idempotent (proved by fuzzing)",
+  "replicas converge after an arbitrary exchange of merges",
+  "the PN counter can go down and the OR-set can re-add a removed element",
+]
+limit_cases = [
+  "OR-set: remove-then-add keeps the element, add-then-remove drops it",
+  "LWW ties are broken by node id, deterministically",
+]
+status = "todo"
+
+[[node]]
+id = "distributed-05-partitioning"
+title = "Partitioning and rebalancing"
+track = "distributed"
+difficulty = 3
+requires = ["distributed-02-replication-quorums"]
+sources = ["ddia:6"]
+deliverable = "distributed/05-partitioning"
+build = [
+  "a consistent-hashing ring with virtual nodes",
+  "key-to-node assignment and rebalancing on join/leave",
+  "an evenness metric across nodes",
+]
+accept = [
+  "keys distribute within a stated bound of even with enough virtual nodes",
+  "when one node joins, only its share of keys moves, not all of them",
+  "a lookup returns the same node for the same key before and after a read-only op",
+]
+limit_cases = [
+  "a hot key overloads one node even with a balanced ring",
+  "too few virtual nodes gives a badly uneven ring",
+]
+status = "todo"
+
+# =====================================================================================
+# Track: cloud (AWS primitives, re-implemented from scratch so they can be verified)
+# =====================================================================================
+
+[[node]]
+id = "cloud-01-object-store"
+title = "An object store (S3-shaped)"
+track = "cloud"
+difficulty = 3
+requires = []
+sources = ["awsdocs:s3"]
+deliverable = "cloud/01-object-store"
+build = [
+  "buckets and keys with put/get/delete and list by prefix",
+  "object versioning and delete markers",
+  "an ETag, and a presigned-style capability token",
+]
+accept = [
+  "CRUD works and list honours prefix and delimiter",
+  "versioning keeps every version and a delete marker hides the current one",
+  "the ETag is a hash of the content and changes when the content does",
+]
+limit_cases = [
+  "deleting a non-empty bucket is refused, not silently destructive",
+  "a read-after-write of a just-put key sees it (the model is not eventually consistent)",
+]
+status = "todo"
+
+[[node]]
+id = "cloud-02-iam-policy"
+title = "An IAM policy evaluator"
+track = "cloud"
+difficulty = 4
+requires = []
+sources = ["awsiam:evaluation"]
+deliverable = "cloud/02-iam-policy"
+build = [
+  "parse a policy document (Statement, Effect, Action, Resource, Condition)",
+  "evaluate Allow/Deny with wildcards, explicit deny winning",
+  "an implicit-deny default and a condition evaluator",
+]
+accept = [
+  "evaluation matches the documented order: explicit deny, then allow, else deny",
+  "action and resource wildcards match the intended set",
+  "conditions gate a statement on request context",
+]
+limit_cases = [
+  "an explicit Deny beats an Allow no matter how many Allows exist",
+  "a missing action is an implicit deny, not an error",
+]
+status = "todo"
+
+[[node]]
+id = "cloud-03-queue-fanout"
+title = "A queue and pub/sub (SQS + SNS-shaped)"
+track = "cloud"
+difficulty = 3
+requires = ["cloud-01-object-store"]
+sources = ["awsdocs:sqs", "awsdocs:sns"]
+deliverable = "cloud/03-queue-fanout"
+build = [
+  "a queue with visibility timeout and at-least-once redelivery",
+  "acknowledgement that removes a message",
+  "a topic fanning out to subscribers (queue or webhook)",
+]
+accept = [
+  "an unacknowledged message reappears after the visibility timeout",
+  "an acknowledged message is gone for good",
+  "a publish reaches every subscriber",
+]
+limit_cases = [
+  "at-least-once means duplicates; a consumer must be idempotent to survive them",
+  "after max receives, the message goes to a dead-letter queue",
+]
+status = "todo"
+
+[[node]]
+id = "cloud-04-vpc-routing"
+title = "A VPC: routes, security groups, NACLs"
+track = "cloud"
+difficulty = 4
+requires = ["cloud-01-object-store"]
+sources = ["awsdocs:vpc"]
+deliverable = "cloud/04-vpc-routing"
+build = [
+  "a route table with longest-prefix-match lookup",
+  "stateful security groups (return traffic allowed) and a stateless NACL",
+  "a packet simulator that walks the decision"
+]
+accept = [
+  "the most specific matching prefix wins",
+  "a security-group rule allows the response without an explicit inbound rule",
+  "a NACL must allow both directions and the ephemeral ports"
+]
+limit_cases = [
+  "overlapping prefixes: the longest match beats the default route",
+  "a NACL that blocks the ephemeral return port kills an otherwise-allowed connection",
+]
+status = "todo"
+
+[[node]]
+id = "cloud-05-iac-drift"
+title = "Infra as code and drift"
+track = "cloud"
+difficulty = 3
+kind = "capstone"
+requires = ["cloud-02-iam-policy", "cloud-04-vpc-routing"]
+sources = ["awsdocs:cloudformation"]
+deliverable = "cloud/05-iac-drift"
+build = [
+  "parse a declarative resource spec and a current-state document",
+  "compute a plan of create/update/delete actions",
+  "order actions by dependency"
+]
+accept = [
+  "with state equal to spec the plan is empty (idempotent)",
+  "a changed attribute produces an update, a removed resource a delete",
+  "creates precede dependents; deletes follow them"
+]
+limit_cases = [
+  "a rename is create-before-destroy, not destroy-before-create, for a stateful resource",
+  "a cycle in the dependency graph is reported, not looped on",
+]
+status = "todo"
+
+# =====================================================================================
+# Existing material mapped into the tree (status = exists): built, no graded checks yet.
+# They count toward its track's badge but award no XP until a check.py grades them.
+# =====================================================================================
+
+[[node]]
+id = "lowlevel-06-bash-from-scratch"
+title = "A shell from scratch"
+track = "lowlevel"
+requires = []
+sources = []
+deliverable = "bash-from-scratch"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "lowlevel-07-c-compiler"
+title = "A C compiler"
+track = "lowlevel"
+requires = []
+sources = []
+deliverable = "c-compiler"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "lowlevel-08-toralizer"
+title = "Apt via LD_PRELOAD (toralizer)"
+track = "lowlevel"
+requires = []
+sources = []
+deliverable = "toralizer"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "distributed-06-dynamo-paper"
+title = "The Dynamo paper, implemented"
+track = "distributed"
+requires = []
+sources = []
+deliverable = "dynamo-paper"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "distributed-07-system-design"
+title = "System design exercises"
+track = "distributed"
+requires = []
+sources = []
+deliverable = "system-design"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "databases-01-relational-engine"
+title = "A relational engine (B+tree, MVCC, WAL)"
+track = "databases"
+requires = []
+sources = []
+deliverable = "database-from-scratch"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "databases-02-data-lineage"
+title = "Data lineage tool"
+track = "databases"
+requires = []
+sources = []
+deliverable = "sas-lineage-tool"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "security-01-cryptographic-library"
+title = "A cryptographic library"
+track = "security"
+requires = []
+sources = []
+deliverable = "cryptographic-library"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "security-02-firewall"
+title = "A firewall from scratch"
+track = "security"
+requires = []
+sources = []
+deliverable = "firewall-from-scratch"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "web-01-http-server"
+title = "An HTTP server"
+track = "web"
+requires = []
+sources = []
+deliverable = "http-server"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "web-02-dns-server"
+title = "A DNS server"
+track = "web"
+requires = []
+sources = []
+deliverable = "dns-server"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "web-03-web-scraping"
+title = "Web scraping"
+track = "web"
+requires = []
+sources = []
+deliverable = "web-scraping"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "web-04-launch-checklist"
+title = "Launch checklist observers"
+track = "web"
+requires = []
+sources = []
+deliverable = "web-launch-checklist"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "web-05-communication-protocols"
+title = "Communication protocols"
+track = "web"
+requires = []
+sources = []
+deliverable = "communication-protocols"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "gpu-01-cuda"
+title = "CUDA from scratch"
+track = "gpu"
+requires = []
+sources = []
+deliverable = "cuda-from-scratch"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "gpu-02-compiler-and-vgpu"
+title = "Compiler and virtual GPU"
+track = "gpu"
+requires = []
+sources = []
+deliverable = "compiler-and-vgpu"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "langs-01-haskell"
+title = "Haskell projects"
+track = "langs"
+requires = []
+sources = []
+deliverable = "haskell-projects"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "langs-02-sgl"
+title = "A small graph language"
+track = "langs"
+requires = []
+sources = []
+deliverable = "sgl-lang"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "langs-03-quantum"
+title = "A quantum computing language"
+track = "langs"
+requires = []
+sources = []
+deliverable = "quantum-computing-lang"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "mlsys-01-ml-framework"
+title = "An ML framework"
+track = "mlsys"
+requires = []
+sources = []
+deliverable = "ml-systems"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "mlsys-02-model-serving"
+title = "Model serving"
+track = "mlsys"
+requires = []
+sources = []
+deliverable = "ml-inference"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "mlsys-03-inference-engine"
+title = "An inference engine"
+track = "mlsys"
+requires = []
+sources = []
+deliverable = "vllm-engine"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "mlsys-04-tensorrt"
+title = "TensorRT-style inference"
+track = "mlsys"
+requires = []
+sources = []
+deliverable = "tensorrt-inference"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "mlsys-05-inference-lab"
+title = "Inference lab"
+track = "mlsys"
+requires = []
+sources = []
+deliverable = "inference-lab"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "mlsys-06-distributed-training"
+title = "Distributed training"
+track = "mlsys"
+requires = []
+sources = []
+deliverable = "distributed-training"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "mlsys-07-mlops"
+title = "MLOps"
+track = "mlsys"
+requires = []
+sources = []
+deliverable = "mlops"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "mlsys-08-ml-in-production"
+title = "ML in production"
+track = "mlsys"
+requires = []
+sources = []
+deliverable = "ml-in-production"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "agents-01-agent-harness"
+title = "An agent harness (Harness Lab)"
+track = "agents"
+requires = []
+sources = []
+deliverable = "harness-lab"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "agents-02-mcp-server"
+title = "An MCP server"
+track = "agents"
+requires = []
+sources = []
+deliverable = "mcp-from-scratch"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "agents-03-agent-evals"
+title = "Agent evaluation tooling"
+track = "agents"
+requires = []
+sources = []
+deliverable = "agent-evals"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "llm-01-llm-from-scratch"
+title = "An LLM from scratch"
+track = "llm"
+requires = []
+sources = []
+deliverable = "llm-from-scratch"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "llm-02-rag"
+title = "Retrieval-augmented generation"
+track = "llm"
+requires = []
+sources = []
+deliverable = "rag-from-scratch"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "llm-03-diffusion"
+title = "Diffusion models"
+track = "llm"
+requires = []
+sources = []
+deliverable = "diffusion-models"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "llm-04-context-caching"
+title = "Prompt caching and context"
+track = "llm"
+requires = []
+sources = []
+deliverable = "context-caching"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "llm-05-contextcite"
+title = "Context attribution"
+track = "llm"
+requires = []
+sources = []
+deliverable = "contextcite"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "llm-06-world-models"
+title = "World models"
+track = "llm"
+requires = []
+sources = []
+deliverable = "world-models"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "llm-07-rl-posttraining"
+title = "RL post-training of LLMs"
+track = "llm"
+requires = []
+sources = []
+deliverable = "rl-posttraining-llm"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "llm-08-spectral-graphs"
+title = "Spectral graph methods"
+track = "llm"
+requires = []
+sources = []
+deliverable = "spectral-graphs"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "llm-09-deepfake-creation"
+title = "Deepfake creation"
+track = "llm"
+requires = []
+sources = []
+deliverable = "deepfake-creation"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "llm-10-deepfake-detection"
+title = "Deepfake detection"
+track = "llm"
+requires = []
+sources = []
+deliverable = "deepfake-detection"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "deploy-01-deploy-and-debug"
+title = "Deploy and debug"
+track = "deploy"
+requires = []
+sources = []
+deliverable = "deploy-and-debug"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "quant-01-quant-trading"
+title = "Quantitative trading"
+track = "quant"
+requires = []
+sources = []
+deliverable = "quantitative-trading"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "algos-01-interview-prep"
+title = "Interview preparation"
+track = "algos"
+requires = []
+sources = []
+deliverable = "interview-prep"
+build = []
+accept = []
+limit_cases = []
+status = "exists"
+
+[[node]]
+id = "algos-02-codecraft"
+title = "CodeCrafters-style course runner"
+track = "algos"
+requires = []
+sources = []
+deliverable = "codecraft"
+build = []
+accept = []
+limit_cases = []
+status = "exists"

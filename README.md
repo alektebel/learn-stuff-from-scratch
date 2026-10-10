@@ -50,7 +50,7 @@ serves that same state, read-only, at `http://127.0.0.1:8766`; the CLI stays the
 
 ### Functional Programming & Formal Verification
 - **[haskell-projects/](haskell-projects/)** - Various projects to learn Haskell
-- **[skill-tree/](skill-tree/)** - Dependency graph of 38 math and pattern-recognition skills (Mathematics for ML, Axler, Trefethen & Bau, Blitzstein & Hwang, Boyd, Bishop PRML), each with prerequisites, acceptance criteria and limit cases, validated by `tree.py`; modules are built into [math/](math/) following `.claude/skills/skill-tree-worker`
+- **[skill-tree/](skill-tree/)** - Dependency graph of what the repo builds from scratch: 97 nodes across 20 tracks in five domains (mathematics, systems/low-level, distributed, cloud/AWS, ML systems, agents…), each with prerequisites, acceptance criteria and limit cases, validated by `tree.py`; lightly gamified (XP, levels, per-track badges) and drawn as an interactive map in `tree.html`. Modules are built into their track's root following `.claude/skills/skill-tree-worker`
 - **[math/](math/)** - Graded modules for the skill-tree nodes. Done: `foundations/01-linear-algebra/` (Gaussian elimination with partial pivoting, rank, null space, inverse and determinant) and `foundations/02-analytic-geometry/` (inner products from an SPD matrix, orthogonal and affine projections, classical vs modified Gram-Schmidt, 2-D/3-D rotations) — 10 graded checks each, mutation-tested by planted bugs
 - **[lean-proofs/](lean-proofs/)** - Mathematical proofs in Lean, progressing toward Galois theorem
 

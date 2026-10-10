@@ -23,35 +23,33 @@ import tomllib
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-TRACKS = ("foundations", "linalg", "probability", "optimization", "prml", "lean")
-TRACK_LABEL = {
-    "foundations": "Foundations",
-    "linalg": "Linear algebra",
-    "probability": "Probability",
-    "optimization": "Optimisation",
-    "prml": "Pattern recognition",
-    "lean": "Lean",
-}
-COLORS = {
-    "foundations": "#E0B33C",
-    "linalg": "#58B0A4",
-    "probability": "#B48AD6",
-    "optimization": "#E08A5A",
-    "prml": "#8CBF68",
-    "lean": "#96A0B2",
-}
+if str(HERE) not in sys.path:
+    sys.path.insert(0, str(HERE))
+from tracks import (  # noqa: E402
+    DOMAIN_LABEL,
+    TRACKS,
+    badges,
+    earned_xp,
+    level_for,
+    max_xp,
+    node_xp,
+)
+
+TRACK_LABEL = {t: TRACKS[t].label for t in TRACKS}
+COLORS = {t: TRACKS[t].color for t in TRACKS}
 
 
 def load():
     nodes = tomllib.loads((HERE / "tree.toml").read_text())["node"]
-    books = tomllib.loads((HERE / "books.toml").read_text())["book"]
-    return nodes, books
+    data = tomllib.loads((HERE / "books.toml").read_text())
+    sources = {**data.get("book", {}), **data.get("doc", {})}
+    return nodes, sources
 
 
-def book_name(books: dict, ref: str) -> str:
+def book_name(sources: dict, ref: str) -> str:
     key = ref.split(":", 1)[0]
-    b = books.get(key)
-    return f"{b['title']} ({b['authors']}, {b['year']})" if b else ref
+    s = sources.get(key)
+    return f"{s['title']} ({s['authors']}, {s['year']})" if s else ref
 
 
 def esc(s: str) -> str:
@@ -74,8 +72,36 @@ def progress_markup(nodes: list[dict]) -> str:
     return (
         '<div class="progress">'
         f'<span class="big">{done}<span class="slash">/</span>{total}</span>'
-        f'<span class="pwrap"><span class="plabel mono">nodes built</span>'
+        f'<span class="pwrap"><span class="plabel mono">nodes graded · '
+        f'{sum(1 for n in nodes if n["status"] in ("done", "exists"))} settled</span>'
         f'<span class="bar">{"".join(segs)}</span></span>'
+        "</div>"
+    )
+
+
+def gamify_markup(nodes: list[dict]) -> str:
+    xp, cap = earned_xp(nodes), max_xp(nodes)
+    level, rank, nxt = level_for(xp)
+    pct = (xp / cap * 100) if cap else 0.0
+    bg = badges(nodes)
+
+    def chip(label, ok, color):
+        return f'<span class="{"chip on" if ok else "chip"}" style="--c:{color}">{esc(label)}</span>'
+
+    domains = "".join(chip(DOMAIN_LABEL[d], ok, "#8893A8")
+                      for d, ok in bg["domains"].items())
+    tracks = "".join(chip(TRACKS[t].label, ok, TRACKS[t].color)
+                     for t, ok in bg["tracks"].items())
+    nxt_txt = f"next level at {nxt:,} XP" if nxt else "top rank reached"
+    return (
+        '<div class="gamify">'
+        f'<div class="rankrow"><span class="lvl mono">Lv {level}</span>'
+        f'<span class="rank">{esc(rank)}</span>'
+        f'<span class="xps mono">{xp:,} / {cap:,} XP</span></div>'
+        f'<div class="xpbar" title="{pct:.0f}% of the tree\'s XP">'
+        f'<span style="width:{pct:.1f}%"></span></div>'
+        f'<div class="nxtx">{nxt_txt}</div>'
+        f'<div class="chips"><span class="chiplab mono">badges</span>{domains}{tracks}</div>'
         "</div>"
     )
 
@@ -90,6 +116,7 @@ def legend_markup() -> str:
         '<li><span class="sdot s-ready"></span>ready</li>'
         '<li><span class="sdot s-todo"></span>todo</li>'
         '<li><span class="sdot s-exists"></span>exists</li>'
+        '<li><span class="sdot s-cap"></span>capstone</li>'
     )
     return (
         f'<ul class="legend tracks">{tracks}</ul>'
@@ -98,28 +125,35 @@ def legend_markup() -> str:
 
 
 def colheaders_markup(nodes: list[dict]) -> str:
+    bg = badges(nodes)
     cells = []
     for t in TRACKS:
         mem = [n for n in nodes if n["track"] == t]
         if not mem:
             continue
-        d = sum(1 for n in mem if n["status"] == "done")
+        settled = sum(1 for n in mem if n["status"] in ("done", "exists"))
+        star = (' <span class="tstar" title="track badge earned">★</span>'
+                if bg["tracks"].get(t) else '')
         cells.append(
             f'<div class="colhead" style="--c:{COLORS[t]}">'
-            f'<span class="swatch"></span><span class="cname">{esc(TRACK_LABEL[t])}</span>'
-            f'<span class="ctally mono">{d}/{len(mem)}</span></div>'
+            f'<span class="swatch"></span><span class="cname">{esc(TRACK_LABEL[t])}{star}</span>'
+            f'<span class="ctally mono" title="settled: built or already in the repo">'
+            f'{settled}/{len(mem)}</span></div>'
         )
     return "".join(cells)
 
 
-def build(nodes: list[dict], books: dict) -> str:
+def build(nodes: list[dict], sources: dict) -> str:
     data = {
         "nodes": nodes,
-        "books": books,
+        "books": sources,
         "tracks": list(TRACKS),
         "labels": TRACK_LABEL,
         "colors": COLORS,
-        "bookName": {n: book_name(books, n)
+        "domains": {t: TRACKS[t].domain for t in TRACKS},
+        "domainLabels": DOMAIN_LABEL,
+        "xp": {n["id"]: node_xp(n) for n in nodes},
+        "bookName": {n: book_name(sources, n)
                      for n in sorted({s for x in nodes for s in x["sources"]})},
     }
     done = sum(1 for n in nodes if n["status"] == "done")
@@ -128,8 +162,10 @@ def build(nodes: list[dict], books: dict) -> str:
     doc = TEMPLATE
     doc = doc.replace("/*__DATA__*/", payload)
     doc = doc.replace("<!--__PROGRESS__-->", progress_markup(nodes))
+    doc = doc.replace("<!--__GAMIFY__-->", gamify_markup(nodes))
     doc = doc.replace("<!--__LEGEND__-->", legend_markup())
     doc = doc.replace("<!--__COLHEADERS__-->", colheaders_markup(nodes))
+    doc = doc.replace("__NCOLS__", str(len(TRACKS)))
     doc = doc.replace("__DONE__", str(done)).replace("__TOTAL__", str(len(nodes)))
     return doc
 
@@ -139,14 +175,14 @@ TEMPLATE = r"""<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The Skill Tree — a dependency map of the mathematics curriculum</title>
+<title>The Skill Tree — a dependency map of everything you build from scratch</title>
 <style>
   :root{
     --paper:#161821; --panel:#1B1E29; --panel2:#20243352; --ink:#E8E6DE; --soft:#B9B7AE;
     --dim:#82879B; --line:#282C3A; --focus:#E8E6DE;
     --serif:"DejaVu Serif Condensed","Liberation Serif",Georgia,serif;
     --mono:"Hack","DejaVu Sans Mono","Liberation Mono",monospace;
-    --colw:210px; --rowh:108px;
+    --colw:210px; --rowh:108px; --ncols:__NCOLS__;
   }
   *{box-sizing:border-box}
   html{-webkit-text-size-adjust:100%}
@@ -174,6 +210,25 @@ TEMPLATE = r"""<!doctype html>
   .bar{display:flex;gap:3px;height:7px}
   .seg{flex:1;background:#2b3040;border-radius:99px;overflow:hidden;position:relative}
   .seg .fill{display:block;height:100%;background:var(--c);border-radius:99px}
+
+  /* ---- gamification: one quiet rank line, then badges ---- */
+  .gamify{margin-top:12px;display:flex;flex-direction:column;gap:6px}
+  .rankrow{display:flex;align-items:baseline;gap:9px}
+  .lvl{font-size:.78rem;color:var(--ink);background:#ffffff0f;border:1px solid var(--line);
+    border-radius:5px;padding:1px 7px}
+  .rank{font-weight:600;font-size:1.02rem}
+  .xps{margin-left:auto;color:var(--soft);font-size:.78rem}
+  .xpbar{height:6px;background:#2b3040;border-radius:99px;overflow:hidden}
+  .xpbar span{display:block;height:100%;background:linear-gradient(90deg,#E0B33C,#8CBF68);
+    border-radius:99px}
+  .nxtx{color:var(--dim);font-size:.72rem}
+  .chips{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+  .chiplab{color:var(--dim);font-size:.66rem;letter-spacing:.03em}
+  .chip{font-size:.72rem;color:var(--dim);border:1px solid var(--line);border-radius:99px;
+    padding:2px 8px;display:inline-flex;align-items:center;gap:6px}
+  .chip.on{color:var(--ink);border-color:var(--c);box-shadow:inset 0 0 0 1px var(--c)}
+  .chip.on::before{content:"★";color:var(--c);font-size:.7rem}
+  .tstar{color:var(--c);font-size:.82rem}
   .legend{list-style:none;display:flex;flex-wrap:wrap;gap:6px 16px;margin:0;padding:0;
     color:var(--soft);font-size:.86rem}
   .legend.states{margin-top:2px}
@@ -184,19 +239,20 @@ TEMPLATE = r"""<!doctype html>
   .sdot.s-ready{border-color:var(--ink);box-shadow:inset 0 0 0 2.5px var(--paper),inset 0 0 0 5px var(--ink)}
   .sdot.s-todo{border-color:#5a5f72}
   .sdot.s-exists{border-style:dashed}
+  .sdot.s-cap{box-shadow:0 0 0 2px var(--paper),0 0 0 4px var(--dim)}
 
   /* ---- atlas ---- */
   .atlas{min-width:0;padding:0 clamp(8px,1.6vw,20px) 8px}
   .scroller{overflow:auto;max-height:calc(100vh - 40px)}
   .colheaders{position:sticky;top:0;z-index:5;display:grid;
-    grid-template-columns:repeat(6,var(--colw));background:
+    grid-template-columns:repeat(var(--ncols),var(--colw));background:
       linear-gradient(var(--paper) 78%,transparent)}
   .colhead{display:flex;align-items:center;gap:9px;padding:12px 12px 10px;font-size:.98rem}
   .colhead .swatch{width:16px;height:5px}
   .colhead .cname{font-weight:600}
   .colhead .ctally{margin-left:auto;color:var(--dim);font-size:.76rem}
 
-  #map{position:relative;width:calc(6 * var(--colw))}
+  #map{position:relative;width:calc(var(--ncols) * var(--colw))}
   #edges{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
   .lane{position:absolute;top:0;bottom:0;width:var(--colw);border-left:1px solid var(--line);
     opacity:.5;pointer-events:none}
@@ -218,6 +274,8 @@ TEMPLATE = r"""<!doctype html>
   .station[data-status="todo"] .name{color:var(--soft)}
   .station[data-status="exists"] .dot{border-style:dashed}
   .station[data-status="exists"] .name{color:var(--dim);font-style:italic}
+  .station[data-kind="capstone"] .dot{box-shadow:0 0 0 2.5px var(--paper),0 0 0 5.5px var(--c)}
+  .station[data-kind="capstone"] .name{font-weight:700}
   .station:hover,.station:focus-visible{background:#ffffff0a}
   .station[aria-current="true"]{background:#ffffff12}
   .station[aria-current="true"] .name{font-weight:700}
@@ -270,13 +328,16 @@ TEMPLATE = r"""<!doctype html>
   <div class="cols">
     <div>
       <h1>The Skill Tree</h1>
-      <p class="lede">A from-scratch mathematics and pattern-recognition curriculum, drawn as the
-        dependency map it is. <b>Columns are tracks, the vertical order is dependency</b> — a node
-        unlocks only when everything above it, in its own column or another, is built. Each station
-        is one graded module in <code>math/</code>.</p>
+      <p class="lede">A from-scratch curriculum — mathematics, low-level systems, distributed
+        systems, the cloud, ML systems, agents — drawn as one dependency map.
+        <b>Columns are tracks, the vertical order is dependency</b> — a node unlocks only when
+        everything above it, in its own column or another, is built. Every station is a graded
+        module; a thick ring marks a <b>capstone</b>, a dashed dot material already in the repo
+        (it counts toward a badge, not toward XP).</p>
     </div>
     <div class="stat">
       <!--__PROGRESS__-->
+      <!--__GAMIFY__-->
       <!--__LEGEND__-->
     </div>
   </div>
@@ -359,6 +420,7 @@ for (const n of DATA.nodes) {
   b.className = 'station';
   b.dataset.id = n.id;
   b.dataset.status = status(n);
+  b.dataset.kind = n.kind || 'skill';
   b.setAttribute('aria-current', 'false');
   b.style.setProperty('--c', DATA.colors[n.track]);
   b.style.left = trackIndex(n.track) * COLW + 'px';
@@ -451,6 +513,8 @@ function renderDetail(n){
   detail.innerHTML =
     '<span class="tag"><span class="swatch" style="--c:' + DATA.colors[n.track] + '"></span>' +
       DATA.labels[n.track] + '</span> <span class="tag">' + st + '</span>' +
+    '<span class="tag">' + (n.difficulty || 2) + '/5 · ' + (DATA.xp[n.id] || 0) + ' XP</span>' +
+    (n.kind === 'capstone' ? '<span class="tag">capstone</span>' : '') +
     '<h2>' + escapeHtml(n.title) + '</h2>' +
     '<div class="path">' + escapeHtml(n.deliverable) + '/</div>' +
     '<h3>requires</h3><div class="reqs">' + reqs + '</div>' +
