@@ -12,7 +12,7 @@ The order is the one you set: **AWS → LLM internals → RAG → evals + agents
 
 ### Ready now — checker-driven, pure Python, `codecraft` runs them as-is
 
-Thirteen courses, 171 graded checks between them, no dependencies.
+Fifteen courses, 181 graded checks between them, no dependencies.
 
 | Course | Checks | What it teaches |
 |---|---|---|
@@ -28,6 +28,7 @@ Thirteen courses, 171 graded checks between them, no dependencies.
 | `mcp-from-scratch` | 10 | The JSON-RPC envelope and its codes, stdio/SSE/HTTP framing, the handshake and derived capabilities, tools with the protocol/execution error split, resources and prompts, subscriptions/progress/cancellation, read-only first, idempotency keys, a diff-bound confirmation, the trajectory policy and the audit line (spec 2025-06-18) |
 | `agent-harness-from-scratch` | 10 | The runtime under an agent with the model as a callable: collect an event stream into one turn, a prompt budget recomputed from the bytes, the loop where a spent budget is an outcome, dispatch where an unknown tool is a message, streaming with TTFT and inter-token timings, retries that stop before anything is forwarded, compaction that summarizes the middle, a trace of six keys and no payloads, a process reward grounded in the previous result, and a verifier plus a self-generated data loop measured on held-out tasks |
 | `vector-index-from-scratch` | 10 | Exact scan, the metric, k-means, IVF, the frontier, HNSW, deletions, int8 |
+| `eval-framework-from-scratch` | 10 | The runner under an eval, with the task set, the actors and the clock provided: a suite config that refuses a typo and materialises its defaults into the hashed form, metric plugins resolved before the first call, one record per case with the error taxonomy of a budgeted call, budgets checked before the call, an aggregation whose unit is the case and whose weights travel in the record, a judge session that caches by prompt/answer/reference and asks both orders, canonical records whose bytes two runs share, a gate ordered invalid-run-before-failed-gate with four exit codes, a baseline diff that needs the difference to beat the noise, and a resume that repairs a half-written tail and leaves the log of an uninterrupted run |
 | `benchmark-from-scratch` | 10 | The measurement machinery around a provided mus engine: a turn gate where a refusal is data and not a turn, a match loop with as-dealt snapshots and two rails, one ground-truth record per decision taken before the action, the link from an aggression to the answer it got, the strength reference drawn from the hands that could bet, a risk scorecard where a bluff is a weak hand and not a lost bet, an outcome that survives the 40-point vaca reset, Brier/log-loss/AUC/calibration probes with their degenerate cases, the publishability gate and its leaderboard, and the mirrored pair that cancels the seat advantage |
 | `rag-from-scratch` | 9 | Chunking, TF-IDF, exact index, BM25, rank fusion, reranking, citations, tenants |
 
@@ -62,8 +63,8 @@ from scratch, not just a checker.
 
 ### Missing entirely — the half of your list the repo does not have yet
 
-An eval framework. Also no `CPU` or `OS`; the benchmark machinery is now
-`benchmark-from-scratch` (phase F1).
+No `CPU` or `OS`; the benchmark and the eval runner are now
+`benchmark-from-scratch` (phase F1) and `eval-framework-from-scratch` (phase F2).
 `rag-from-scratch/` (phase B1), `vector-index-from-scratch/` (phase B2),
 `evals-from-scratch/` (phase C1), `agents-from-scratch/` (phase C2),
 `mcp-from-scratch/` (phase D1) and `agent-harness-from-scratch` (phase E1) now
@@ -111,14 +112,17 @@ python3 codecraft/cli.py run aws-from-scratch # stage 1: iam.py
 ```
 
 Work one stage at a time; the coach and the mentor handle the rest. Phases B1,
-B2, C1, C2, D1, E1 and F1 are built (`rag-from-scratch`,
+B2, C1, C2, D1, E1, F1 and F2 are built (`rag-from-scratch`,
 `vector-index-from-scratch`, `evals-from-scratch`, `agents-from-scratch`,
-`mcp-from-scratch`, `agent-harness-from-scratch`, `benchmark-from-scratch`); the
-next course to author is phase F2, the eval framework that reuses this one:
+`mcp-from-scratch`, `agent-harness-from-scratch`, `benchmark-from-scratch`,
+`eval-framework-from-scratch`); the
+next course to author is phase G3, the CPU: a real datapath — decoder, register
+file, ALU, control unit, memory and pipelining — simulated and tested, which the
+repo does not have at all.
 
 ```bash
-python3 codecraft/cli.py new eval-framework-from-scratch \
-    --title "Eval Framework From Scratch" --stages 10
+python3 codecraft/cli.py new cpu-from-scratch \
+    --title "CPU From Scratch" --stages 10
 ```
 
 F1 was a salvage, and it landed: `~/Desarrollo/mus-benchmark` had the turn-gated

@@ -119,10 +119,21 @@ PHASES = [
                 "with the four lances, three bet scales and two reference seats); "
                 "the measurement is the exercise. Reference repo: "
                 "~/Desarrollo/mus-benchmark."},
-        {"id": "F2", "title": "Eval Framework From Scratch", "course": None,
-         "kind": "author", "prereq": ["F1"],
-         "why": "A reusable eval runner: suite config, metric plugins, judge "
-                "protocol, significance, and CI gating. The tool you keep using."},
+        {"id": "F2", "title": "Eval Framework From Scratch",
+         "course": "eval-framework-from-scratch", "kind": "ready",
+         "prereq": ["F1"],
+         "why": "Ten stages, all graded, and the runner rather than the metrics "
+                "(phase C1 owns what to measure): a suite config that refuses a "
+                "typo instead of running differently from what its author "
+                "believed, metric plugins resolved before the first call, one "
+                "record per case with an error taxonomy that blames the right "
+                "side, budgets checked BEFORE the call, an aggregation whose unit "
+                "is the case, a judge asked through a cached and budgeted session "
+                "in both orders, records whose bytes two runs share, a gate that "
+                "refuses to pass what it cannot evaluate, a baseline diff that "
+                "only cries regression when the difference beats the noise, and a "
+                "resume that leaves behind the log of an uninterrupted run. The "
+                "task set, the actors and the clock are provided (`lab.py`)."},
     ]),
     ("G", "GPU, CPU and the machine stack", [
         {"id": "G1", "title": "Compiler + Virtual GPU", "course": "compiler-and-vgpu",
